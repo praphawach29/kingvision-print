@@ -1,38 +1,35 @@
 import { supabase } from '../lib/supabase';
+import { lineFlexTemplates } from './lineFlexTemplates';
 
 export const notificationService = {
-  async sendLineMessage(message: string) {
+  async sendLineMessage(messages: any[]) {
     try {
       const { data: settings, error } = await supabase
         .from('store_settings')
-        .select('line_oa_channel_token, line_oa_admin_id, notify_new_order, notify_order_status, notify_low_stock')
+        .select('line_oa_channel_token, line_oa_admin_id')
         .single();
 
       if (error || !settings?.line_oa_channel_token || !settings?.line_oa_admin_id) return;
 
-      console.log('Sending LINE OA Message:', message);
+      console.log('Sending LINE OA Flex Messages');
       
-      // In a production environment, you MUST call this through a backend/proxy
-      // to avoid CORS and keep your Channel Access Token secure.
-      // Example using fetch (this might fail in browser due to CORS if called directly):
-      /*
-      await fetch('https://api.line.me/v2/bot/message/push', {
+      // Call our backend proxy
+      const response = await fetch('/api/line-notify', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${settings.line_oa_channel_token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           to: settings.line_oa_admin_id,
-          messages: [
-            {
-              type: 'text',
-              text: message
-            }
-          ]
+          channelAccessToken: settings.line_oa_channel_token,
+          messages: messages
         })
       });
-      */
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || 'Failed to send LINE message');
+      }
     } catch (err) {
       console.error('Error sending LINE OA notification:', err);
     }
@@ -46,8 +43,16 @@ export const notificationService = {
         .single();
 
       if (!settings || settings.notify_new_order) {
-        const message = `📦 ออเดอร์ใหม่! #${orderId.slice(0, 8)}\n👤 ลูกค้า: ${customerName}\n💰 ยอดรวม: ฿${total.toLocaleString()}\n🌐 ตรวจสอบได้ที่ระบบหลังบ้าน`;
-        await this.sendLineMessage(message);
+        // Use Flex Message Template
+        const flexData = lineFlexTemplates.newOrder(orderId, total, customerName);
+        
+        await this.sendLineMessage([
+          {
+            type: 'flex',
+            altText: `📦 ออเดอร์ใหม่! #${orderId}`,
+            contents: flexData
+          }
+        ]);
       }
     } catch (err) {
       console.error('Error in notifyNewOrder:', err);
@@ -62,19 +67,26 @@ export const notificationService = {
         .single();
 
       const statusMap: any = {
-        'pending': 'รอชำระเงิน',
-        'processing': 'กำลังจัดเตรียมสินค้า',
-        'shipped': 'จัดส่งสินค้าแล้ว',
-        'completed': 'เสร็จสิ้น',
-        'cancelled': 'ยกเลิกแล้ว'
+        'pending': { label: 'รอชำระเงิน', color: '#f1c40f' },
+        'processing': { label: 'กำลังจัดเตรียมสินค้า', color: '#3498db' },
+        'shipped': { label: 'จัดส่งสินค้าแล้ว', color: '#9b59b6' },
+        'completed': { label: 'เสร็จสิ้น', color: '#2ecc71' },
+        'cancelled': { label: 'ยกเลิกแล้ว', color: '#e74c3c' }
       };
       
-      const statusLabel = statusMap[status] || status;
-      const message = `🔔 อัปเดตสถานะออเดอร์ #${orderId.slice(0, 8)}\n📍 สถานะใหม่: ${statusLabel}`;
-      
-      // 1. Send LINE (Admin/System) - Only if enabled
+      const statusInfo = statusMap[status] || { label: status, color: '#eb6c00' };
+      const statusLabel = statusInfo.label;
+
+      // 1. Send LINE (Admin/System) - Use Flex Message
       if (!settings || settings.notify_order_status) {
-        await this.sendLineMessage(message);
+        const flexData = lineFlexTemplates.statusUpdate(orderId.slice(0, 8), statusLabel, statusInfo.color);
+        await this.sendLineMessage([
+          {
+            type: 'flex',
+            altText: `🔔 อัปเดตสถานะออเดอร์ #${orderId.slice(0, 8)}`,
+            contents: flexData
+          }
+        ]);
       }
 
       // 2. Save In-App Notification for User
@@ -90,11 +102,6 @@ export const notificationService = {
         } catch (err) {
           console.error('Error saving in-app notification:', err);
         }
-
-        // 3. Customer LINE Notification logic would go here if enabled
-        if (settings?.notify_customer_line) {
-          console.log('Customer LINE notification is enabled for user:', userId);
-        }
       }
     } catch (err) {
       console.error('Error in notifyStatusUpdate:', err);
@@ -109,8 +116,14 @@ export const notificationService = {
         .single();
 
       if (!settings || settings.notify_low_stock) {
-        const message = `⚠️ สินค้าสต็อกต่ำ!\n📦 ${productName}\nคงเหลือ: ${currentStock} ชิ้น\nกรุณาเติมสต็อกโดยด่วน`;
-        await this.sendLineMessage(message);
+        const flexData = lineFlexTemplates.lowStock(productName, currentStock);
+        await this.sendLineMessage([
+          {
+            type: 'flex',
+            altText: `⚠️ สินค้าสต็อกต่ำ!: ${productName}`,
+            contents: flexData
+          }
+        ]);
       }
     } catch (err) {
       console.error('Error in notifyLowStock:', err);

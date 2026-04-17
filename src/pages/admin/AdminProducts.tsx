@@ -576,6 +576,43 @@ export function AdminProducts() {
     document.body.removeChild(link);
   };
 
+  const exportToCSV = () => {
+    if (products.length === 0) {
+      alert('ไม่มีข้อมูลสินค้าที่จะส่งออก');
+      return;
+    }
+
+    const csvData = products.map(p => ({
+      'ชื่อสินค้า (title)': p.title,
+      'ราคา (price)': p.price,
+      'รายละเอียดสั้น (short_description)': p.short_description || '',
+      'รายละเอียด (description)': p.description,
+      'แบรนด์ (brand)': p.brand,
+      'หมวดหมู่ (category)': p.category,
+      'สต็อก (stock)': p.stock || 0,
+      'SKU (sku)': p.sku || '',
+      'เกรด (grade)': p.grade,
+      'URLรูปภาพหลัก (image_url)': p.image_url,
+      'รูปภาพเพิ่มเติม (images)': (p.images || []).join(','),
+      'สินค้าใหม่ (is_new)': p.is_new,
+      'ลดราคา (is_sale)': p.is_sale,
+      'ยอดนิยม (is_popular)': p.is_popular
+    }));
+
+    const csvContent = Papa.unparse(csvData);
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `kingvision_products_${new Date().toLocaleDateString('th-TH').replace(/\//g, '-')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleCSVImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -765,22 +802,23 @@ export function AdminProducts() {
             />
             <Search className="absolute left-3 top-3.5 text-gray-400" size={18} />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-3 sm:flex items-center gap-2 w-full lg:w-auto">
             <button 
-              onClick={downloadTemplate}
-              className="bg-white text-kv-navy border border-gray-200 px-4 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-all font-bold shadow-sm active:scale-95"
-              title="ดาวน์โหลดไฟล์ตัวอย่าง CSV"
+              onClick={exportToCSV}
+              className="flex-1 sm:flex-none bg-blue-50 text-blue-700 border border-blue-100 px-2 sm:px-4 py-3 rounded-xl flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 hover:bg-blue-100 transition-all font-bold shadow-sm active:scale-95"
+              title="ส่งออกรายการสินค้าทั้งหมดเป็น CSV"
             >
-              <FileDown size={18} /> <span className="hidden sm:inline text-xs">เทมเพลต</span>
+              <FileDown size={18} /> 
+              <span className="text-[10px] sm:text-xs whitespace-nowrap">ส่งออก</span>
             </button>
             <button 
               onClick={() => fileInputRef.current?.click()}
               disabled={isImporting}
-              className="bg-white text-kv-navy border border-gray-200 px-4 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-all font-bold shadow-sm active:scale-95 disabled:opacity-50"
+              className="flex-1 sm:flex-none bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 sm:px-4 py-3 rounded-xl flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 hover:bg-emerald-100 transition-all font-bold shadow-sm active:scale-95 disabled:opacity-50"
               title="นำเข้าข้อมูลจากไฟล์ CSV"
             >
               {isImporting ? <Loader2 className="animate-spin" size={18} /> : <FileUp size={18} />}
-              <span className="hidden sm:inline text-xs">นำเข้า CSV</span>
+              <span className="text-[10px] sm:text-xs whitespace-nowrap">นำเข้า</span>
             </button>
             <input 
               type="file" 
@@ -791,9 +829,10 @@ export function AdminProducts() {
             />
             <button 
               onClick={() => handleOpenModal()}
-              className="bg-kv-navy text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-kv-orange transition-all shrink-0 font-bold shadow-lg shadow-kv-navy/20 active:scale-95"
+              className="flex-1 sm:flex-none bg-kv-navy text-white px-2 sm:px-6 py-3 rounded-xl flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 hover:bg-kv-orange transition-all font-bold shadow-lg shadow-kv-navy/20 active:scale-95"
             >
-              <Plus size={20} /> เพิ่มสินค้าใหม่
+              <Plus size={20} /> 
+              <span className="text-[10px] sm:text-xs whitespace-nowrap">เพิ่มสินค้า</span>
             </button>
           </div>
         </div>

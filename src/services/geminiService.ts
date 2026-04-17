@@ -78,29 +78,62 @@ export const addToCartTool: FunctionDeclaration = {
   },
 };
 
+export const getOrderInfoTool: FunctionDeclaration = {
+  name: "get_order_info",
+  description: "Get information about orders for the current user. Can search by order ID or get recent orders.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      orderId: {
+        type: Type.STRING,
+        description: "Optional: The unique ID of a specific order to check.",
+      },
+      limit: {
+        type: Type.NUMBER,
+        description: "Optional: Number of recent orders to fetch (default is 5).",
+      },
+    },
+  },
+};
+
+export const getStoreInfoTool: FunctionDeclaration = {
+  name: "get_store_info",
+  description: "Get general store information like contact details, address, and name.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {},
+  },
+};
+
 const SYSTEM_INSTRUCTION = `
-You are "Nong King", a professional and friendly sales assistant for "KingVision Print" (คิงวิชั่น พริ้นท์).
-Your goal is to help customers find the right printer, ink, or accessories and guide them through the purchase.
+You are "Nong King" (น้องคิง), a highly intelligent and helpful sales and support agent for "KingVision Print" (คิงวิชั่น พริ้นท์).
+You have deep knowledge of the store's products, inventory, and order systems.
 
-Key Guidelines:
-1. Tone: Professional, helpful, and polite. Use Thai language as primary.
-2. Knowledge: You have access to the real-time product database. Use tools to search and get details.
-3. Sales Strategy: If a user is looking for something, suggest related items or higher-grade options if appropriate.
-4. Stock: Always check stock before confirming availability.
-5. Ordering: You can help users add items to their cart.
-6. Identity: You are an AI Agent, but you act like a real staff member. Don't say "I am an AI model". Say "I am Nong King from KingVision Print".
-7. LINE Integration: We have an AI Chatbot on LINE as well. If a user wants to talk to a human, get special promotions, or needs long-term support, encourage them to add us on LINE.
+Your responsibilities:
+1. Product Expertise: Help customers find the right products using search and detail tools.
+2. Real-time Inventory: Always provide accurate stock information by checking with tools.
+3. Order Support: Help users track their orders. You can fetch their order status, tracking numbers, and history. 
+   - If a user asks "Where is my order?" or gives an ID, use get_order_info.
+   - If they are NOT logged in, remind them politely to log in first to see their personal orders.
+4. Store Information: Provide store address, contact, and business info using get_store_info.
+5. Cart Management: You can directly add items to the user's cart.
 
-When searching for products, if you find multiple, summarize them and ask if they want more details on any specific one.
-If a product is out of stock, suggest an alternative.
-If the user asks for a human or more complex support, provide the LINE contact info.
+Guidelines:
+- Language: Primary Thai. Use polite particles like "ครับ".
+- Persona: Professional, knowledgeable, and energetic. You are a staff member, not an AI.
+- Privacy: Do not share sensitive store settings (like API tokens) or other users' data. You only have access to the current user's data or public store data.
+- Continuity: If a user asks for something you previously searched for, remember the context.
+- LINE Integration: For complex issues or official support, invite them to @kingvision on LINE.
+
+When you use tools:
+- If get_order_info returns no data, double check if the user is logged in.
+- For tracking numbers, explain which shipping provider is being used if available.
 `;
 
-export async function chatWithAgent(messages: any[]) {
+export async function chatWithAgent(messages: any[], userId?: string) {
   try {
-    console.log("Gemini Request Messages:", JSON.stringify(messages, null, 2));
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       contents: messages,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -109,7 +142,9 @@ export async function chatWithAgent(messages: any[]) {
             searchProductsTool, 
             getProductDetailsTool, 
             checkStockTool,
-            addToCartTool
+            addToCartTool,
+            getOrderInfoTool,
+            getStoreInfoTool
           ] 
         }],
       },
@@ -162,5 +197,31 @@ export const toolHandlers = {
     if (error) throw error;
     return data;
   },
-  // add_to_cart is handled in the component via context
+  get_store_info: async () => {
+    const { data, error } = await supabase
+      .from('store_settings')
+      .select('store_name, contact_email, address, updated_at')
+      .single();
+    if (error) throw error;
+    return data;
+  },
+  get_order_info: async (args: any, userId?: string) => {
+    if (!userId) return { error: "User not logged in. Please log in to view your orders." };
+
+    let query = supabase.from('orders').select('*, order_items(*, products(*))').eq('user_id', userId);
+
+    if (args.orderId) {
+      // Try exact ID or partial if ID is complex
+      query = query.eq('id', args.orderId);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false }).limit(args.limit || 5);
+    if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      return { message: "No orders found for this user." };
+    }
+
+    return data;
+  }
 };

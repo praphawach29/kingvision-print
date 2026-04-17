@@ -17,7 +17,7 @@ export function BottomNav({ onOpenMobileMenu }: BottomNavProps) {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-kv-border z-[50] md:hidden flex items-center justify-around py-2 px-2 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-kv-border z-[50] lg:hidden flex items-center justify-around py-2 px-2 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
         <Link to="/account" className="flex flex-col items-center text-gray-500 hover:text-kv-orange transition-colors">
           <User size={22} />
           <span className="text-[10px] mt-1 font-medium">บัญชี</span>
@@ -65,14 +65,14 @@ export function BottomNav({ onOpenMobileMenu }: BottomNavProps) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsFilterOpen(false)}
-              className="fixed inset-0 bg-black/50 z-[80] md:hidden"
+              className="fixed inset-0 bg-black/50 z-[80] lg:hidden"
             />
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 bg-white z-[90] md:hidden rounded-t-2xl p-6 shadow-2xl"
+              className="fixed bottom-0 left-0 right-0 bg-white z-[90] lg:hidden rounded-t-2xl p-6 shadow-2xl"
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-kv-navy">ค้นหาปริ้นเตอร์</h3>

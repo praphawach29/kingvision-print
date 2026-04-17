@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, X, Send, Loader2, User, Bot, ShoppingCart, Search, Package } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, User, ShoppingCart, Search, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { chatWithAgent, toolHandlers } from '../services/geminiService';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
+import nongKingAvatar from '../assets/nong-king.jpg';
 
 interface Message {
   role: 'user' | 'model' | 'function';
@@ -18,6 +20,7 @@ export function ChatAgent() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { addToCart } = useCart();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -70,7 +73,7 @@ export function ChatAgent() {
   };
 
   const processChat = async (currentMessages: Message[]) => {
-    const response = await chatWithAgent(currentMessages);
+    const response = await chatWithAgent(currentMessages, user?.id);
     
     // Use the content from the model directly to preserve all parts (including thoughts)
     const modelContent = response.candidates?.[0]?.content;
@@ -107,7 +110,7 @@ export function ChatAgent() {
           } else {
             const handler = (toolHandlers as any)[call.name];
             if (handler) {
-              result = await handler(call.args);
+              result = await handler(call.args, user?.id);
             } else {
               result = { error: 'Tool not found' };
             }
@@ -139,13 +142,21 @@ export function ChatAgent() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed inset-0 sm:absolute sm:inset-auto sm:bottom-20 sm:right-0 w-full h-full sm:w-[400px] sm:h-[600px] bg-white sm:rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col"
+            className="fixed bottom-[100px] right-4 left-4 h-[65vh] sm:absolute sm:inset-auto sm:bottom-20 sm:right-0 w-auto sm:w-[360px] sm:h-[500px] bg-white rounded-[2rem] shadow-2xl border border-gray-100 overflow-hidden flex flex-col"
           >
             {/* Header */}
-            <div className="bg-kv-navy p-4 pt-safe flex justify-between items-center shrink-0">
+            <div className="bg-kv-navy p-4 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-kv-orange rounded-full flex items-center justify-center text-white shadow-lg">
-                  <Bot size={24} />
+                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-white shadow-lg overflow-hidden border-2 border-kv-orange">
+                  <img 
+                    src={nongKingAvatar} 
+                    alt="น้องคิง พนักงานขาย" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback if image not uploaded yet
+                      (e.target as HTMLImageElement).src = "https://picsum.photos/seed/staff-man/100/100";
+                    }}
+                  />
                 </div>
                 <div>
                   <div className="text-white font-black text-sm leading-none">น้องคิง (Nong King)</div>
@@ -255,7 +266,19 @@ export function ChatAgent() {
               </div>
               <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
                 <button 
-                  onClick={() => setInput('มีเครื่องพิมพ์รุ่นไหนแนะนำบ้าง?')}
+                  onClick={() => setInput('ติดตามออเดอร์ของฉัน')}
+                  className="whitespace-nowrap px-3 py-1 bg-gray-100 text-[10px] font-bold text-gray-500 rounded-full hover:bg-kv-orange hover:text-white transition-all"
+                >
+                  ติดตามออเดอร์
+                </button>
+                <button 
+                  onClick={() => setInput('ที่ตั้งร้านอยู่ที่ไหน?')}
+                  className="whitespace-nowrap px-3 py-1 bg-gray-100 text-[10px] font-bold text-gray-500 rounded-full hover:bg-kv-orange hover:text-white transition-all"
+                >
+                  ที่ตั้งร้าน
+                </button>
+                <button 
+                  onClick={() => setInput('แนะนำเครื่องพิมพ์รุ่นไหนดี?')}
                   className="whitespace-nowrap px-3 py-1 bg-gray-100 text-[10px] font-bold text-gray-500 rounded-full hover:bg-kv-orange hover:text-white transition-all"
                 >
                   แนะนำเครื่องพิมพ์
@@ -298,8 +321,18 @@ export function ChatAgent() {
               <X size={28} />
             </motion.div>
           ) : (
-            <motion.div key="chat" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
-              <MessageCircle size={28} />
+            <motion.div key="chat" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} className="w-full h-full p-1">
+              <div className="w-full h-full rounded-full overflow-hidden border-2 border-white shadow-inner">
+                <img 
+                  src={nongKingAvatar} 
+                  alt="Nong King" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback if image not uploaded yet
+                    (e.target as HTMLImageElement).src = "https://picsum.photos/seed/staff-man/100/100";
+                  }}
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

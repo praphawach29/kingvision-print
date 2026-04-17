@@ -112,28 +112,27 @@ export function AdminDashboard() {
       {/* Welcome Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-50">
         <div>
-          <h1 className="text-2xl font-black text-kv-navy">ยินดีต้อนรับสู่ระบบจัดการร้านค้า</h1>
-          <p className="text-gray-500">ภาพรวมการทำงานและสถิติของร้านค้าในวันนี้</p>
+          <h1 className="text-[21px] font-black text-kv-navy text-left">ยินดีต้อนรับสู่ระบบจัดการร้านค้า</h1>
+          <p className="text-[15px] text-gray-500">ภาพรวมการทำงานและสถิติของร้านค้าในวันนี้</p>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        {statCards.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <div key={index} className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 flex flex-col sm:flex-row items-center sm:items-start lg:items-center hover:shadow-md transition-all border border-gray-50">
-              <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl ${stat.color} text-white flex items-center justify-center mb-3 sm:mb-0 sm:mr-4 shrink-0 shadow-lg shadow-gray-100`}>
-                <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
-              </div>
-              <div className="text-center sm:text-left">
-                <p className="text-[10px] sm:text-sm text-gray-500 font-bold uppercase tracking-wider">{stat.title}</p>
-                <p className={`text-base sm:text-2xl font-black ${stat.title === 'สินค้าใกล้หมด' && stats.lowStockCount > 0 ? 'text-red-600' : 'text-kv-navy'}`}>{stat.value}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {statCards.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <div key={index} className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 flex flex-col sm:flex-row items-center sm:items-start lg:items-center hover:shadow-md transition-all border border-gray-50">
+                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl ${stat.color} text-white flex items-center justify-center mb-3 sm:mb-0 sm:mr-4 shrink-0 shadow-lg shadow-gray-100`}>
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <p className="text-xs sm:text-sm text-gray-500 font-bold uppercase tracking-wider">{stat.title}</p>
+                    <p className={`text-lg sm:text-2xl font-black ${stat.title === 'สินค้าใกล้หมด' && stats.lowStockCount > 0 ? 'text-red-600' : 'text-kv-navy'}`}>{stat.value}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
       {/* Quick Access Section */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-50">
@@ -149,7 +148,7 @@ export function AdminDashboard() {
               </div>
               <div>
                 <p className="font-bold text-kv-navy text-sm">จัดการสินค้า</p>
-                <p className="text-[10px] text-gray-400">เพิ่ม/แก้ไข รายการสินค้า</p>
+                <p className="text-xs text-gray-400">เพิ่ม/แก้ไข รายการสินค้า</p>
               </div>
             </div>
           </Link>
@@ -160,7 +159,7 @@ export function AdminDashboard() {
               </div>
               <div>
                 <p className="font-bold text-kv-navy text-sm">จัดการหมวดหมู่</p>
-                <p className="text-[10px] text-gray-400">ตั้งค่าหมวดหมู่สินค้า</p>
+                <p className="text-xs text-gray-400">ตั้งค่าหมวดหมู่สินค้า</p>
               </div>
             </div>
           </Link>
@@ -171,7 +170,7 @@ export function AdminDashboard() {
               </div>
               <div>
                 <p className="font-bold text-kv-navy text-sm">จัดการแบรนด์</p>
-                <p className="text-[10px] text-gray-400">ตั้งค่าแบรนด์สินค้า</p>
+                <p className="text-xs text-gray-400">ตั้งค่าแบรนด์สินค้า</p>
               </div>
             </div>
           </Link>
@@ -182,7 +181,7 @@ export function AdminDashboard() {
               </div>
               <div>
                 <p className="font-bold text-kv-navy text-sm">จัดการสต็อก</p>
-                <p className="text-[10px] text-gray-400">ประวัติและคลังสินค้า</p>
+                <p className="text-xs text-gray-400">ประวัติและคลังสินค้า</p>
               </div>
             </div>
           </Link>
@@ -227,7 +226,7 @@ export function AdminDashboard() {
                     </td>
                     <td className="p-6 font-black text-kv-navy">฿{order.total_amount.toLocaleString()}</td>
                     <td className="p-6">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
                         order.status === 'completed' ? 'bg-green-100 text-green-700' :
                         order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
                         order.status === 'shipped' ? 'bg-purple-100 text-purple-700' :
@@ -258,7 +257,7 @@ export function AdminDashboard() {
                     <p className="text-xs font-bold text-blue-600">#{order.id.slice(0, 8).toUpperCase()}</p>
                     <p className="font-bold text-kv-navy">{order.profiles?.full_name || 'ไม่ระบุชื่อ'}</p>
                   </div>
-                  <span className={`px-2 py-1 rounded-lg text-[10px] font-black ${
+                  <span className={`px-2 py-1 rounded-lg text-xs font-black ${
                     order.status === 'completed' ? 'bg-green-100 text-green-700' :
                     order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
                     order.status === 'shipped' ? 'bg-purple-100 text-purple-700' :
@@ -315,7 +314,7 @@ export function AdminDashboard() {
                     referrerPolicy="no-referrer"
                   />
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-xs font-bold text-kv-navy line-clamp-1">{product.title}</h4>
+                    <h4 className="text-sm font-bold text-kv-navy line-clamp-1">{product.title}</h4>
                     <div className="flex items-center gap-2 mt-0.5">
                       <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
                         <div 
@@ -323,7 +322,7 @@ export function AdminDashboard() {
                           style={{ width: `${(product.stock / 5) * 100}%` }}
                         />
                       </div>
-                      <span className="text-[10px] font-black text-red-600 shrink-0">{product.stock} ชิ้น</span>
+                      <span className="text-xs font-black text-red-600 shrink-0">{product.stock} ชิ้น</span>
                     </div>
                   </div>
                 </div>
@@ -340,7 +339,7 @@ export function AdminDashboard() {
           
           {lowStockProducts.length > 0 && (
             <div className="p-4 bg-gray-50/50 border-t border-gray-50">
-              <p className="text-[10px] text-gray-400 font-medium text-center">
+              <p className="text-xs text-gray-400 font-medium text-center">
                 แสดงสินค้าที่มีจำนวนเหลือน้อยกว่า 5 ชิ้น
               </p>
             </div>

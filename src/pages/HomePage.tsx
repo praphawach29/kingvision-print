@@ -6,6 +6,8 @@ import { useCart } from '../context/CartContext';
 import { supabase } from '../lib/supabase';
 import { SEO } from '../components/SEO';
 
+import nongKingAvatar from '../assets/nong-king.jpg';
+
 export function HomePage() {
   const { addToCart } = useCart();
   const [openCategory, setOpenCategory] = useState<string | null>(null);
@@ -257,32 +259,26 @@ export function HomePage() {
       {/* 1. Hero Banner Slider (Static for now) */}
       <section className="pt-6 pb-8 bg-white">
         <div className="container mx-auto px-4">
-          <div className="relative bg-kv-navy text-white h-[350px] md:h-[450px] flex items-center rounded-xl overflow-hidden shadow-sm">
+          <div className="relative bg-kv-navy text-white h-[250px] sm:h-[350px] md:h-[450px] flex items-center rounded-xl overflow-hidden shadow-lg group cursor-pointer">
             <div className="absolute inset-0 overflow-hidden">
               <img 
-                src="https://images.unsplash.com/photo-1598550476439-6847785fcea6?q=80&w=1920&auto=format&fit=crop" 
-                alt="Premium Multi-function Printers" 
-                className="w-full h-full object-cover"
+                src="https://img2.pic.in.th/hero-banner.jpg" 
+                alt="กองทัพปริ้นเตอร์มือสองคุณภาพเยี่ยม" 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms]"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1598550476439-6847785fcea6?q=80&w=1920&auto=format&fit=crop";
+                  (e.target as HTMLImageElement).onerror = null;
+                }}
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-900/80 to-blue-900/80 mix-blend-multiply"></div>
             </div>
-            <div className="px-8 md:px-16 relative z-10 w-full flex justify-between items-center">
-              <button className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors backdrop-blur-sm hidden md:flex"><ChevronLeft size={24} /></button>
+            <div className="px-8 md:px-16 relative z-10 w-full flex justify-between items-center h-full">
+              <button className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center text-white hover:bg-black/40 transition-colors backdrop-blur-sm hidden md:flex"><ChevronLeft size={24} /></button>
               
-              <div className="max-w-2xl text-center md:text-left flex-1 md:mx-8">
-                <h1 className="text-3xl sm:text-5xl md:text-6xl font-black mb-2 leading-tight uppercase tracking-tight text-white drop-shadow-lg">
-                  JUMP STARTERS
-                </h1>
-                <h2 className="text-xl sm:text-3xl md:text-4xl font-bold mb-4 text-white/90 uppercase tracking-tight drop-shadow-md">
-                  START BATTERIES IN SECONDS
-                </h2>
-                <p className="text-base sm:text-xl mb-8 text-white font-medium drop-shadow-md">
-                  Up to 45% Off
-                </p>
-              </div>
+              {/* Optional: Overlay content can be added here if needed in the future */}
+              <div className="flex-1"></div>
 
-              <button className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors backdrop-blur-sm hidden md:flex"><ChevronRight size={24} /></button>
+              <button className="w-10 h-10 rounded-full bg-black/20 flex items-center justify-center text-white hover:bg-black/40 transition-colors backdrop-blur-sm hidden md:flex"><ChevronRight size={24} /></button>
             </div>
           </div>
         </div>

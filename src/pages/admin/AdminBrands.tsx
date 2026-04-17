@@ -194,14 +194,14 @@ export function AdminBrands() {
           <div className="text-sm font-bold">{error}</div>
         </div>
       )}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-black text-kv-navy">จัดการแบรนด์</h1>
-          <p className="text-gray-500">เพิ่ม แก้ไข หรือลบแบรนด์สินค้าของคุณ</p>
+          <h1 className="text-xl sm:text-2xl font-black text-kv-navy">จัดการแบรนด์</h1>
+          <p className="text-sm text-gray-500">เพิ่ม แก้ไข หรือลบแบรนด์สินค้าของคุณ</p>
         </div>
         <button 
           onClick={() => handleOpenModal()}
-          className="bg-kv-navy text-white px-6 py-2.5 rounded-xl flex items-center gap-2 hover:bg-kv-orange transition-all font-bold shadow-lg shadow-kv-navy/20 active:scale-95"
+          className="w-full sm:w-auto bg-kv-navy text-white px-6 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-kv-orange transition-all font-bold shadow-lg shadow-kv-navy/20 active:scale-95 text-sm"
         >
           <Plus size={20} /> เพิ่มแบรนด์
         </button>
@@ -209,8 +209,8 @@ export function AdminBrands() {
 
       {success && (
         <div className="bg-green-50 border border-green-100 text-green-700 px-4 py-3 rounded-xl flex items-center gap-3 animate-fade-in">
-          <CheckCircle2 size={20} />
-          <span className="font-bold">{success}</span>
+          <CheckCircle2 size={20} className="shrink-0" />
+          <span className="font-bold text-sm">{success}</span>
         </div>
       )}
 
@@ -220,64 +220,66 @@ export function AdminBrands() {
             <Loader2 className="animate-spin text-kv-orange" size={32} />
           </div>
         ) : (
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50/50">
-              <tr className="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-widest">
-                <th className="p-6 font-bold">โลโก้</th>
-                <th className="p-6 font-bold">ชื่อแบรนด์</th>
-                <th className="p-6 font-bold">จำนวนสินค้า</th>
-                <th className="p-6 font-bold">วันที่สร้าง</th>
-                <th className="p-6 font-bold text-right">จัดการ</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm">
-              {brands.map((brand) => (
-                <tr key={brand.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                  <td className="p-6">
-                    <div className="w-12 h-12 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center">
-                      {brand.image_url ? (
-                        <img src={brand.image_url} alt={brand.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="text-gray-300 text-[10px] font-bold">NO LOGO</div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="p-6 font-bold text-kv-navy">{brand.name}</td>
-                  <td className="p-6">
-                    <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-bold">
-                      {brand.product_count || 0} รายการ
-                    </span>
-                  </td>
-                  <td className="p-6 text-gray-500">
-                    {new Date(brand.created_at).toLocaleDateString('th-TH')}
-                  </td>
-                  <td className="p-6 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button 
-                        onClick={() => handleOpenModal(brand)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(brand.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[600px] sm:min-w-0">
+              <thead className="bg-gray-50/50">
+                <tr className="border-b border-gray-100 text-[10px] md:text-xs text-gray-400 uppercase tracking-widest">
+                  <th className="px-4 py-4 sm:p-6 font-bold">โลโก้</th>
+                  <th className="px-4 py-4 sm:p-6 font-bold">ชื่อแบรนด์</th>
+                  <th className="px-4 py-4 sm:p-6 font-bold">จำนวนสินค้า</th>
+                  <th className="px-4 py-4 sm:p-6 font-bold hidden sm:table-cell">วันที่สร้าง</th>
+                  <th className="px-4 py-4 sm:p-6 font-bold text-right">จัดการ</th>
                 </tr>
-              ))}
-              {brands.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="p-12 text-center text-gray-400 font-bold">
-                    ไม่พบข้อมูลแบรนด์
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="text-sm">
+                {brands.map((brand) => (
+                  <tr key={brand.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                    <td className="px-4 py-4 sm:p-6">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center">
+                        {brand.image_url ? (
+                          <img src={brand.image_url} alt={brand.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="text-gray-300 text-[8px] font-bold">NO LOGO</div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 sm:p-6 font-bold text-kv-navy text-xs sm:text-sm">{brand.name}</td>
+                    <td className="px-4 py-4 sm:p-6">
+                      <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-gray-100 text-gray-600 rounded-full text-[10px] sm:text-xs font-bold">
+                        {brand.product_count || 0} รายการ
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 sm:p-6 text-gray-500 text-xs hidden sm:table-cell">
+                      {new Date(brand.created_at).toLocaleDateString('th-TH')}
+                    </td>
+                    <td className="px-4 py-4 sm:p-6 text-right">
+                      <div className="flex justify-end gap-1 sm:gap-2 text-[10px] uppercase">
+                        <button 
+                          onClick={() => handleOpenModal(brand)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(brand.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {brands.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="p-12 text-center text-gray-400 font-bold">
+                      ไม่พบข้อมูลแบรนด์
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

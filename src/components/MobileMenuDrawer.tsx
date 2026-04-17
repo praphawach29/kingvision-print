@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, User, Menu as MenuIcon, ChevronRight, Crown, LogIn, LogOut } from 'lucide-react';
+import { LayoutDashboard, X, User, Menu as MenuIcon, ChevronRight, Crown, LogIn, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 
@@ -12,8 +12,10 @@ interface MobileMenuDrawerProps {
 
 export function MobileMenuDrawer({ isOpen, onClose }: MobileMenuDrawerProps) {
   const [activeTab, setActiveTab] = useState<'menu' | 'categories' | 'account'>('menu');
-  const { user, signOut } = useAuth();
+  const { user, role, signOut } = useAuth();
   const { settings } = useSettings();
+
+  const isAdmin = role === 'admin' || role === 'super_admin';
 
   const categories = [
     { name: 'ปริ้นเตอร์เลเซอร์', icon: '🖨️', subItems: ['LaserJet ขาวดำ', 'LaserJet สี', 'มัลติฟังก์ชัน (MFP)'] },
@@ -37,6 +39,8 @@ export function MobileMenuDrawer({ isOpen, onClose }: MobileMenuDrawerProps) {
     { name: 'ติดต่อเรา', path: '/contact' },
   ];
 
+  const adminMenuItem = { name: 'จัดการระบบหลังบ้าน (Admin)', path: '/admin', icon: <LayoutDashboard size={18} className="text-kv-orange" /> };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -47,7 +51,7 @@ export function MobileMenuDrawer({ isOpen, onClose }: MobileMenuDrawerProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-[60] md:hidden"
+            className="fixed inset-0 bg-black/50 z-[60] lg:hidden"
           />
 
           {/* Drawer */}
@@ -56,7 +60,7 @@ export function MobileMenuDrawer({ isOpen, onClose }: MobileMenuDrawerProps) {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-white z-[70] md:hidden flex flex-col"
+            className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-white z-[70] lg:hidden flex flex-col"
           >
             {/* Header */}
             <div className="bg-kv-navy p-6 text-white">
@@ -123,6 +127,21 @@ export function MobileMenuDrawer({ isOpen, onClose }: MobileMenuDrawerProps) {
             <div className="flex-1 overflow-y-auto">
               {activeTab === 'menu' && (
                 <ul className="divide-y divide-kv-border">
+                  {isAdmin && (
+                    <li className="bg-kv-orange/5">
+                      <Link
+                        to={adminMenuItem.path}
+                        onClick={onClose}
+                        className="flex items-center justify-between p-4 text-kv-orange hover:bg-kv-orange/10 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          {adminMenuItem.icon}
+                          <span className="font-bold">{adminMenuItem.name}</span>
+                        </div>
+                        <ChevronRight size={18} />
+                      </Link>
+                    </li>
+                  )}
                   {menuItems.map((item, idx) => (
                     <li key={idx}>
                       <Link
@@ -174,12 +193,17 @@ export function MobileMenuDrawer({ isOpen, onClose }: MobileMenuDrawerProps) {
                           <ChevronRight size={18} className="text-gray-400" />
                         </Link>
                       </li>
-                      <li>
-                        <Link to="/admin" onClick={onClose} className="flex items-center justify-between p-4 text-gray-700 hover:bg-gray-50 transition-colors">
-                          <span className="font-medium text-kv-orange">จัดการระบบหลังบ้าน (Admin)</span>
-                          <ChevronRight size={18} className="text-gray-400" />
-                        </Link>
-                      </li>
+                      {isAdmin && (
+                        <li>
+                          <Link to="/admin" onClick={onClose} className="flex items-center justify-between p-4 bg-kv-orange/5 text-kv-orange hover:bg-kv-orange/10 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <LayoutDashboard size={20} />
+                              <span className="font-bold">จัดการระบบหลังบ้าน (Admin)</span>
+                            </div>
+                            <ChevronRight size={18} />
+                          </Link>
+                        </li>
+                      )}
                     </>
                   ) : (
                     <li>

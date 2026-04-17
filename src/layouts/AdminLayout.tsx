@@ -194,7 +194,7 @@ export function AdminLayout() {
                 <Link 
                   to="/admin/orders" 
                   onClick={() => setNotification(null)}
-                  className="text-[10px] font-bold text-kv-orange hover:underline"
+                  className="text-xs font-bold text-kv-orange hover:underline"
                 >
                   คลิกเพื่อดูรายละเอียด
                 </Link>

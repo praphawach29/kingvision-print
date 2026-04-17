@@ -25,8 +25,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchRole(userId: string) {
+    async function fetchRole(userId: string, email?: string) {
       try {
+        // If it's the owner email, always grant admin role for development
+        const ownerEmail = 'jack291625@gmail.com';
+        if (email === ownerEmail) {
+          setRole('admin');
+          return;
+        }
+
         const { data, error } = await supabase
           .from('profiles')
           .select('role')
@@ -46,7 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRole(session.user.id);
+        fetchRole(session.user.id, session.user.email);
       } else {
         setLoading(false);
       }
@@ -57,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRole(session.user.id);
+        fetchRole(session.user.id, session.user.email);
       } else {
         setRole(null);
         setLoading(false);

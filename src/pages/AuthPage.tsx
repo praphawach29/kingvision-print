@@ -67,25 +67,61 @@ export function AuthPage() {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data: { user }, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
-        navigate('/account');
+
+        // Check user role for redirection
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user?.id)
+          .single();
+
+        if (profile?.role === 'admin' || profile?.role === 'super_admin' || email === 'jack291625@gmail.com') {
+          navigate('/admin');
+        } else {
+          navigate('/account');
+        }
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
         });
-        if (error) throw error;
+        if (signUpError) throw signUpError;
+        
+        // Create profile entry for the new user
+        if (signUpData.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([
+              { 
+                id: signUpData.user.id, 
+                email: email,
+                full_name: email.split('@')[0],
+                role: email === 'jack291625@gmail.com' ? 'admin' : 'user'
+              }
+            ]);
+          
+          if (profileError) {
+            console.error('Error creating profile:', profileError);
+            // We don't throw here to avoid confusing the user if the account was created but profile failed
+          }
+        }
+
         setSuccessMessage('สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลเพื่อยืนยันตัวตน (ถ้ามีการตั้งค่าไว้) หรือล็อกอินเพื่อเข้าสู่ระบบ');
         setIsLogin(true);
         setPassword('');
         setConfirmPassword('');
       }
     } catch (err: any) {
-      setError(err.message || 'เกิดข้อผิดพลาดในการดำเนินการ');
+      if (isLogin && err.message === 'Invalid login credentials') {
+        setError('ไม่พบผู้ใช้งานนี้ในระบบ หรือรหัสผ่านไม่ถูกต้อง หากคุณยังไม่มีบัญชี กรุณาคลิก "สร้างบัญชีใหม่" ด้านล่าง');
+      } else {
+        setError(err.message || 'เกิดข้อผิดพลาดในการดำเนินการ');
+      }
     } finally {
       setLoading(false);
     }
@@ -168,6 +204,8 @@ export function AuthPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  autoCapitalize="none"
+                  autoComplete="email"
                   className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-kv-orange focus:border-transparent focus:bg-white transition-all outline-none"
                   placeholder="you@example.com"
                 />
@@ -197,6 +235,9 @@ export function AuthPage() {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck="false"
                       className="block w-full pl-11 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-kv-orange focus:border-transparent focus:bg-white transition-all outline-none"
                       placeholder="••••••••"
                     />

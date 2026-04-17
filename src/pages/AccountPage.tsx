@@ -48,13 +48,13 @@ function NotificationsList({ userId }: { userId: string }) {
         <div key={n.id} className={`p-4 rounded-2xl border transition-all ${n.is_read ? 'bg-white border-gray-100' : 'bg-orange-50/30 border-orange-100'}`}>
           <div className="flex justify-between items-start mb-1">
             <h4 className={`font-bold text-sm ${n.is_read ? 'text-kv-navy' : 'text-kv-orange'}`}>{n.title}</h4>
-            <span className="text-[10px] text-gray-400 font-medium">
+            <span className="text-xs text-gray-400 font-medium">
               {new Date(n.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
-          <p className="text-xs text-gray-600 leading-relaxed">{n.message}</p>
+          <p className="text-sm text-gray-600 leading-relaxed">{n.message}</p>
           {n.link && (
-            <Link to={n.link} className="inline-block mt-2 text-[10px] font-black text-kv-orange hover:underline">
+            <Link to={n.link} className="inline-block mt-2 text-xs font-black text-kv-orange hover:underline">
               ดูรายละเอียดเพิ่มเติม
             </Link>
           )}
@@ -189,73 +189,73 @@ export function AccountPage() {
         <Breadcrumb items={[{ label: 'บัญชีของฉัน' }]} />
         <h1 className="text-3xl font-bold text-kv-navy mb-8">บัญชีของฉัน</h1>
         
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Sidebar */}
-          <div className="w-full md:w-80 shrink-0">
-            <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-kv-orange text-white rounded-full flex items-center justify-center font-bold text-xl shrink-0">
-                  {user.email?.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-bold text-kv-navy text-sm truncate leading-tight mb-0.5" title={user.email || ''}>
-                    {user.email}
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Sidebar - Horizontal Scroll on Mobile */}
+            <div className="w-full md:w-80 shrink-0">
+              <div className="bg-white rounded-2xl shadow-sm p-4 md:p-6 mb-6">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 bg-kv-orange text-white rounded-full flex items-center justify-center font-bold text-xl shrink-0">
+                    {user.email?.charAt(0).toUpperCase()}
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {role === 'super_admin' ? 'Super Admin' : (role === 'admin' ? 'ผู้ดูแลระบบ' : 'สมาชิกทั่วไป')}
+                  <div className="min-w-0 flex-1 text-left">
+                    <div className="font-bold text-kv-navy text-sm truncate leading-tight mb-0.5" title={user.email || ''}>
+                      {user.email}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {role === 'super_admin' ? 'Super Admin' : (role === 'admin' ? 'ผู้ดูแลระบบ' : 'สมาชิกทั่วไป')}
+                    </div>
                   </div>
                 </div>
+                
+                <nav className="flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 scrollbar-hide">
+                  <button 
+                    onClick={() => setActiveTab('profile')}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium whitespace-nowrap text-sm ${
+                      activeTab === 'profile' ? 'text-white bg-kv-navy' : 'text-gray-600 hover:text-kv-navy hover:bg-gray-50'
+                    }`}
+                  >
+                    <User size={18} /> ข้อมูลส่วนตัว
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('orders')}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium whitespace-nowrap text-sm ${
+                      activeTab === 'orders' ? 'text-white bg-kv-navy' : 'text-gray-600 hover:text-kv-navy hover:bg-gray-50'
+                    }`}
+                  >
+                    <Package size={18} /> ประวัติการสั่งซื้อ
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('notifications')}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium whitespace-nowrap text-sm ${
+                      activeTab === 'notifications' ? 'text-white bg-kv-navy' : 'text-gray-600 hover:text-kv-navy hover:bg-gray-50'
+                    }`}
+                  >
+                    <Bell size={18} /> การแจ้งเตือน
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('settings')}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors font-medium whitespace-nowrap text-sm ${
+                      activeTab === 'settings' ? 'text-white bg-kv-navy' : 'text-gray-600 hover:text-kv-navy hover:bg-gray-50'
+                    }`}
+                  >
+                    <Settings size={18} /> ตั้งค่าบัญชี
+                  </button>
+                  {/* Admin Link - Only show for admin/super_admin */}
+                  {isAdmin && (
+                    <Link to="/admin" className="flex items-center gap-2 text-kv-orange hover:bg-orange-50 px-3 py-2 rounded-lg transition-colors font-medium whitespace-nowrap text-sm">
+                      <Shield size={18} /> ระบบหลังบ้าน
+                    </Link>
+                  )}
+                </nav>
               </div>
               
-              <nav className="space-y-2">
-                <button 
-                  onClick={() => setActiveTab('profile')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors font-medium ${
-                    activeTab === 'profile' ? 'text-kv-orange bg-orange-50' : 'text-gray-600 hover:text-kv-orange hover:bg-orange-50'
-                  }`}
-                >
-                  <User size={18} /> ข้อมูลส่วนตัว
-                </button>
-                <button 
-                  onClick={() => setActiveTab('orders')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors font-medium ${
-                    activeTab === 'orders' ? 'text-kv-orange bg-orange-50' : 'text-gray-600 hover:text-kv-orange hover:bg-orange-50'
-                  }`}
-                >
-                  <Package size={18} /> ประวัติการสั่งซื้อ
-                </button>
-                <button 
-                  onClick={() => setActiveTab('notifications')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors font-medium ${
-                    activeTab === 'notifications' ? 'text-kv-orange bg-orange-50' : 'text-gray-600 hover:text-kv-orange hover:bg-orange-50'
-                  }`}
-                >
-                  <Bell size={18} /> การแจ้งเตือน
-                </button>
-                <button 
-                  onClick={() => setActiveTab('settings')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors font-medium ${
-                    activeTab === 'settings' ? 'text-kv-orange bg-orange-50' : 'text-gray-600 hover:text-kv-orange hover:bg-orange-50'
-                  }`}
-                >
-                  <Settings size={18} /> ตั้งค่าบัญชี
-                </button>
-                {/* Admin Link - Only show for admin/super_admin */}
-                {isAdmin && (
-                  <Link to="/admin" className="flex items-center gap-3 text-gray-600 hover:text-kv-orange hover:bg-orange-50 px-4 py-2.5 rounded-lg transition-colors font-medium">
-                    <Shield size={18} /> จัดการระบบหลังบ้าน
-                  </Link>
-                )}
-              </nav>
+              <button 
+                onClick={signOut}
+                className="w-full flex items-center justify-center gap-2 text-red-600 bg-white border border-red-100 hover:bg-red-50 px-4 py-3 rounded-xl transition-colors font-bold shadow-sm"
+              >
+                <LogOut size={18} /> ออกจากระบบ
+              </button>
             </div>
-            
-            <button 
-              onClick={signOut}
-              className="w-full flex items-center justify-center gap-2 text-red-600 bg-white border border-red-100 hover:bg-red-50 px-4 py-3 rounded-xl transition-colors font-bold shadow-sm"
-            >
-              <LogOut size={18} /> ออกจากระบบ
-            </button>
-          </div>
 
           {/* Main Content */}
           <div className="flex-1">
