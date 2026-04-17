@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, Navigate } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Home, Menu, X, BarChart2, FileText, Bell, List, Tag, Box } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Home, Menu, X, BarChart2, FileText, Bell, List, Tag, Box, Database } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
@@ -71,6 +71,7 @@ export function AdminLayout() {
     { path: '/admin/orders', icon: ShoppingCart, label: 'รายการสั่งซื้อ' },
     { path: '/admin/blog', icon: FileText, label: 'จัดการบทความ' },
     { path: '/admin/users', icon: Users, label: 'ลูกค้า' },
+    { path: '/admin/backup', icon: Database, label: 'สำรองข้อมูล' },
     { path: '/admin/settings', icon: Settings, label: 'ตั้งค่าระบบ' },
   ];
 

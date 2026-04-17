@@ -285,44 +285,78 @@ export function HomePage() {
       </section>
 
       {/* 2. Category Icon Row */}
-      <section className="py-10 bg-white overflow-hidden">
-        <div className="container mx-auto px-4">
-          <div className="flex overflow-x-auto pb-4 gap-4 md:gap-6 justify-start lg:justify-center w-full scrollbar-hide snap-x snap-mandatory">
+      <section className="py-12 bg-white relative overflow-hidden">
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-black text-kv-navy tracking-tight uppercase">หมวดหมู่ยอดนิยม</h2>
+            <div className="h-px flex-1 bg-gray-100 mx-6 hidden md:block"></div>
+            <Link to="/shop" className="text-kv-orange font-bold text-sm hover:underline flex items-center gap-1 group">
+              ดูทั้งหมด <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
+          
+          <div className="flex lg:grid lg:grid-cols-6 overflow-x-auto lg:overflow-visible pb-4 lg:pb-0 gap-6 scrollbar-hide snap-x snap-mandatory">
             {isLoadingCategories ? (
-              <div className="flex gap-4">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="w-28 md:w-32 animate-pulse">
-                    <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-gray-100 mb-3 mx-auto"></div>
-                    <div className="h-3 bg-gray-100 rounded w-20 mx-auto"></div>
-                  </div>
-                ))}
-              </div>
+              [...Array(6)].map((_, i) => (
+                <div key={i} className="animate-pulse flex-shrink-0 w-32 lg:w-auto">
+                  <div className="aspect-square rounded-full bg-gray-100 mb-4 scale-90"></div>
+                  <div className="h-4 bg-gray-100 rounded w-20 mx-auto"></div>
+                </div>
+              ))
             ) : dbCategories.length > 0 ? (
-              dbCategories.map((cat, idx) => (
+              dbCategories.slice(0, 6).map((cat, idx) => (
                 <Link 
                   key={cat.id} 
                   to={`/shop?category=${cat.name}`} 
-                  className="flex flex-col items-center group flex-shrink-0 snap-center w-28 md:w-32"
+                  className="flex flex-col items-center group relative pt-4 pb-2 flex-shrink-0 w-32 lg:w-auto snap-center"
                 >
-                  <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-gray-50 border border-gray-100 shadow-sm flex items-center justify-center mb-3 group-hover:shadow-md group-hover:border-kv-orange/30 group-hover:bg-orange-50/30 transition-all duration-300 overflow-hidden relative">
-                    <img 
-                      src={cat.image_url || `https://picsum.photos/seed/${cat.name}/150/150`} 
-                      alt={cat.name} 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 z-10" 
-                      referrerPolicy="no-referrer" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  {/* Card Background Decoration */}
+                  <div className="absolute inset-0 bg-kv-navy/5 rounded-3xl opacity-0 lg:group-hover:opacity-100 transition-all duration-500 scale-90 lg:group-hover:scale-100 -z-10"></div>
+                  
+                  {/* Image Container */}
+                  <div className="relative w-28 h-28 lg:w-32 lg:h-32 mb-4">
+                    {/* Floating Circle Backdrop */}
+                    <div className="absolute inset-0 bg-white rounded-full shadow-lg border border-gray-100 transition-all duration-500 lg:group-hover:scale-110 lg:group-hover:border-kv-orange/20 overflow-hidden">
+                      {/* Ring Decoration */}
+                      <div className="absolute -inset-2 border-2 border-kv-orange/0 rounded-full transition-all duration-700 lg:group-hover:border-kv-orange/10 lg:group-hover:rotate-45 z-10"></div>
+                      
+                      {/* Main Image - Changed from object-contain inside padding to object-cover filling circle */}
+                      <img 
+                        src={cat.image_url || `https://picsum.photos/seed/${cat.name}/150/150`} 
+                        alt={cat.name} 
+                        className="w-full h-full object-cover filter hover:scale-110 transition-transform duration-500" 
+                        referrerPolicy="no-referrer" 
+                      />
+                    </div>
+
+                    {/* Badge/Count */}
+                    {categoryCounts[cat.name] > 0 && (
+                      <div className="absolute -top-1 -right-1 bg-kv-navy text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md z-20 lg:group-hover:bg-kv-orange transition-colors duration-300">
+                        {categoryCounts[cat.name]}
+                      </div>
+                    )}
                   </div>
-                  <span className="font-black text-kv-navy group-hover:text-kv-orange transition-colors text-center text-xs md:text-sm tracking-tight uppercase">
-                    {cat.name}
-                  </span>
+                  
+                  {/* Label */}
+                  <div className="text-center relative">
+                    <span className="font-black text-kv-navy lg:group-hover:text-kv-orange transition-colors text-xs lg:text-base tracking-tight uppercase block leading-tight">
+                      {cat.name}
+                    </span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest hidden lg:block opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0">
+                      Explore Products
+                    </span>
+                  </div>
                 </Link>
               ))
             ) : (
-              <p className="text-gray-400 text-sm font-thai w-full text-center">ไม่พบหมวดหมู่</p>
+              <div className="col-span-full py-10 text-center text-gray-400">ไม่พบหมวดหมู่</div>
             )}
           </div>
         </div>
+
+        {/* Decorative elements behind cards */}
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-kv-orange/5 rounded-full blur-3xl -z-10"></div>
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-kv-navy/5 rounded-full blur-3xl -z-10"></div>
       </section>
 
       {/* Two Column Layout Section */}

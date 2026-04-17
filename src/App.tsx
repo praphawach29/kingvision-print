@@ -30,6 +30,7 @@ import { AdminBlog } from './pages/admin/AdminBlog';
 import { AdminCategories } from './pages/admin/AdminCategories';
 import { AdminBrands } from './pages/admin/AdminBrands';
 import { AdminInventory } from './pages/admin/AdminInventory';
+import { AdminBackup } from './pages/admin/AdminBackup';
 import { ScrollToTop } from './components/ScrollToTop';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
@@ -72,6 +73,7 @@ export default function App() {
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="blog" element={<AdminBlog />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="backup" element={<AdminBackup />} />
                 <Route path="settings" element={<AdminSettings />} />
                 {/* Fallback for other admin routes */}
                 <Route path="*" element={<AdminDashboard />} />
