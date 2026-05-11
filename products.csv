@@ -1,0 +1,61 @@
+หมวดหมู่,ยี่ห้อ,รุ่น,ประเภทสินค้า,ราคา
+เครื่องพิมพ์,Epson,LQ-300+II,Dot Matrix Printer,"6,890"
+เครื่องพิมพ์,Epson,LQ-310,Dot Matrix Printer,"4,490"
+เครื่องพิมพ์,Epson,LQ-590,Dot Matrix Printer,"4,700"
+เครื่องพิมพ์,Epson,LQ-2090,Dot Matrix Printer,"3,490"
+เครื่องพิมพ์,Epson,LQ-2190,Dot Matrix Printer,"4,790"
+เครื่องพิมพ์,Epson,PLQ-200,Passbook Printer,"2,190"
+เครื่องพิมพ์,Epson,TM-T82II,Thermal Receipt Printer,"1,590"
+เครื่องพิมพ์,Epson,TM-U220,Dot Matrix Receipt Printer,"2,290"
+เครื่องพิมพ์,Epson,LQ-2090C,Dot Matrix Printer,
+เครื่องพิมพ์,Epson,LQ-630,Dot Matrix Printer,"2,500"
+เครื่องพิมพ์,Canon,LBP6030,Laser Printer,"1,590"
+เครื่องพิมพ์,Canon,LBP6030w,Laser Printer,"3,100"
+เครื่องพิมพ์,Canon,imageCLASS LBP6230dw,Laser Printer,"1,190"
+เครื่องพิมพ์,HP,LaserJet P1102,Laser Printer,"1,690"
+เครื่องพิมพ์,HP,LaserJet P1006,Laser Printer,"1,390"
+เครื่องพิมพ์,HP,LaserJet Pro M102w,Laser Printer,"1,890"
+เครื่องพิมพ์,HP,LaserJet Pro MFP M130fn,Laser Multifunction Printer,"2,650"
+เครื่องพิมพ์,HP,LaserJet Pro MFP M127fn,Laser Multifunction Printer,"2,690"
+เครื่องพิมพ์,HP,LaserJet Pro 400 M401dn,Laser Printer,"5,590"
+เครื่องพิมพ์,HP,Color LaserJet Pro MFP M176n,Color Laser Multifunction Printer,"3,490"
+เครื่องพิมพ์,Brother,HL-L2320D,Laser Printer,"1,690"
+เครื่องพิมพ์,Brother,HL-L2360DN,Laser Printer,"2,090"
+เครื่องพิมพ์,Brother,HL-5450DN,Laser Printer,"2,690"
+เครื่องพิมพ์,Brother,DCP-2540DW,Laser Multifunction Printer,"3,490"
+เครื่องพิมพ์,Brother,MFC-7360,Laser Multifunction Printer,"2,490"
+เครื่องพิมพ์,Brother,MFC-7860DW,Laser Multifunction Printer,"2,690"
+เครื่องพิมพ์,Brother,MFC-J2330DW,Inkjet Multifunction Printer,
+เครื่องพิมพ์,Brother,MFC-J430W,Inkjet Multifunction Printer,
+อะไหล่/ริบบอน,Epson,LQ-300+II Ribbon,ผ้าหมึก/ริบบอน,300
+กระดาษต่อเนื่อง,Generic,9x11 5 ชั้น,กระดาษต่อเนื่อง,130
+อะไหล่,Epson,Tractor Assy LQ-300+II,ชุดดึงกระดาษ,750
+อะไหล่,Epson,Tractor Assy LQ-310,ชุดดึงกระดาษ,350
+อะไหล่,Epson,Main Board LQ-590/LQ-2090,เมนบอร์ดเครื่องพิมพ์,"1,490"
+อะไหล่,Epson,Power Supply LQ-300+II,เพาเวอร์ซัพพลาย,640
+อะไหล่,Epson,Printer Head LQ-2190/LQ-2180,หัวพิมพ์,"1,500"
+อะไหล่,Epson,Printer Head LQ-300/LQ-300+II,หัวพิมพ์,"1,090"
+อะไหล่,Epson,Cover LQ-300+II,ฝาครอบ/ชิ้นส่วนภายนอก,830
+อะไหล่,Epson,Paper Eject LQ-590,ชุดทางออกกระดาษ,500
+อุปกรณ์เสริม,Generic,USB 2.0 Cable,สาย USB,39
+อุปกรณ์เสริม,Epson,Adapter TM-T82/TM-T82II,อะแดปเตอร์,"1,590"
+โทนเนอร์,Brother,TN-2380,Toner Cartridge,249
+ดรัม,Brother,DR-2355,Drum Unit,
+โทนเนอร์,Brother,TN-2280,Toner Cartridge,249
+ดรัม,Brother,DR-2455,Drum Unit,
+โทนเนอร์,Brother,TN-3448,Toner Cartridge,320
+ดรัม,Brother,DR-3455,Drum Unit,
+โทนเนอร์,Brother,TN-3350,Toner Cartridge,349
+ดรัม,Brother,DR-3335,Drum Unit,
+โทนเนอร์,Brother,TN-1000,Toner Cartridge,199
+โทนเนอร์,HP,CE285A,Toner Cartridge,249
+โทนเนอร์,HP,CF230A,Toner Cartridge,279
+ดรัม,HP,CF232A,Drum Unit,290
+โทนเนอร์,HP,CF217A,Toner Cartridge,249
+ดรัม,HP,CF219A,Drum Unit,
+โทนเนอร์,HP,CE310A/311A/312A/313A,Color Toner Set,279
+ดรัม,HP,CE314A,Imaging Drum,
+โทนเนอร์,HP,CF283A,Toner Cartridge,249
+โทนเนอร์,HP,CF248A,Toner Cartridge,299
+โทนเนอร์,Canon/HP,CF279A,Toner Cartridge,209
+โทนเนอร์,HP,CE505A,Toner Cartridge,320
