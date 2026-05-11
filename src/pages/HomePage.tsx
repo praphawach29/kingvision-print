@@ -349,12 +349,14 @@ export function HomePage() {
       />
 
       {/* HERO */}
-      <section className="relative bg-kv-navy overflow-hidden">
+      <section className="relative bg-kv-navy overflow-hidden min-h-[580px] md:min-h-[640px] flex items-center">
+
+        {/* Background image */}
         <div className="absolute inset-0">
           <img
             src="https://img2.pic.in.th/hero-banner.jpg"
             alt="KingVision Print Hero"
-            className="w-full h-full object-cover opacity-25"
+            className="w-full h-full object-cover opacity-20"
             referrerPolicy="no-referrer"
             onError={(e) => {
               (e.target as HTMLImageElement).src =
@@ -362,52 +364,122 @@ export function HomePage() {
               (e.target as HTMLImageElement).onerror = null;
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-kv-navy via-kv-navy/85 to-kv-navy/40" />
+          <div className="absolute inset-0 bg-gradient-to-br from-kv-navy via-kv-navy/95 to-blue-900/80" />
         </div>
 
-        <div className="relative z-10 container mx-auto px-4 py-16 md:py-24 lg:py-32">
-          <div className="max-w-2xl">
-            <span className="inline-flex items-center bg-kv-orange/20 text-kv-orange border border-kv-orange/30 text-xs font-bold px-3 py-1 rounded-full mb-5">
-              <Crown size={12} className="mr-1.5" /> ศูนย์รวมเครื่องปริ้นเตอร์ครบวงจร
-            </span>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight mb-5">
-              เครื่องปริ้นเตอร์<br />
-              <span className="text-kv-orange">คุณภาพเยี่ยม</span><br />
-              ราคาคุ้มค่า
-            </h1>
-            <p className="text-white/75 text-base md:text-lg mb-8 max-w-lg leading-relaxed">
-              เลือกซื้อเครื่องปริ้นเตอร์มือสอง หมึกพิมพ์ อะไหล่ และอุปกรณ์เสริมกว่า 1,000+ รายการ
-              พร้อมรับประกัน 3 เดือน และบริการหลังการขายโดยทีมช่างผู้เชี่ยวชาญ
-            </p>
-            <div className="flex flex-wrap gap-3 mb-10">
-              <Link
-                to="/shop"
-                className="bg-kv-orange hover:bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl transition-all hover:shadow-xl hover:shadow-orange-500/30 flex items-center gap-2"
-              >
-                ดูสินค้าทั้งหมด <ArrowRight size={18} />
-              </Link>
-              <Link
-                to="/contact"
-                className="bg-white/10 hover:bg-white/20 text-white border border-white/30 font-bold px-8 py-3.5 rounded-xl transition-all backdrop-blur-sm flex items-center gap-2"
-              >
-                <MessageCircle size={18} /> ปรึกษาฟรี
-              </Link>
+        {/* Decorative circles */}
+        <div className="absolute -top-32 -right-32 w-[500px] h-[500px] rounded-full bg-kv-orange/5 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-40 -left-20 w-[400px] h-[400px] rounded-full bg-blue-500/5 blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full border border-white/[0.03] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-white/[0.03] pointer-events-none" />
+
+        <div className="relative z-10 container mx-auto px-4 py-16 md:py-20">
+          <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+
+            {/* LEFT: Text content */}
+            <div className="flex-1 max-w-xl">
+
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 bg-kv-orange/15 border border-kv-orange/25 text-kv-orange text-xs font-bold px-4 py-1.5 rounded-full mb-6">
+                <Crown size={12} />
+                ศูนย์รวมเครื่องปริ้นเตอร์ครบวงจร
+              </div>
+
+              {/* Headline */}
+              <h1 className="text-4xl md:text-5xl lg:text-[3.4rem] font-black text-white leading-[1.15] mb-5">
+                <span className="block">เครื่องปริ้นเตอร์</span>
+                <span className="relative inline-block">
+                  <span className="text-kv-orange">คุณภาพเยี่ยม</span>
+                  {/* underline accent */}
+                  <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-kv-orange/40 rounded-full" />
+                </span>
+                <span className="block mt-1">ราคาคุ้มค่า</span>
+              </h1>
+
+              {/* Description */}
+              <p className="text-white/65 text-base md:text-lg leading-relaxed mb-8 max-w-md">
+                เลือกซื้อเครื่องปริ้นเตอร์มือสอง หมึกพิมพ์ อะไหล่ และอุปกรณ์เสริมกว่า
+                <span className="text-white font-semibold"> 1,000+ รายการ</span>{' '}
+                พร้อมรับประกัน 3 เดือน โดยทีมช่างผู้เชี่ยวชาญ
+              </p>
+
+              {/* CTA Buttons */}
+              <div className="flex flex-wrap gap-3 mb-8">
+                <Link
+                  to="/shop"
+                  className="group bg-kv-orange hover:bg-orange-500 text-white font-bold px-7 py-3.5 rounded-xl transition-all duration-300 hover:shadow-2xl hover:shadow-orange-500/40 hover:-translate-y-0.5 flex items-center gap-2"
+                >
+                  ดูสินค้าทั้งหมด
+                  <ArrowRight size={17} className="group-hover:translate-x-1 transition-transform duration-300" />
+                </Link>
+                <Link
+                  to="/contact"
+                  className="bg-white/10 hover:bg-white/18 text-white border border-white/25 hover:border-white/40 font-bold px-7 py-3.5 rounded-xl transition-all duration-300 backdrop-blur-sm flex items-center gap-2"
+                >
+                  <MessageCircle size={17} /> ปรึกษาฟรี
+                </Link>
+              </div>
+
+              {/* Trust badges */}
+              <div className="flex flex-wrap gap-x-5 gap-y-2">
+                {[
+                  { icon: <ShieldCheck size={13} />, label: 'รับประกัน 3 เดือน' },
+                  { icon: <Truck size={13} />, label: 'ส่งฟรี กทม. & ปริมณฑล' },
+                  { icon: <RotateCcw size={13} />, label: 'คืนสินค้าได้ใน 7 วัน' },
+                ].map((t) => (
+                  <div key={t.label} className="flex items-center gap-1.5 text-white/55 text-xs">
+                    <span className="text-kv-orange/80">{t.icon}</span>
+                    {t.label}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-5">
-              {[
-                { icon: <ShieldCheck size={14} />, label: 'รับประกัน 3 เดือน' },
-                { icon: <Truck size={14} />, label: 'ส่งฟรี กทม. & ปริมณฑล' },
-                { icon: <RotateCcw size={14} />, label: 'คืนสินค้าได้ใน 7 วัน' },
-              ].map((t) => (
-                <div key={t.label} className="flex items-center gap-1.5 text-white/65 text-xs">
-                  <span className="text-kv-orange">{t.icon}</span>
-                  {t.label}
+
+            {/* RIGHT: Stat cards — desktop only */}
+            <div className="hidden lg:flex flex-col gap-4 w-72 flex-shrink-0">
+
+              {/* Main card */}
+              <div className="bg-white/8 backdrop-blur-md border border-white/10 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-white/60 text-xs font-medium uppercase tracking-widest">สินค้าพร้อมส่ง</span>
+                  <span className="bg-green-500/20 text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-500/20">● LIVE</span>
                 </div>
-              ))}
+                <div className="text-4xl font-black text-white mb-1">1,000<span className="text-kv-orange">+</span></div>
+                <div className="text-white/50 text-xs">รายการสินค้าพร้อมส่งทันที</div>
+                <div className="mt-4 h-px bg-white/8" />
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  {[
+                    { n: '50+', l: 'แบรนด์' },
+                    { n: '3 เดือน', l: 'รับประกัน' },
+                    { n: '10 ปี', l: 'ประสบการณ์' },
+                    { n: '10K+', l: 'ลูกค้า' },
+                  ].map((s) => (
+                    <div key={s.l} className="bg-white/5 rounded-xl p-2.5 text-center">
+                      <div className="text-white font-black text-base leading-none">{s.n}</div>
+                      <div className="text-white/40 text-[10px] mt-0.5">{s.l}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mini brand logos strip */}
+              <div className="bg-white/8 backdrop-blur-md border border-white/10 rounded-2xl px-5 py-4">
+                <div className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-3">แบรนด์ที่วางจำหน่าย</div>
+                <div className="flex flex-wrap gap-2">
+                  {['HP', 'Epson', 'Canon', 'Brother', 'Samsung', 'Fuji'].map((b) => (
+                    <span key={b} className="bg-white/10 text-white/70 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-white/8">
+                      {b}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
-        <div className="absolute bottom-0 inset-x-0 h-10 bg-gradient-to-t from-white to-transparent" />
+
+        {/* Bottom fade to white */}
+        <div className="absolute bottom-0 inset-x-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none" />
       </section>
 
       {/* STATS BAR */}
