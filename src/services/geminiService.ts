@@ -1,7 +1,15 @@
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { supabase } from "../lib/supabase";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+let _ai: GoogleGenAI | null = null;
+function getAI(): GoogleGenAI {
+  if (!_ai) {
+    const key = process.env.GEMINI_API_KEY;
+    if (!key) throw new Error("GEMINI_API_KEY is not configured.");
+    _ai = new GoogleGenAI({ apiKey: key });
+  }
+  return _ai;
+}
 
 export const search_products_tool: FunctionDeclaration = {
   name: "search_products",
@@ -160,7 +168,7 @@ Professional yet warmly approachable. Energetic and eager to help. You act as a 
 
 export async function chatWithAgent(messages: any[], userId?: string) {
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: messages,
       config: {
