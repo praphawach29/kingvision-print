@@ -44,6 +44,12 @@ interface StoreSettings {
   ai_enabled?: boolean;
 }
 
+const AI_MODEL_OPTIONS: Record<'gemini' | 'openai' | 'anthropic', string[]> = {
+  gemini: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'],
+  openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini'],
+  anthropic: ['claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest', 'claude-3-opus-latest']
+};
+
 export function AdminSettings() {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -442,7 +448,8 @@ export function AdminSettings() {
               <select
                 value={settings.ai_provider || 'gemini'}
                 onChange={(e) => {
-                  const next = { ...settings, ai_provider: e.target.value as any };
+                  const provider = e.target.value as 'gemini' | 'openai' | 'anthropic';
+                  const next = { ...settings, ai_provider: provider, ai_model: AI_MODEL_OPTIONS[provider][0] };
                   setSettings(next);
                   saveAiSettingsInstant(next);
                 }}
@@ -455,17 +462,19 @@ export function AdminSettings() {
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Model</label>
-              <input
-                type="text"
-                value={settings.ai_model || ''}
+              <select
+                value={settings.ai_model || AI_MODEL_OPTIONS[(settings.ai_provider || 'gemini')][0]}
                 onChange={(e) => {
                   const next = { ...settings, ai_model: e.target.value };
                   setSettings(next);
                   saveAiSettingsInstant(next);
                 }}
-                placeholder="เช่น gemini-1.5-flash / gpt-4o-mini / claude-3-5-sonnet-latest"
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
-              />
+              >
+                {AI_MODEL_OPTIONS[(settings.ai_provider || 'gemini')].map((model) => (
+                  <option key={model} value={model}>{model}</option>
+                ))}
+              </select>
             </div>
             <div className="md:col-span-2 space-y-1.5">
               <p className="text-[11px] text-gray-500 font-bold">
