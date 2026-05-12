@@ -42,7 +42,7 @@ export const notificationService = {
         .select('notify_new_order')
         .single();
 
-      if (!settings || settings.notify_new_order) {
+      if (!settings || settings.notify_new_order !== false) {
         // Use Flex Message Template
         const flexData = lineFlexTemplates.newOrder(orderId, total, customerName);
         
