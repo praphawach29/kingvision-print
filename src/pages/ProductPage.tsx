@@ -15,6 +15,23 @@ import { Breadcrumb } from '../components/Breadcrumb';
 import { supabase } from '../lib/supabase';
 import { SEO } from '../components/SEO';
 
+function normalizeRichTextToPlainText(input?: string): string {
+  if (!input) return '';
+  return input
+    .replace(/<\/?(html|head|body)\b[^>]*>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(div|p|li|h[1-6])>/gi, '\n')
+    .replace(/<li\b[^>]*>/gi, '- ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 interface ProductOption {
   name: string;
   values: {
@@ -491,7 +508,7 @@ export function ProductPage() {
               <div className="animate-fade-in">
                 <h3 className="text-lg font-black text-kv-navy mb-4">รายละเอียดสินค้า</h3>
                 <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-wrap text-sm md:text-base">
-                  {product.description}
+                  {normalizeRichTextToPlainText(product.description)}
                 </div>
               </div>
             )}

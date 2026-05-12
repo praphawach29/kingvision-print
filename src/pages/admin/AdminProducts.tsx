@@ -36,6 +36,23 @@ interface Product {
   is_new: boolean;
 }
 
+function normalizeRichTextToPlainText(input?: string): string {
+  if (!input) return '';
+  return input
+    .replace(/<\/?(html|head|body)\b[^>]*>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(div|p|li|h[1-6])>/gi, '\n')
+    .replace(/<li\b[^>]*>/gi, '- ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -195,6 +212,8 @@ export function AdminProducts() {
       setEditingProduct(product);
       setFormData({
         ...product,
+        description: normalizeRichTextToPlainText(product.description || ''),
+        short_description: normalizeRichTextToPlainText(product.short_description || ''),
         category: product.category || 'เครื่องปริ้นเตอร์',
         grade: product.grade || 'A',
         condition: product.condition || 'มือสอง',
@@ -434,6 +453,8 @@ export function AdminProducts() {
       // Ensure numeric fields are numbers
       dataToSave.price = Number(dataToSave.price) || 0;
       dataToSave.stock = Number(dataToSave.stock) || 0;
+      dataToSave.short_description = normalizeRichTextToPlainText(dataToSave.short_description || '');
+      dataToSave.description = normalizeRichTextToPlainText(dataToSave.description || '');
       
       // Sync is_new with condition
       dataToSave.is_new = dataToSave.condition === 'สินค้าใหม่';
@@ -706,8 +727,8 @@ export function AdminProducts() {
             return {
               title: title || '',
               price: Number(price) || 0,
-              short_description: shortDescription || '',
-              description: description || '',
+              short_description: normalizeRichTextToPlainText(shortDescription || ''),
+              description: normalizeRichTextToPlainText(description || ''),
               brand: brand || '',
               brand_id: selectedBrand?.id,
               category: category || 'เครื่องปริ้นเตอร์',
