@@ -1,9 +1,41 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import nongKingAvatar from '../assets/nong-king.jpg';
+
+// Render assistant text: convert [label](url) markdown links into clickable elements
+function renderMessage(text: string) {
+  const parts: React.ReactNode[] = [];
+  const linkRegex = /\[([^\]]+)\]\((\/[^\)]*|https?:\/\/[^\)]*)\)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    const [, label, href] = match;
+    if (href.startsWith('/')) {
+      parts.push(
+        <Link key={match.index} to={href} className="text-kv-orange underline font-bold hover:text-kv-navy transition-colors" onClick={() => {}}>
+          {label}
+        </Link>
+      );
+    } else {
+      parts.push(
+        <a key={match.index} href={href} target="_blank" rel="noopener noreferrer" className="text-kv-orange underline font-bold hover:text-kv-navy transition-colors">
+          {label}
+        </a>
+      );
+    }
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts;
+}
 
 interface Message {
   role: 'user' | 'assistant';
@@ -145,12 +177,20 @@ export function ChatAgent() {
                   animate={{ opacity: 1, x: 0 }}
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`max-w-[88%] p-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                  <div className={`max-w-[88%] p-3 rounded-2xl text-sm leading-relaxed ${
                     msg.role === 'user'
-                      ? 'bg-kv-navy text-white rounded-tr-none shadow-md'
+                      ? 'bg-kv-navy text-white rounded-tr-none shadow-md whitespace-pre-wrap'
                       : 'bg-white text-kv-navy border border-gray-100 rounded-tl-none shadow-sm'
                   }`}>
-                    {msg.content}
+                    {msg.role === 'user'
+                      ? msg.content
+                      : msg.content.split('\n').map((line, i) => (
+                          <React.Fragment key={i}>
+                            {i > 0 && <br />}
+                            {renderMessage(line)}
+                          </React.Fragment>
+                        ))
+                    }
                   </div>
                 </motion.div>
               ))}
@@ -175,7 +215,7 @@ export function ChatAgent() {
             </div>
 
             {/* Input */}
-            <div className="p-3 bg-white border-t border-gray-100 shrink-0 pb-safe space-y-2">
+            <div className="p-3 pb-5 bg-white border-t border-gray-100 shrink-0 space-y-2">
               {/* Quick reply chips */}
               <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
                 {QUICK_REPLIES.map(qr => (

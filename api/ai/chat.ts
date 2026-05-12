@@ -193,6 +193,12 @@ ${styleGuide}
 - เพิ่มสินค้าลงตะกร้าให้ลูกค้าได้เลย
 - ให้คำแนะนำเชิงเทคนิคเกี่ยวกับเครื่องพิมพ์
 
+### กฎสำคัญเรื่องลิงค์สินค้า:
+- เมื่อแนะนำสินค้า ให้ลิงค์ไปยังหน้าสินค้าในเว็บไซต์ของร้านเสมอ โดยใช้ค่า product_url ที่ได้จาก tool
+- รูปแบบที่ถูกต้อง: [ชื่อสินค้า](product_url) เช่น [HP CF350A](/product/abc-123)
+- ห้ามใส่ลิงค์ Shopee, Lazada, หรือเว็บไซต์ภายนอกใดๆ ทั้งสิ้น
+- ถ้าไม่มี product_url ให้บอกชื่อสินค้าโดยไม่ต้องใส่ลิงค์
+
 ### เกี่ยวกับร้าน KingVision Print:
 - เชี่ยวชาญ Dot Matrix (Epson LQ series) และ Laser Printer ทุกแบรนด์
 - แบรนด์หลัก: HP, Epson, Canon, Brother, Samsung
@@ -223,11 +229,12 @@ ${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจาก
             if (args.maxPrice)  q = q.lte('price', args.maxPrice);
             const { data } = await q.limit(6);
             if (!data || data.length === 0) return 'ไม่พบสินค้าที่ตรงกับคำค้นหาในขณะนี้ครับ';
-            return JSON.stringify(data);
+            const withUrls = data.map((p: any) => ({ ...p, product_url: `/product/${p.id}` }));
+            return JSON.stringify(withUrls);
           }
           case 'get_product_details': {
             const { data } = await db.from('products').select('*').eq('id', args.productId).single();
-            return data ? JSON.stringify(data) : 'ไม่พบสินค้านี้ในระบบครับ';
+            return data ? JSON.stringify({ ...data, product_url: `/product/${data.id}` }) : 'ไม่พบสินค้านี้ในระบบครับ';
           }
           case 'check_stock': {
             const { data } = await db.from('products').select('id, title, stock').eq('id', args.productId).single();
