@@ -147,7 +147,7 @@ export default async function handler(req: any, res: any) {
     // Load agent settings from DB
     const { data: settings } = await db
       .from('store_settings')
-      .select('ai_provider, ai_model, ai_enabled, ai_persona_name, ai_system_prompt, ai_speaking_style, ai_temperature')
+      .select('ai_provider, ai_model, ai_enabled, ai_persona_name, ai_system_prompt, ai_speaking_style, ai_temperature, ai_gender')
       .single();
 
     if (settings?.ai_enabled === false) {
@@ -160,6 +160,7 @@ export default async function handler(req: any, res: any) {
     const model       = provider === 'gemini' ? remapGeminiModel(rawModel) : rawModel;
     const personaName = (settings?.ai_persona_name as string) || 'น้องคิง';
     const temperature = typeof settings?.ai_temperature === 'number' ? settings.ai_temperature : 0.7;
+    const gender      = (settings?.ai_gender as string) || 'male';
 
     // Load customer memory for logged-in users
     let customerContext = '';
@@ -196,15 +197,25 @@ export default async function handler(req: any, res: any) {
       : '';
 
     // Compose system prompt
+    const isFemale = gender === 'female';
+    const pronoun  = isFemale ? 'หนู/ดิฉัน' : 'ผม';
+    const ending   = isFemale ? 'ค่ะ หรือ คะ' : 'ครับ';
+    const genderGuide = isFemale
+      ? 'คุณเป็นผู้หญิง ใช้คำสรรพนาม "หนู" หรือ "ดิฉัน" และลงท้ายประโยคด้วย "ค่ะ" หรือ "คะ" เท่านั้น ห้ามใช้ "ครับ" เด็ดขาด'
+      : 'คุณเป็นผู้ชาย ใช้คำสรรพนาม "ผม" และลงท้ายประโยคด้วย "ครับ" เท่านั้น ห้ามใช้ "ค่ะ" หรือ "คะ" เด็ดขาด';
+
     const styleMap: Record<string, string> = {
-      professional: 'พูดสุภาพ เป็นทางการ ใช้คำว่า "ครับ" ลงท้าย มืออาชีพ',
-      casual:       'พูดเป็นกันเอง สนุกสนาน ไม่ทางการ ใช้ภาษาเข้าใจง่าย',
-      friendly:     'พูดเป็นมิตร อบอุ่น กระตือรือร้น ลงท้ายด้วย "ครับ"'
+      professional: `พูดสุภาพ เป็นทางการ มืออาชีพ ลงท้ายด้วย "${ending}"`,
+      casual:       `พูดเป็นกันเอง สนุกสนาน ไม่ทางการ ลงท้ายด้วย "${ending}"`,
+      friendly:     `พูดเป็นมิตร อบอุ่น กระตือรือร้น ลงท้ายด้วย "${ending}"`
     };
     const styleGuide = styleMap[(settings?.ai_speaking_style as string) || 'friendly'] ?? styleMap.friendly;
 
     const systemPrompt = `คุณคือ "${personaName}" พนักงานขายมืออาชีพของร้าน KingVision Print (คิงวิชั่น พริ้นท์)
 คุณเชี่ยวชาญด้านเครื่องพิมพ์และอุปกรณ์สำนักงานมากกว่า 10 ปี มีความรู้ด้านเทคนิคอย่างลึกซึ้ง
+
+### เพศและสรรพนาม:
+${genderGuide}
 
 ### สไตล์การสนทนา:
 ${styleGuide}

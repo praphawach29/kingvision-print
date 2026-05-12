@@ -42,7 +42,22 @@ interface Message {
   content: string;
 }
 
-const GREETING = 'สวัสดีครับ! ผม "น้องคิง" พนักงานขายจาก KingVision Print 🖨️ วันนี้สนใจดูเครื่องพิมพ์รุ่นไหน หรือมีอะไรให้ผมช่วยเช็คสต็อกไหมครับ?';
+interface AgentConfig {
+  personaName: string;
+  gender: 'male' | 'female';
+  aiEnabled: boolean;
+}
+
+type ConnStatus = 'idle' | 'ok' | 'error';
+
+function buildGreeting(cfg: AgentConfig): string {
+  if (cfg.gender === 'female') {
+    return `สวัสดีค่ะ! หนู "${cfg.personaName}" พนักงานขายจาก KingVision Print 🖨️ วันนี้สนใจดูเครื่องพิมพ์รุ่นไหน หรือมีอะไรให้ช่วยเช็คสต็อกไหมคะ?`;
+  }
+  return `สวัสดีครับ! ผม "${cfg.personaName}" พนักงานขายจาก KingVision Print 🖨️ วันนี้สนใจดูเครื่องพิมพ์รุ่นไหน หรือมีอะไรให้ผมช่วยเช็คสต็อกไหมครับ?`;
+}
+
+const DEFAULT_CONFIG: AgentConfig = { personaName: 'น้องคิง', gender: 'male', aiEnabled: true };
 
 const QUICK_REPLIES = [
   { label: 'ติดตามออเดอร์',       text: 'ติดตามออเดอร์ของฉัน' },
@@ -53,13 +68,34 @@ const QUICK_REPLIES = [
 ];
 
 export function ChatAgent() {
-  const [isOpen, setIsOpen]     = useState(false);
-  const [input, setInput]       = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isOpen, setIsOpen]         = useState(false);
+  const [input, setInput]           = useState('');
+  const [messages, setMessages]     = useState<Message[]>([]);
+  const [isLoading, setIsLoading]   = useState(false);
+  const [config, setConfig]         = useState<AgentConfig>(DEFAULT_CONFIG);
+  const [connStatus, setConnStatus] = useState<ConnStatus>('idle');
   const scrollRef = useRef<HTMLDivElement>(null);
   const { addToCart } = useCart();
   const { user }      = useAuth();
+
+  // Load agent config on first open
+  useEffect(() => {
+    if (!isOpen || connStatus !== 'idle') return;
+    setConnStatus('idle');
+    fetch('/api/ai/health')
+      .then(r => r.json())
+      .then(data => {
+        setConfig({
+          personaName: data.personaName || 'น้องคิง',
+          gender:      data.gender === 'female' ? 'female' : 'male',
+          aiEnabled:   data.aiEnabled ?? true,
+        });
+        setConnStatus('ok');
+      })
+      .catch(() => {
+        setConnStatus('error');
+      });
+  }, [isOpen]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -137,9 +173,17 @@ export function ChatAgent() {
                   />
                 </div>
                 <div>
-                  <div className="text-white font-black text-sm leading-none">น้องคิง (Nong King)</div>
-                  <div className="text-kv-orange text-[10px] font-bold uppercase tracking-widest mt-1 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" /> Online
+                  <div className="text-white font-black text-sm leading-none">{config.personaName}</div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest mt-1 flex items-center gap-1">
+                    {connStatus === 'idle' && (
+                      <><span className="w-1.5 h-1.5 bg-gray-400 rounded-full" /><span className="text-gray-300">กำลังเชื่อมต่อ...</span></>
+                    )}
+                    {connStatus === 'ok' && (
+                      <><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" /><span className="text-green-300">เชื่อมต่อแล้ว</span></>
+                    )}
+                    {connStatus === 'error' && (
+                      <><span className="w-1.5 h-1.5 bg-red-400 rounded-full" /><span className="text-red-300">ไม่สามารถเชื่อมต่อได้</span></>
+                    )}
                   </div>
                 </div>
               </div>
@@ -166,7 +210,10 @@ export function ChatAgent() {
               {/* Greeting bubble */}
               <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} className="flex justify-start">
                 <div className="max-w-[88%] p-3 rounded-2xl rounded-tl-none text-sm bg-white text-kv-navy border border-gray-100 shadow-sm leading-relaxed">
-                  {GREETING}
+                  {connStatus === 'error'
+                    ? 'ขออภัยค่ะ/ครับ ขณะนี้ระบบ AI ไม่สามารถเชื่อมต่อได้ กรุณาติดต่อเจ้าหน้าที่ผ่าน LINE ค่ะ/ครับ'
+                    : buildGreeting(config)
+                  }
                 </div>
               </motion.div>
 

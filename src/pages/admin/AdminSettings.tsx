@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Bell, Globe, Shield, CreditCard, Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Package, ShoppingCart, Bot, BookOpen, Edit2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Settings, Save, Bell, Globe, Shield, CreditCard, Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Package, ShoppingCart, Bot, BookOpen, Edit2, ToggleLeft, ToggleRight, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '../../lib/supabase';
 
@@ -47,6 +47,15 @@ interface StoreSettings {
   ai_system_prompt?: string;
   ai_speaking_style?: 'friendly' | 'professional' | 'casual';
   ai_temperature?: number;
+  ai_gender?: 'male' | 'female';
+}
+
+interface AiStatus {
+  state: 'idle' | 'testing' | 'ok' | 'error';
+  provider?: string;
+  model?: string;
+  latency?: number;
+  error?: string;
 }
 
 interface KBItem {
@@ -72,6 +81,7 @@ export function AdminSettings() {
   const [kbItems, setKbItems]       = useState<KBItem[]>([]);
   const [kbLoading, setKbLoading]   = useState(false);
   const [editingKB, setEditingKB]   = useState<Partial<KBItem> | null>(null);
+  const [aiStatus, setAiStatus]     = useState<AiStatus>({ state: 'idle' });
   const [settings, setSettings] = useState<StoreSettings>({
     store_name: 'KingVision Print',
     contact_email: 'contact@kingvision.com',
@@ -97,6 +107,7 @@ export function AdminSettings() {
     ai_system_prompt: '',
     ai_speaking_style: 'friendly',
     ai_temperature: 0.7,
+    ai_gender: 'male',
   });
 
   useEffect(() => {
@@ -232,17 +243,33 @@ export function AdminSettings() {
     fetchKnowledgeBase();
   };
 
+  const testAiConnection = async () => {
+    setAiStatus({ state: 'testing' });
+    try {
+      const res = await fetch('/api/ai/health', { method: 'POST' });
+      const data = await res.json();
+      if (data.connected) {
+        setAiStatus({ state: 'ok', provider: data.provider, model: data.model, latency: data.latency });
+      } else {
+        setAiStatus({ state: 'error', error: data.error || 'Connection failed' });
+      }
+    } catch (err: any) {
+      setAiStatus({ state: 'error', error: err.message || 'Network error' });
+    }
+  };
+
   const saveAiSettingsInstant = async (next: StoreSettings) => {
     try {
       await supabase.from('store_settings').upsert({
         id:               next.id || undefined,
         ai_provider:      next.ai_provider      || 'gemini',
-        ai_model:         next.ai_model         || 'gemini-2.0-flash',
+        ai_model:         next.ai_model         || 'gemini-1.5-flash',
         ai_enabled:       next.ai_enabled       ?? true,
         ai_persona_name:  next.ai_persona_name  || 'น้องคิง',
         ai_system_prompt: next.ai_system_prompt || '',
         ai_speaking_style:next.ai_speaking_style|| 'friendly',
         ai_temperature:   next.ai_temperature   ?? 0.7,
+        ai_gender:        next.ai_gender        || 'male',
         updated_at:       new Date().toISOString()
       });
     } catch (err) {
@@ -516,12 +543,43 @@ export function AdminSettings() {
 
         {/* AI Chatbot Settings */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden">
-          <div className="p-4 sm:p-6 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-5 bg-indigo-500 rounded-full" />
-              <h3 className="font-black text-kv-navy flex items-center gap-2 text-sm sm:text-base">
-                <Bot size={18} className="text-indigo-500" /> AI Chatbot
-              </h3>
+          <div className="p-4 sm:p-6 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-5 bg-indigo-500 rounded-full" />
+                <h3 className="font-black text-kv-navy flex items-center gap-2 text-sm sm:text-base">
+                  <Bot size={18} className="text-indigo-500" /> AI Chatbot
+                </h3>
+              </div>
+              {/* Connection status badge */}
+              <div className="flex items-center gap-2">
+                {aiStatus.state === 'idle' && (
+                  <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded-full">ยังไม่ได้ทดสอบ</span>
+                )}
+                {aiStatus.state === 'testing' && (
+                  <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-1 rounded-full flex items-center gap-1">
+                    <Loader2 size={10} className="animate-spin" /> กำลังทดสอบ...
+                  </span>
+                )}
+                {aiStatus.state === 'ok' && (
+                  <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full flex items-center gap-1">
+                    <Wifi size={10} /> เชื่อมต่อสำเร็จ {aiStatus.latency ? `(${aiStatus.latency}ms)` : ''}
+                  </span>
+                )}
+                {aiStatus.state === 'error' && (
+                  <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full flex items-center gap-1 max-w-[220px] truncate" title={aiStatus.error}>
+                    <WifiOff size={10} /> {aiStatus.error}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={testAiConnection}
+                  disabled={aiStatus.state === 'testing'}
+                  className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full hover:bg-indigo-100 transition-all flex items-center gap-1 disabled:opacity-50"
+                >
+                  <RefreshCw size={10} /> ทดสอบ
+                </button>
+              </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -598,6 +656,42 @@ export function AdminSettings() {
                   <option value="professional">มืออาชีพ (Professional)</option>
                   <option value="casual">เป็นกันเอง (Casual)</option>
                 </select>
+              </div>
+            </div>
+
+            {/* Gender */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider">เพศของ AI</label>
+              <div className="flex gap-3">
+                {([
+                  { value: 'male',   label: '👨 ชาย', sub: 'ใช้ "ครับ" / "ผม"' },
+                  { value: 'female', label: '👩 หญิง', sub: 'ใช้ "ค่ะ/คะ" / "หนู"' },
+                ] as const).map(opt => (
+                  <label
+                    key={opt.value}
+                    className={`flex-1 flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                      (settings.ai_gender || 'male') === opt.value
+                        ? 'border-indigo-400 bg-indigo-50'
+                        : 'border-gray-100 bg-gray-50 hover:border-indigo-200'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="ai_gender"
+                      value={opt.value}
+                      checked={(settings.ai_gender || 'male') === opt.value}
+                      onChange={() => setSettings({ ...settings, ai_gender: opt.value })}
+                      className="sr-only"
+                    />
+                    <div>
+                      <div className="font-black text-kv-navy text-sm">{opt.label}</div>
+                      <div className="text-[10px] text-gray-400 font-bold">{opt.sub}</div>
+                    </div>
+                    {(settings.ai_gender || 'male') === opt.value && (
+                      <CheckCircle2 size={16} className="text-indigo-500 ml-auto shrink-0" />
+                    )}
+                  </label>
+                ))}
               </div>
             </div>
 
