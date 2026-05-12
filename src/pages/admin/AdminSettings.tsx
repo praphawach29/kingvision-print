@@ -39,6 +39,9 @@ interface StoreSettings {
   notify_low_stock: boolean;
   notify_customer_line: boolean;
   web_notifications_enabled: boolean;
+  ai_provider?: 'gemini' | 'openai' | 'anthropic';
+  ai_model?: string;
+  ai_enabled?: boolean;
 }
 
 export function AdminSettings() {
@@ -64,6 +67,9 @@ export function AdminSettings() {
     notify_low_stock: true,
     notify_customer_line: true,
     web_notifications_enabled: true,
+    ai_provider: 'gemini',
+    ai_model: 'gemini-1.5-flash',
+    ai_enabled: true,
   });
 
   useEffect(() => {
@@ -141,6 +147,22 @@ export function AdminSettings() {
       setError(`${msg}${rawError !== '{}' ? ` (Debug: ${rawError})` : ''}`);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const saveAiSettingsInstant = async (next: StoreSettings) => {
+    try {
+      await supabase
+        .from('store_settings')
+        .upsert({
+          id: next.id || undefined,
+          ai_provider: next.ai_provider || 'gemini',
+          ai_model: next.ai_model || 'gemini-1.5-flash',
+          ai_enabled: next.ai_enabled ?? true,
+          updated_at: new Date().toISOString()
+        });
+    } catch (err) {
+      console.error('Failed to save AI settings instantly:', err);
     }
   };
 
@@ -405,6 +427,52 @@ export function AdminSettings() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* AI Settings */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden">
+          <div className="p-4 sm:p-6 border-b border-gray-50 bg-gray-50/30 flex items-center gap-2">
+            <div className="w-1.5 h-5 bg-indigo-500 rounded-full" />
+            <h3 className="font-black text-kv-navy text-sm sm:text-base">AI Chatbot</h3>
+          </div>
+          <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Provider</label>
+              <select
+                value={settings.ai_provider || 'gemini'}
+                onChange={(e) => {
+                  const next = { ...settings, ai_provider: e.target.value as any };
+                  setSettings(next);
+                  saveAiSettingsInstant(next);
+                }}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
+              >
+                <option value="gemini">Google Gemini</option>
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic Claude</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Model</label>
+              <input
+                type="text"
+                value={settings.ai_model || ''}
+                onChange={(e) => {
+                  const next = { ...settings, ai_model: e.target.value };
+                  setSettings(next);
+                  saveAiSettingsInstant(next);
+                }}
+                placeholder="เช่น gemini-1.5-flash / gpt-4o-mini / claude-3-5-sonnet-latest"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
+              />
+            </div>
+            <div className="md:col-span-2 space-y-1.5">
+              <p className="text-[11px] text-gray-500 font-bold">
+                API Key จะไม่เก็บในฐานข้อมูลแล้ว เพื่อความปลอดภัย กรุณาตั้งค่าใน Environment Variables ของเซิร์ฟเวอร์/Vercel:
+                `GEMINI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`
+              </p>
+            </div>
           </div>
         </div>
 

@@ -168,26 +168,16 @@ Professional yet warmly approachable. Energetic and eager to help. You act as a 
 
 export async function chatWithAgent(messages: any[], userId?: string) {
   try {
-    const response = await getAI().models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: messages,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        tools: [{ 
-          functionDeclarations: [
-            search_products_tool, 
-            get_product_details_tool, 
-            check_stock_tool,
-            add_to_cart_tool,
-            get_order_info_tool,
-            get_store_info_tool,
-            get_categories_and_brands_tool
-          ] 
-        }],
-      },
+    const response = await fetch('/api/ai/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, userId })
     });
-
-    return response;
+    const json = await response.json();
+    if (!response.ok) {
+      throw new Error(json?.error || 'AI request failed');
+    }
+    return json;
   } catch (error) {
     console.error("Gemini API Error:", error);
     throw error;
