@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { PaymentModal } from '../components/PaymentModal';
 import { 
   ChevronRight, CreditCard, Banknote, QrCode, Upload, 
   CheckCircle2, Package, ArrowLeft, ChevronDown, ChevronUp,
@@ -38,6 +39,10 @@ export function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [isOrdering, setIsOrdering] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [placedOrderId, setPlacedOrderId] = useState('');
+  const [placedOrderRef, setPlacedOrderRef] = useState('');
+  const [placedTotal, setPlacedTotal] = useState(0);
+  const [paymentInfo, setPaymentInfo] = useState<{ promptpayId?: string; bankName?: string; bankAccount?: string; bankAccountName?: string }>({});
   const [showCoupons, setShowCoupons] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -73,7 +78,7 @@ export function CheckoutPage() {
       setLoading(true);
       const { data, error } = await supabase
         .from('store_settings')
-        .select('payment_methods, shipping_methods')
+        .select('payment_methods, shipping_methods, promptpay_id, bank_name, bank_account, bank_account_name')
         .single();
 
       if (error) throw error;
@@ -84,7 +89,12 @@ export function CheckoutPage() {
         
         setPaymentMethods(enabledPayments);
         setShippingMethods(enabledShipping);
-        
+        setPaymentInfo({
+          promptpayId:     data.promptpay_id      || undefined,
+          bankName:        data.bank_name         || undefined,
+          bankAccount:     data.bank_account      || undefined,
+          bankAccountName: data.bank_account_name || undefined,
+        });
         if (enabledPayments.length > 0) setPaymentMethod(enabledPayments[0].id);
         if (enabledShipping.length > 0) setSelectedShipping(enabledShipping[0]);
       }
@@ -186,6 +196,10 @@ export function CheckoutPage() {
         formData.email || user?.email || 'Guest'
       );
 
+      const shortRef = order.id.slice(0, 8).toUpperCase();
+      setPlacedOrderId(order.id);
+      setPlacedOrderRef(`KV-${shortRef}`);
+      setPlacedTotal(grandTotal);
       setOrderSuccess(true);
       clearCart();
     } catch (err: any) {
@@ -716,31 +730,14 @@ export function CheckoutPage() {
 
       {/* Success Modal */}
       {orderSuccess && (
-        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-10 max-w-md w-full text-center shadow-2xl animate-in zoom-in duration-300">
-            <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
-              <CheckCircle2 size={56} />
-            </div>
-            <h2 className="text-3xl font-bold text-kv-navy mb-4 font-thai">สั่งซื้อสำเร็จ!</h2>
-            <p className="text-gray-600 mb-10 leading-relaxed font-thai">
-              ขอบคุณสำหรับการสั่งซื้อของคุณ หมายเลขคำสั่งซื้อของคุณคือ <span className="font-bold text-kv-navy">#KV-{(Math.random() * 1000000).toFixed(0)}</span> เราได้ส่งอีเมลยืนยันไปยังกล่องจดหมายของคุณแล้ว
-            </p>
-            <div className="space-y-4 font-thai">
-              <button 
-                onClick={() => navigate('/')}
-                className="w-full bg-kv-navy text-white py-4 rounded-xl font-bold hover:bg-kv-navy/90 transition-all shadow-md"
-              >
-                กลับสู่หน้าหลัก
-              </button>
-              <button 
-                onClick={() => navigate('/shop')}
-                className="w-full bg-gray-50 text-gray-700 py-4 rounded-xl font-bold hover:bg-gray-100 transition-all border border-gray-200"
-              >
-                เลือกซื้อสินค้าต่อ
-              </button>
-            </div>
-          </div>
-        </div>
+        <PaymentModal
+          orderId={placedOrderId}
+          orderRef={placedOrderRef}
+          total={placedTotal}
+          paymentMethod={paymentMethod}
+          paymentInfo={paymentInfo}
+          onClose={() => { setOrderSuccess(false); navigate('/'); }}
+        />
       )}
     </div>
   );

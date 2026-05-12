@@ -39,6 +39,11 @@ interface StoreSettings {
   notify_low_stock: boolean;
   notify_customer_line: boolean;
   web_notifications_enabled: boolean;
+  // Payment settings
+  promptpay_id?: string;
+  bank_name?: string;
+  bank_account?: string;
+  bank_account_name?: string;
   // AI settings
   ai_provider?: 'gemini' | 'openai' | 'anthropic';
   ai_model?: string;
@@ -545,6 +550,66 @@ export function AdminSettings() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Payment Settings */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden">
+          <div className="p-4 sm:p-6 border-b border-gray-50 bg-gray-50/30">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-5 bg-green-500 rounded-full" />
+              <h3 className="font-black text-kv-navy flex items-center gap-2 text-sm sm:text-base">
+                <CreditCard size={18} className="text-green-500" /> ข้อมูลรับชำระเงิน
+              </h3>
+            </div>
+            <p className="text-xs text-gray-400 mt-1 ml-3.5">แสดง QR และข้อมูลธนาคารให้ลูกค้าหลังสั่งซื้อ</p>
+          </div>
+          <div className="p-4 sm:p-6 space-y-5">
+            {/* PromptPay */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider">PromptPay ID (เบอร์โทร หรือ เลขบัตรประชาชน)</label>
+              <input
+                type="text"
+                value={settings.promptpay_id || ''}
+                onChange={e => setSettings(prev => ({ ...prev, promptpay_id: e.target.value }))}
+                placeholder="เช่น 0812345678"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-green-400 outline-none font-bold text-kv-navy transition-all"
+              />
+            </div>
+            {/* Bank Info */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">ธนาคาร</label>
+                <input
+                  type="text"
+                  value={settings.bank_name || ''}
+                  onChange={e => setSettings(prev => ({ ...prev, bank_name: e.target.value }))}
+                  placeholder="เช่น ธนาคารกสิกรไทย"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-green-400 outline-none font-bold text-kv-navy transition-all"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">เลขบัญชี</label>
+                <input
+                  type="text"
+                  value={settings.bank_account || ''}
+                  onChange={e => setSettings(prev => ({ ...prev, bank_account: e.target.value }))}
+                  placeholder="เช่น 123-4-56789-0"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-green-400 outline-none font-bold text-kv-navy transition-all"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">ชื่อบัญชี</label>
+                <input
+                  type="text"
+                  value={settings.bank_account_name || ''}
+                  onChange={e => setSettings(prev => ({ ...prev, bank_account_name: e.target.value }))}
+                  placeholder="เช่น บจก. คิงวิชั่น"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-green-400 outline-none font-bold text-kv-navy transition-all"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-400">💡 กรอก PromptPay ID เพื่อสร้าง QR Code อัตโนมัติ หรือกรอกข้อมูลธนาคารเพื่อแสดงให้ลูกค้าโอนเงิน</p>
           </div>
         </div>
 
