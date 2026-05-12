@@ -373,7 +373,7 @@ export function HomePage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full border border-white/[0.03] pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-white/[0.03] pointer-events-none" />
 
-        <div className="relative z-10 container mx-auto px-5 md:px-6 py-16 md:py-20">
+        <div className="relative z-10 mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12 py-16 md:py-20">
           <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
 
             {/* LEFT: Text content */}
@@ -484,7 +484,7 @@ export function HomePage() {
 
       {/* STATS BAR */}
       <section className="bg-white border-b border-gray-100 shadow-sm">
-        <div className="container mx-auto px-5 md:px-6">
+        <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12">
           <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100">
             {[
               { value: '1,000+', label: 'รายการสินค้า', icon: <ShoppingCart size={20} /> },
@@ -506,7 +506,7 @@ export function HomePage() {
 
       {/* CATEGORIES */}
       <section className="py-10 bg-gray-50">
-        <div className="container mx-auto px-5 md:px-6">
+        <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-black text-kv-navy">หมวดหมู่สินค้า</h2>
             <Link to="/shop" className="text-sm text-kv-orange font-semibold hover:underline flex items-center gap-1">
@@ -551,7 +551,7 @@ export function HomePage() {
 
       {/* PROMO BANNERS */}
       <section className="py-6 bg-gray-50">
-        <div className="container mx-auto px-5 md:px-6">
+        <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12">
           <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2">
             {[
               {
@@ -611,7 +611,7 @@ export function HomePage() {
 
       {/* FEATURED PRODUCTS + SIDEBAR */}
       <section className="py-10 bg-white">
-        <div className="container mx-auto px-5 md:px-6">
+        <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12">
           <div className="flex flex-col lg:flex-row gap-8">
 
             {/* Sidebar */}
@@ -768,7 +768,7 @@ export function HomePage() {
           />
           <div className="absolute inset-0 bg-gradient-to-r from-kv-navy via-kv-navy/95 to-kv-navy/60" />
         </div>
-        <div className="container mx-auto px-5 md:px-6 relative z-10">
+        <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12 relative z-10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div>
               <span className="bg-kv-orange text-white text-xs font-bold px-3 py-1 rounded-full inline-block mb-4">
@@ -800,7 +800,7 @@ export function HomePage() {
 
       {/* BEST SELLERS */}
       <section className="py-10 bg-gray-50">
-        <div className="container mx-auto px-5 md:px-6">
+        <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-1 h-6 bg-kv-navy rounded-full" />
@@ -863,7 +863,7 @@ export function HomePage() {
 
       {/* BEST DEALS */}
       <section className="py-10 bg-white">
-        <div className="container mx-auto px-5 md:px-6">
+        <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div className="flex items-center gap-3">
               <div className="w-1 h-6 bg-red-500 rounded-full" />
@@ -937,7 +937,7 @@ export function HomePage() {
       {/* BRANDS STRIP */}
       {dbBrands.length > 0 && (
         <section className="py-8 bg-gray-50 border-t border-gray-100">
-          <div className="container mx-auto px-5 md:px-6">
+          <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-black text-kv-navy">แบรนด์ที่วางจำหน่าย</h2>
               <Link to="/brands" className="text-sm text-kv-orange font-semibold hover:underline flex items-center gap-1">
@@ -965,7 +965,7 @@ export function HomePage() {
 
       {/* SERVICES / TRUST */}
       <section className="py-12 bg-white">
-        <div className="container mx-auto px-5 md:px-6">
+        <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-black text-kv-navy">ทำไมต้องเลือก KingVision?</h2>
             <p className="text-gray-500 mt-2 text-sm">เราใส่ใจในทุกรายละเอียดเพื่อประสบการณ์ที่ดีที่สุด</p>
@@ -1001,7 +1001,7 @@ export function HomePage() {
             referrerPolicy="no-referrer"
           />
         </div>
-        <div className="container mx-auto px-5 md:px-6 relative z-10">
+        <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12 relative z-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
             <div>
               <span className="text-kv-orange text-xs font-bold uppercase tracking-widest">Blog & Knowledge</span>
@@ -1080,7 +1080,7 @@ export function HomePage() {
 
       {/* CTA STRIP */}
       <section className="bg-kv-orange py-10">
-        <div className="container mx-auto px-5 md:px-6">
+        <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="text-center md:text-left">
               <h3 className="text-2xl font-black text-white">ยังไม่แน่ใจ? ปรึกษาผู้เชี่ยวชาญฟรี!</h3>
