@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Loader2, X, Save, Image as ImageIcon, AlertCircle, FileText, Upload } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Loader2, X, Save, Image as ImageIcon, AlertCircle, FileText, Upload, Sparkles } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
 import { BLOG_SEED_POSTS } from '../../data/blogSeed';
@@ -24,6 +24,8 @@ export function AdminBlog() {
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiTopic, setAiTopic] = useState('');
   const [error, setError] = useState<string | null>(null);
   const projectHost = (() => {
     try {
@@ -219,6 +221,37 @@ export function AdminBlog() {
       setError(`${msg}${rawError !== '{}' ? ` (Debug: ${rawError})` : ''}`);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleGenerateWithAI = async () => {
+    try {
+      setIsGeneratingAI(true);
+      setError(null);
+
+      const topic = aiTopic.trim() || formData.title?.trim() || 'เทคนิคการดูแลเครื่องพิมพ์สำหรับร้านค้า';
+      const category = formData.category || 'ความรู้';
+
+      const response = await fetch('/api/ai/generate-blog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic, category })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result?.error || 'AI generate failed');
+
+      const post = result?.post || {};
+      setFormData((prev) => ({
+        ...prev,
+        title: post.title || prev.title || '',
+        excerpt: post.excerpt || prev.excerpt || '',
+        content: post.content || prev.content || '',
+        category: post.category || prev.category || 'ความรู้'
+      }));
+    } catch (err: any) {
+      setError(err.message || 'ไม่สามารถสร้างบทความด้วย AI ได้');
+    } finally {
+      setIsGeneratingAI(false);
     }
   };
 
@@ -418,6 +451,30 @@ export function AdminBlog() {
                   <div className="bg-red-50 text-red-700 p-4 rounded-2xl flex items-center gap-3 border border-red-100">
                     <AlertCircle size={20} />
                     <p className="text-sm font-bold">{error}</p>
+                  </div>
+                )}
+
+                {!editingPost && (
+                  <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+                    <label className="text-xs font-black text-indigo-700 uppercase tracking-wider">สร้างบทความด้วย AI</label>
+                    <div className="mt-2 flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        value={aiTopic}
+                        onChange={(e) => setAiTopic(e.target.value)}
+                        placeholder="ใส่หัวข้อที่อยากให้ AI เขียน เช่น วิธีเลือกเครื่องพิมพ์สำหรับร้านค้า"
+                        className="flex-1 px-4 py-2.5 bg-white border border-indigo-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-semibold text-kv-navy"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleGenerateWithAI}
+                        disabled={isGeneratingAI}
+                        className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                      >
+                        {isGeneratingAI ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
+                        สร้างด้วย AI
+                      </button>
+                    </div>
                   </div>
                 )}
 
