@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Calendar, User, ArrowRight, Tag } from 'lucide-react';
@@ -35,8 +35,8 @@ export function BlogPage() {
   return (
     <div className="bg-gray-50 min-h-screen font-thai pb-16">
       <SEO
-        title="????????????????"
-        description="????????????? ??????????????? ??????????????????????????????????????????????????? ??? KingVision Print"
+        title="บทความและข่าวสาร"
+        description="อัปเดตความรู้ เทคนิคการใช้งาน และข่าวสารล่าสุดเกี่ยวกับเครื่องพิมพ์และอุปกรณ์ไอที จาก KingVision Print"
       />
       <div className="bg-kv-navy text-white py-16 px-4 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
@@ -44,13 +44,13 @@ export function BlogPage() {
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10 text-center">
-          <Breadcrumb items={[{ label: '??????' }]} light className="justify-center mb-4" />
+          <Breadcrumb items={[{ label: 'บทความ' }]} light className="justify-center mb-4" />
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-4xl md:text-5xl font-bold mb-4"
           >
-            ????????????????
+            บทความและข่าวสาร
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -58,7 +58,7 @@ export function BlogPage() {
             transition={{ delay: 0.1 }}
             className="text-lg md:text-xl text-gray-300 max-w-2xl lg:max-w-none mx-auto lg:whitespace-nowrap"
           >
-            ????????????? ??????????????? ???????????????????????????????????????????????????
+            อัปเดตความรู้ เทคนิคการใช้งาน และข่าวสารล่าสุดเกี่ยวกับเครื่องพิมพ์และอุปกรณ์ไอที
           </motion.p>
         </div>
       </div>
@@ -114,7 +114,7 @@ export function BlogPage() {
                   to={`/blog/${post.id}`}
                   className="inline-flex items-center text-kv-navy font-bold hover:text-kv-orange transition-colors group"
                 >
-                  ?????????????
+                  อ่านเพิ่มเติม
                   <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>

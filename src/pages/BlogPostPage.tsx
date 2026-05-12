@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Calendar, User, ArrowLeft, Tag, Share2 } from 'lucide-react';
@@ -46,13 +46,13 @@ export function BlogPostPage() {
   if (!post) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 font-thai">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">???????????</h1>
-        <p className="text-gray-500 mb-8">???????????????????????????????????????????????</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">ไม่พบบทความ</h1>
+        <p className="text-gray-500 mb-8">บทความที่คุณกำลังค้นหาอาจถูกลบหรือยังไม่เผยแพร่</p>
         <button
           onClick={() => navigate('/blog')}
           className="px-6 py-3 bg-kv-navy text-white rounded-full hover:bg-kv-orange transition-colors"
         >
-          ????????????????
+          กลับไปหน้าบทความ
         </button>
       </div>
     );
@@ -78,7 +78,7 @@ export function BlogPostPage() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
             <Breadcrumb
               items={[
-                { label: '??????', path: '/blog' },
+                { label: 'บทความ', path: '/blog' },
                 { label: post.title }
               ]}
               light
@@ -117,20 +117,20 @@ export function BlogPostPage() {
 
           <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between">
             <div className="flex items-center space-x-2 mb-4 sm:mb-0">
-              <span className="text-gray-500 font-medium">????:</span>
+              <span className="text-gray-500 font-medium">แท็ก:</span>
               <span className="bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">{post.category}</span>
-              <span className="bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">??????????</span>
+              <span className="bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">ปริ้นเตอร์</span>
             </div>
 
             <button className="flex items-center text-kv-navy hover:text-kv-orange font-bold transition-colors">
               <Share2 size={18} className="mr-2" />
-              ?????????????
+              แชร์บทความนี้
             </button>
           </div>
 
           <Link to="/blog" className="inline-flex items-center mt-8 text-kv-navy hover:text-kv-orange font-bold transition-colors">
             <ArrowLeft size={16} className="mr-2" />
-            ??????????????
+            กลับหน้าบทความ
           </Link>
         </div>
       </div>

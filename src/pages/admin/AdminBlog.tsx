@@ -71,21 +71,35 @@ export function AdminBlog() {
       // Seed initial blog content for admin if table is empty
       if ((count || 0) === 0) {
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const seedRows = BLOG_SEED_POSTS.map((post) => ({
-            ...post,
-            author_id: user.id
-          }));
-          const { error: seedError } = await supabase.from('blog_posts').insert(seedRows);
-          if (!seedError) {
-            const { data: seeded, count: seededCount } = await supabase
-              .from('blog_posts')
-              .select('*', { count: 'exact' })
-              .order('created_at', { ascending: false })
-              .range(from, to);
-            finalData = seeded || [];
-            finalCount = seededCount || finalData.length;
-          }
+        const { data: profile } = await supabase.from('profiles').select('id').limit(1).single();
+        const fallbackAuthorId = user?.id || profile?.id;
+
+        const seedWithAuthor = BLOG_SEED_POSTS.map((post) => ({
+          ...post,
+          author_id: fallbackAuthorId
+        }));
+        const seedWithoutAuthor = BLOG_SEED_POSTS.map((post) => ({ ...post }));
+
+        let seedError: any = null;
+        if (fallbackAuthorId) {
+          const res = await supabase.from('blog_posts').insert(seedWithAuthor);
+          seedError = res.error;
+        }
+        if (seedError || !fallbackAuthorId) {
+          const res2 = await supabase.from('blog_posts').insert(seedWithoutAuthor);
+          seedError = res2.error;
+        }
+
+        if (!seedError) {
+          const { data: seeded, count: seededCount } = await supabase
+            .from('blog_posts')
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(from, to);
+          finalData = seeded || [];
+          finalCount = seededCount || finalData.length;
+        } else {
+          setError(`ไม่สามารถสร้างบทความเริ่มต้นอัตโนมัติได้: ${seedError.message}`);
         }
       }
 
