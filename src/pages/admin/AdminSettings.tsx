@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Bell, Globe, Shield, CreditCard, Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Package, ShoppingCart } from 'lucide-react';
+import { Settings, Save, Bell, Globe, Shield, CreditCard, Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Package, ShoppingCart, Bot, BookOpen, Edit2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '../../lib/supabase';
 
@@ -39,22 +39,39 @@ interface StoreSettings {
   notify_low_stock: boolean;
   notify_customer_line: boolean;
   web_notifications_enabled: boolean;
+  // AI settings
   ai_provider?: 'gemini' | 'openai' | 'anthropic';
   ai_model?: string;
   ai_enabled?: boolean;
+  ai_persona_name?: string;
+  ai_system_prompt?: string;
+  ai_speaking_style?: 'friendly' | 'professional' | 'casual';
+  ai_temperature?: number;
+}
+
+interface KBItem {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  is_active: boolean;
+  sort_order: number;
 }
 
 const AI_MODEL_OPTIONS: Record<'gemini' | 'openai' | 'anthropic', string[]> = {
-  gemini: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'],
-  openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini'],
-  anthropic: ['claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest', 'claude-3-opus-latest']
+  gemini:    ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'],
+  openai:    ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini'],
+  anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6', 'claude-3-5-sonnet-latest']
 };
 
 export function AdminSettings() {
-  const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading]       = useState(true);
+  const [isSaving, setIsSaving]     = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]           = useState<string | null>(null);
+  const [kbItems, setKbItems]       = useState<KBItem[]>([]);
+  const [kbLoading, setKbLoading]   = useState(false);
+  const [editingKB, setEditingKB]   = useState<Partial<KBItem> | null>(null);
   const [settings, setSettings] = useState<StoreSettings>({
     store_name: 'KingVision Print',
     contact_email: 'contact@kingvision.com',
@@ -74,12 +91,17 @@ export function AdminSettings() {
     notify_customer_line: true,
     web_notifications_enabled: true,
     ai_provider: 'gemini',
-    ai_model: 'gemini-1.5-flash',
+    ai_model: 'gemini-2.0-flash',
     ai_enabled: true,
+    ai_persona_name: 'น้องคิง',
+    ai_system_prompt: '',
+    ai_speaking_style: 'friendly',
+    ai_temperature: 0.7,
   });
 
   useEffect(() => {
     fetchSettings();
+    fetchKnowledgeBase();
   }, []);
 
   async function fetchSettings() {
@@ -156,17 +178,73 @@ export function AdminSettings() {
     }
   };
 
+  async function fetchKnowledgeBase() {
+    setKbLoading(true);
+    try {
+      const { data } = await supabase
+        .from('ai_knowledge_base')
+        .select('*')
+        .order('sort_order')
+        .order('created_at');
+      setKbItems(data || []);
+    } finally {
+      setKbLoading(false);
+    }
+  }
+
+  const saveKBItem = async () => {
+    if (!editingKB?.question?.trim() || !editingKB?.answer?.trim()) return;
+    try {
+      if (editingKB.id) {
+        await supabase.from('ai_knowledge_base').update({
+          question:   editingKB.question,
+          answer:     editingKB.answer,
+          category:   editingKB.category || 'general',
+          is_active:  editingKB.is_active ?? true,
+          updated_at: new Date().toISOString()
+        }).eq('id', editingKB.id);
+      } else {
+        await supabase.from('ai_knowledge_base').insert({
+          question:  editingKB.question,
+          answer:    editingKB.answer,
+          category:  editingKB.category || 'general',
+          is_active: true,
+          sort_order: kbItems.length
+        });
+      }
+      setEditingKB(null);
+      fetchKnowledgeBase();
+    } catch (err) {
+      console.error('Failed to save KB item:', err);
+    }
+  };
+
+  const deleteKBItem = async (id: string) => {
+    if (!confirm('ต้องการลบข้อมูลนี้ใช่ไหม?')) return;
+    await supabase.from('ai_knowledge_base').delete().eq('id', id);
+    fetchKnowledgeBase();
+  };
+
+  const toggleKBItem = async (item: KBItem) => {
+    await supabase.from('ai_knowledge_base')
+      .update({ is_active: !item.is_active })
+      .eq('id', item.id);
+    fetchKnowledgeBase();
+  };
+
   const saveAiSettingsInstant = async (next: StoreSettings) => {
     try {
-      await supabase
-        .from('store_settings')
-        .upsert({
-          id: next.id || undefined,
-          ai_provider: next.ai_provider || 'gemini',
-          ai_model: next.ai_model || 'gemini-1.5-flash',
-          ai_enabled: next.ai_enabled ?? true,
-          updated_at: new Date().toISOString()
-        });
+      await supabase.from('store_settings').upsert({
+        id:               next.id || undefined,
+        ai_provider:      next.ai_provider      || 'gemini',
+        ai_model:         next.ai_model         || 'gemini-2.0-flash',
+        ai_enabled:       next.ai_enabled       ?? true,
+        ai_persona_name:  next.ai_persona_name  || 'น้องคิง',
+        ai_system_prompt: next.ai_system_prompt || '',
+        ai_speaking_style:next.ai_speaking_style|| 'friendly',
+        ai_temperature:   next.ai_temperature   ?? 0.7,
+        updated_at:       new Date().toISOString()
+      });
     } catch (err) {
       console.error('Failed to save AI settings instantly:', err);
     }
@@ -436,52 +514,264 @@ export function AdminSettings() {
           </div>
         </div>
 
-        {/* AI Settings */}
+        {/* AI Chatbot Settings */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden">
-          <div className="p-4 sm:p-6 border-b border-gray-50 bg-gray-50/30 flex items-center gap-2">
-            <div className="w-1.5 h-5 bg-indigo-500 rounded-full" />
-            <h3 className="font-black text-kv-navy text-sm sm:text-base">AI Chatbot</h3>
+          <div className="p-4 sm:p-6 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-5 bg-indigo-500 rounded-full" />
+              <h3 className="font-black text-kv-navy flex items-center gap-2 text-sm sm:text-base">
+                <Bot size={18} className="text-indigo-500" /> AI Chatbot
+              </h3>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.ai_enabled ?? true}
+                onChange={e => {
+                  const next = { ...settings, ai_enabled: e.target.checked };
+                  setSettings(next);
+                  saveAiSettingsInstant(next);
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500" />
+            </label>
           </div>
-          <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Provider</label>
-              <select
-                value={settings.ai_provider || 'gemini'}
-                onChange={(e) => {
-                  const provider = e.target.value as 'gemini' | 'openai' | 'anthropic';
-                  const next = { ...settings, ai_provider: provider, ai_model: AI_MODEL_OPTIONS[provider][0] };
-                  setSettings(next);
-                  saveAiSettingsInstant(next);
-                }}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
-              >
-                <option value="gemini">Google Gemini</option>
-                <option value="openai">OpenAI</option>
-                <option value="anthropic">Anthropic Claude</option>
-              </select>
+          <div className="p-4 sm:p-6 space-y-6">
+            {/* Provider + Model */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">AI Provider</label>
+                <select
+                  value={settings.ai_provider || 'gemini'}
+                  onChange={e => {
+                    const provider = e.target.value as 'gemini' | 'openai' | 'anthropic';
+                    const next = { ...settings, ai_provider: provider, ai_model: AI_MODEL_OPTIONS[provider][0] };
+                    setSettings(next);
+                    saveAiSettingsInstant(next);
+                  }}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
+                >
+                  <option value="gemini">Google Gemini</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic Claude</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Model</label>
+                <select
+                  value={settings.ai_model || AI_MODEL_OPTIONS[(settings.ai_provider || 'gemini')][0]}
+                  onChange={e => {
+                    const next = { ...settings, ai_model: e.target.value };
+                    setSettings(next);
+                    saveAiSettingsInstant(next);
+                  }}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
+                >
+                  {AI_MODEL_OPTIONS[(settings.ai_provider || 'gemini')].map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Model</label>
-              <select
-                value={settings.ai_model || AI_MODEL_OPTIONS[(settings.ai_provider || 'gemini')][0]}
-                onChange={(e) => {
-                  const next = { ...settings, ai_model: e.target.value };
-                  setSettings(next);
-                  saveAiSettingsInstant(next);
-                }}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
-              >
-                {AI_MODEL_OPTIONS[(settings.ai_provider || 'gemini')].map((model) => (
-                  <option key={model} value={model}>{model}</option>
-                ))}
-              </select>
+
+            {/* Persona + Style */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">ชื่อ AI (Persona Name)</label>
+                <input
+                  type="text"
+                  value={settings.ai_persona_name || ''}
+                  onChange={e => setSettings({ ...settings, ai_persona_name: e.target.value })}
+                  placeholder="เช่น น้องคิง"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">สไตล์การพูด</label>
+                <select
+                  value={settings.ai_speaking_style || 'friendly'}
+                  onChange={e => setSettings({ ...settings, ai_speaking_style: e.target.value as any })}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
+                >
+                  <option value="friendly">เป็นมิตร / อบอุ่น (Friendly)</option>
+                  <option value="professional">มืออาชีพ (Professional)</option>
+                  <option value="casual">เป็นกันเอง (Casual)</option>
+                </select>
+              </div>
             </div>
-            <div className="md:col-span-2 space-y-1.5">
-              <p className="text-[11px] text-gray-500 font-bold">
-                API Key จะไม่เก็บในฐานข้อมูลแล้ว เพื่อความปลอดภัย กรุณาตั้งค่าใน Environment Variables ของเซิร์ฟเวอร์/Vercel:
-                `GEMINI_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`
+
+            {/* Temperature */}
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">ความสร้างสรรค์ (Temperature)</label>
+                <span className="text-xs font-black text-indigo-600">{(settings.ai_temperature ?? 0.7).toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="0" max="1" step="0.1"
+                value={settings.ai_temperature ?? 0.7}
+                onChange={e => setSettings({ ...settings, ai_temperature: parseFloat(e.target.value) })}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+              />
+              <div className="flex justify-between text-[10px] font-bold text-gray-400">
+                <span>ตอบตรงๆ แม่นยำ</span>
+                <span>สร้างสรรค์ ยืดหยุ่น</span>
+              </div>
+            </div>
+
+            {/* System Prompt */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider">System Prompt พิเศษ (เพิ่มเติม)</label>
+              <textarea
+                rows={4}
+                value={settings.ai_system_prompt || ''}
+                onChange={e => setSettings({ ...settings, ai_system_prompt: e.target.value })}
+                placeholder="เช่น: ถ้าลูกค้าถามราคา ให้แจ้งว่าราคาอาจเปลี่ยนได้ กรุณาโทรยืนยันก่อนสั่งซื้อ&#10;เช่น: โปรโมชั่นพิเศษเดือนนี้ ซื้อ 2 แถม 1 สินค้าหมึก Epson..."
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all resize-none text-sm"
+              />
+              <p className="text-[10px] text-gray-400 font-bold px-1">คำสั่งนี้จะถูกเพิ่มต่อท้าย system prompt หลัก สามารถใส่โปรโมชั่น นโยบายพิเศษ หรือข้อมูลสำคัญได้</p>
+            </div>
+
+            {/* API Keys note */}
+            <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+              <p className="text-[11px] text-indigo-700 font-bold">
+                🔑 API Key ต้องตั้งค่าใน Environment Variables ของ Vercel (ไม่เก็บในฐานข้อมูล):<br />
+                <code className="bg-white px-1 py-0.5 rounded text-[10px]">GEMINI_API_KEY</code>{' '}
+                <code className="bg-white px-1 py-0.5 rounded text-[10px]">OPENAI_API_KEY</code>{' '}
+                <code className="bg-white px-1 py-0.5 rounded text-[10px]">ANTHROPIC_API_KEY</code>{' '}
+                <code className="bg-white px-1 py-0.5 rounded text-[10px]">SUPABASE_SERVICE_ROLE_KEY</code>
               </p>
             </div>
+          </div>
+        </div>
+
+        {/* AI Knowledge Base */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden">
+          <div className="p-4 sm:p-6 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-5 bg-teal-500 rounded-full" />
+              <h3 className="font-black text-kv-navy flex items-center gap-2 text-sm sm:text-base">
+                <BookOpen size={18} className="text-teal-500" /> คลังความรู้ AI (Knowledge Base)
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditingKB({ question: '', answer: '', category: 'general', is_active: true })}
+              className="text-xs font-black text-teal-600 flex items-center gap-1 hover:underline"
+            >
+              <Plus size={14} /> เพิ่มคำถาม
+            </button>
+          </div>
+          <div className="p-4 sm:p-6 space-y-3">
+            <p className="text-[11px] text-gray-500 font-bold">
+              เพิ่มคำถาม-คำตอบที่ AI จะใช้ตอบลูกค้า เช่น นโยบายร้าน โปรโมชั่น ข้อมูลสินค้าพิเศษ
+            </p>
+
+            {/* Edit/Add Form */}
+            {editingKB && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 bg-teal-50 rounded-2xl border border-teal-100 space-y-3"
+              >
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider">คำถาม</label>
+                  <input
+                    type="text"
+                    value={editingKB.question || ''}
+                    onChange={e => setEditingKB({ ...editingKB, question: e.target.value })}
+                    placeholder="เช่น ร้านเปิดกี่โมง?"
+                    className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 outline-none font-bold text-kv-navy text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider">คำตอบ</label>
+                  <textarea
+                    rows={3}
+                    value={editingKB.answer || ''}
+                    onChange={e => setEditingKB({ ...editingKB, answer: e.target.value })}
+                    placeholder="เช่น ร้านเปิดวันจันทร์-เสาร์ เวลา 9:00-18:00 น. ครับ"
+                    className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 outline-none font-bold text-kv-navy text-sm resize-none"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider">หมวดหมู่</label>
+                    <select
+                      value={editingKB.category || 'general'}
+                      onChange={e => setEditingKB({ ...editingKB, category: e.target.value })}
+                      className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-400 outline-none font-bold text-kv-navy text-sm"
+                    >
+                      <option value="general">ทั่วไป</option>
+                      <option value="product">สินค้า</option>
+                      <option value="shipping">การจัดส่ง</option>
+                      <option value="warranty">ประกัน/ซ่อม</option>
+                      <option value="invoice">ใบกำกับภาษี</option>
+                      <option value="promotion">โปรโมชั่น</option>
+                    </select>
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <button
+                      type="button"
+                      onClick={saveKBItem}
+                      disabled={!editingKB.question?.trim() || !editingKB.answer?.trim()}
+                      className="flex-1 py-2.5 bg-teal-500 text-white rounded-xl font-black text-sm hover:bg-teal-600 transition-all disabled:opacity-40"
+                    >
+                      บันทึก
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingKB(null)}
+                      className="flex-1 py-2.5 bg-gray-100 text-gray-500 rounded-xl font-black text-sm hover:bg-gray-200 transition-all"
+                    >
+                      ยกเลิก
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* KB List */}
+            {kbLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="animate-spin text-teal-400" size={24} />
+              </div>
+            ) : kbItems.length === 0 ? (
+              <div className="text-center py-8 text-gray-400 text-sm font-bold">
+                ยังไม่มีข้อมูลในคลังความรู้ กด "เพิ่มคำถาม" เพื่อเริ่มต้น
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {kbItems.map(item => (
+                  <div
+                    key={item.id}
+                    className={`p-3 rounded-xl border flex gap-3 items-start transition-all ${
+                      item.is_active ? 'bg-gray-50 border-gray-100' : 'bg-gray-100/50 border-gray-200 opacity-60'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-kv-navy text-xs truncate">{item.question}</span>
+                        <span className="text-[9px] bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-black uppercase">{item.category}</span>
+                      </div>
+                      <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">{item.answer}</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button type="button" onClick={() => toggleKBItem(item)} className="p-1.5 rounded-lg hover:bg-white transition-all text-gray-400 hover:text-teal-500" title={item.is_active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}>
+                        {item.is_active ? <ToggleRight size={16} className="text-teal-500" /> : <ToggleLeft size={16} />}
+                      </button>
+                      <button type="button" onClick={() => setEditingKB(item)} className="p-1.5 rounded-lg hover:bg-white transition-all text-gray-400 hover:text-blue-500">
+                        <Edit2 size={14} />
+                      </button>
+                      <button type="button" onClick={() => deleteKBItem(item.id)} className="p-1.5 rounded-lg hover:bg-white transition-all text-gray-400 hover:text-red-500">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
