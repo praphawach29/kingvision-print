@@ -123,6 +123,11 @@ export function ChatAgent() {
         body:    JSON.stringify({ messages: trimmed, userId: user?.id })
       });
       const json = await res.json();
+      if (res.status === 429) {
+        setMessages(prev => [...prev, { role: 'assistant', content: json?.error || 'ส่งข้อความเร็วเกินไปครับ กรุณารอสักครู่แล้วลองใหม่' }]);
+        setIsLoading(false);
+        return;
+      }
       if (!res.ok) throw new Error(json?.error || 'AI request failed');
 
       const assistantMsg: Message = { role: 'assistant', content: json.text || 'ขออภัยครับ ไม่ได้รับการตอบกลับ' };

@@ -128,6 +128,35 @@ function toGeminiResponse(resultStr: string): Record<string, any> {
   }
 }
 
+const RATE_LIMIT_MAX = 20;   // requests
+const RATE_LIMIT_WINDOW = 60; // seconds
+
+async function checkRateLimit(db: ReturnType<typeof createClient>, ip: string): Promise<{ allowed: boolean; remaining: number }> {
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW * 1000).toISOString();
+
+  // Count requests from this IP within the window
+  const { count } = await db
+    .from('ai_rate_limits')
+    .select('*', { count: 'exact', head: true })
+    .eq('ip', ip)
+    .gte('created_at', windowStart);
+
+  const used = count ?? 0;
+  if (used >= RATE_LIMIT_MAX) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  // Record this request
+  await db.from('ai_rate_limits').insert({ ip });
+
+  // Clean up old records older than 2 windows to keep table small
+  await db.from('ai_rate_limits')
+    .delete()
+    .lt('created_at', new Date(Date.now() - RATE_LIMIT_WINDOW * 2000).toISOString());
+
+  return { allowed: true, remaining: RATE_LIMIT_MAX - used - 1 };
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -138,6 +167,18 @@ export default async function handler(req: any, res: any) {
   }
 
   const db = createClient(supabaseUrl, serviceRoleKey);
+
+  // Rate limiting by IP
+  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  const { allowed, remaining } = await checkRateLimit(db, ip);
+  if (!allowed) {
+    res.setHeader('Retry-After', String(RATE_LIMIT_WINDOW));
+    return res.status(429).json({
+      error: 'ส่งข้อความเร็วเกินไปครับ กรุณารอสักครู่แล้วลองใหม่อีกครั้ง',
+      retryAfter: RATE_LIMIT_WINDOW,
+    });
+  }
+  res.setHeader('X-RateLimit-Remaining', String(remaining));
 
   try {
     const { messages, userId } = req.body as { messages: SimpleMessage[]; userId?: string };
