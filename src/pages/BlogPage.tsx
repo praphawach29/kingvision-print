@@ -18,17 +18,31 @@ interface BlogPost {
 
 export function BlogPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const projectHost = (() => {
+    try {
+      return new URL(import.meta.env.VITE_SUPABASE_URL || '').host || 'unknown';
+    } catch {
+      return 'unknown';
+    }
+  })();
 
   useEffect(() => {
     fetchPosts();
   }, []);
 
   async function fetchPosts() {
-    const { data } = await supabase
+    setError(null);
+    const { data, error } = await supabase
       .from('blog_posts')
       .select('id,title,excerpt,content,image_url,category,created_at')
       .eq('published', true)
       .order('created_at', { ascending: false });
+    if (error) {
+      setPosts([]);
+      setError(error.message);
+      return;
+    }
     setPosts(data || []);
   }
 
@@ -64,6 +78,20 @@ export function BlogPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 text-sm font-semibold">
+            โหลดบทความไม่สำเร็จ: {error}
+            <div className="mt-1 text-xs font-medium">Supabase Project: {projectHost}</div>
+          </div>
+        )}
+
+        {!error && posts.length === 0 && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-700 text-sm font-semibold">
+            ไม่พบบทความที่เผยแพร่ (published=true)
+            <div className="mt-1 text-xs font-medium">Supabase Project: {projectHost}</div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {posts.map((post, index) => (
             <motion.article

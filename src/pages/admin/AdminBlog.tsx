@@ -25,6 +25,13 @@ export function AdminBlog() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const projectHost = (() => {
+    try {
+      return new URL(import.meta.env.VITE_SUPABASE_URL || '').host || 'unknown';
+    } catch {
+      return 'unknown';
+    }
+  })();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -235,6 +242,16 @@ export function AdminBlog() {
 
   return (
     <div className="space-y-6 font-thai">
+      {error && (
+        <div className="bg-red-50 text-red-700 p-4 rounded-2xl flex items-start gap-3 border border-red-100">
+          <AlertCircle size={20} className="mt-0.5 shrink-0" />
+          <div className="text-sm font-bold">
+            <div>{error}</div>
+            <div className="mt-1 text-xs font-medium">Supabase Project: {projectHost}</div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4">
         <div className="relative w-full lg:w-96">
           <input 
