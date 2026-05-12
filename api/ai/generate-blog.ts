@@ -58,7 +58,12 @@ export default async function handler(req: any, res: any) {
     }
 
     const provider = ((setting?.ai_provider || 'gemini') as Provider).toLowerCase() as Provider;
-    const model = setting?.ai_model || 'gemini-1.5-flash';
+    const GEMINI_DEPRECATED: Record<string, string> = {
+      'gemini-2.0-flash': 'gemini-1.5-flash', 'gemini-2.0-flash-exp': 'gemini-1.5-flash',
+      'gemini-2.0-flash-001': 'gemini-1.5-flash', 'gemini-pro': 'gemini-1.5-pro'
+    };
+    const rawModel = setting?.ai_model || 'gemini-1.5-flash';
+    const model = provider === 'gemini' ? (GEMINI_DEPRECATED[rawModel] ?? rawModel) : rawModel;
     const prompt = `เขียนบทความภาษาไทยสำหรับร้านขายเครื่องพิมพ์และอะไหล่
 หัวข้อ: ${topic || 'เทคนิคการดูแลเครื่องพิมพ์'}
 หมวดหมู่: ${category || 'ความรู้'}

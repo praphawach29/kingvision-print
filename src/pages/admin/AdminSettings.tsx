@@ -59,7 +59,7 @@ interface KBItem {
 }
 
 const AI_MODEL_OPTIONS: Record<'gemini' | 'openai' | 'anthropic', string[]> = {
-  gemini:    ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'],
+  gemini:    ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.5-flash-8b'],
   openai:    ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini'],
   anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6', 'claude-3-5-sonnet-latest']
 };
@@ -91,7 +91,7 @@ export function AdminSettings() {
     notify_customer_line: true,
     web_notifications_enabled: true,
     ai_provider: 'gemini',
-    ai_model: 'gemini-2.0-flash',
+    ai_model: 'gemini-1.5-flash',
     ai_enabled: true,
     ai_persona_name: 'น้องคิง',
     ai_system_prompt: '',
