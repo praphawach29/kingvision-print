@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Loader2, X, Save, Image as ImageIcon, AlertCircle, FileText, Upload } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
+import { BLOG_SEED_POSTS } from '../../data/blogSeed';
 
 interface BlogPost {
   id: string;
@@ -64,8 +65,32 @@ export function AdminBlog() {
         .range(from, to);
 
       if (error) throw error;
-      setPosts(data || []);
-      setTotalCount(count || 0);
+      let finalData = data || [];
+      let finalCount = count || 0;
+
+      // Seed initial blog content for admin if table is empty
+      if ((count || 0) === 0) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const seedRows = BLOG_SEED_POSTS.map((post) => ({
+            ...post,
+            author_id: user.id
+          }));
+          const { error: seedError } = await supabase.from('blog_posts').insert(seedRows);
+          if (!seedError) {
+            const { data: seeded, count: seededCount } = await supabase
+              .from('blog_posts')
+              .select('*', { count: 'exact' })
+              .order('created_at', { ascending: false })
+              .range(from, to);
+            finalData = seeded || [];
+            finalCount = seededCount || finalData.length;
+          }
+        }
+      }
+
+      setPosts(finalData);
+      setTotalCount(finalCount);
     } catch (err: any) {
       console.error('Error fetching posts:', err);
       setError(err.message);

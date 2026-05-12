@@ -292,7 +292,7 @@ export function HomePage() {
         }
       }
 
-      if (data) setBlogPosts(data.slice(0, 3));
+      if (data) setBlogPosts(data.slice(0, 5));
     } catch (error) {
       console.error('Error fetching blog posts:', error);
     } finally {
