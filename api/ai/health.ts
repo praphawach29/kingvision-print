@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
 const GEMINI_DEPRECATED: Record<string, string> = {
-  'gemini-2.0-flash-exp':  'gemini-2.0-flash',
-  'gemini-2.0-flash-001':  'gemini-2.0-flash',
-  'gemini-1.5-flash':      'gemini-2.0-flash',
+  'gemini-2.0-flash':      'gemini-2.5-flash',
+  'gemini-2.0-flash-exp':  'gemini-2.5-flash',
+  'gemini-2.0-flash-001':  'gemini-2.5-flash',
+  'gemini-1.5-flash':      'gemini-2.5-flash',
   'gemini-1.5-flash-8b':   'gemini-2.0-flash-lite',
-  'gemini-1.5-pro':        'gemini-2.5-flash',
-  'gemini-pro':            'gemini-2.0-flash',
+  'gemini-1.5-pro':        'gemini-2.5-pro',
+  'gemini-pro':            'gemini-2.5-flash',
 };
 function remapGeminiModel(m: string) { return GEMINI_DEPRECATED[m] ?? m; }
 
@@ -34,7 +35,7 @@ export default async function handler(req: any, res: any) {
     const bodyModel    = req.body?.model    as string | undefined;
 
     const provider    = (bodyProvider || (settings?.ai_provider as string) || 'gemini').toLowerCase();
-    const rawModel    = bodyModel    || (settings?.ai_model as string) || 'gemini-2.0-flash';
+    const rawModel    = bodyModel    || (settings?.ai_model as string) || 'gemini-2.5-flash';
     const model       = provider === 'gemini' ? remapGeminiModel(rawModel) : rawModel;
     const personaName = (settings?.ai_persona_name as string) || 'น้องคิง';
     const gender      = (settings?.ai_gender as string) || 'male';

@@ -59,14 +59,15 @@ export default async function handler(req: any, res: any) {
 
     const provider = ((setting?.ai_provider || 'gemini') as Provider).toLowerCase() as Provider;
     const GEMINI_DEPRECATED: Record<string, string> = {
-      'gemini-2.0-flash-exp':  'gemini-2.0-flash',
-      'gemini-2.0-flash-001':  'gemini-2.0-flash',
-      'gemini-1.5-flash':      'gemini-2.0-flash',
+      'gemini-2.0-flash':      'gemini-2.5-flash',
+      'gemini-2.0-flash-exp':  'gemini-2.5-flash',
+      'gemini-2.0-flash-001':  'gemini-2.5-flash',
+      'gemini-1.5-flash':      'gemini-2.5-flash',
       'gemini-1.5-flash-8b':   'gemini-2.0-flash-lite',
-      'gemini-1.5-pro':        'gemini-2.5-flash',
-      'gemini-pro':            'gemini-2.0-flash',
+      'gemini-1.5-pro':        'gemini-2.5-pro',
+      'gemini-pro':            'gemini-2.5-flash',
     };
-    const rawModel = setting?.ai_model || 'gemini-2.0-flash';
+    const rawModel = setting?.ai_model || 'gemini-2.5-flash';
     const model = provider === 'gemini' ? (GEMINI_DEPRECATED[rawModel] ?? rawModel) : rawModel;
     const prompt = `เขียนบทความภาษาไทยสำหรับร้านขายเครื่องพิมพ์และอะไหล่
 หัวข้อ: ${topic || 'เทคนิคการดูแลเครื่องพิมพ์'}

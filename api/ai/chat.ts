@@ -103,12 +103,13 @@ function toGeminiSchema(schema: any): any {
 }
 
 const GEMINI_DEPRECATED: Record<string, string> = {
-  'gemini-2.0-flash-exp':  'gemini-2.0-flash',
-  'gemini-2.0-flash-001':  'gemini-2.0-flash',
-  'gemini-1.5-flash':      'gemini-2.0-flash',
+  'gemini-2.0-flash':      'gemini-2.5-flash',
+  'gemini-2.0-flash-exp':  'gemini-2.5-flash',
+  'gemini-2.0-flash-001':  'gemini-2.5-flash',
+  'gemini-1.5-flash':      'gemini-2.5-flash',
   'gemini-1.5-flash-8b':   'gemini-2.0-flash-lite',
-  'gemini-1.5-pro':        'gemini-2.5-flash',
-  'gemini-pro':            'gemini-2.0-flash',
+  'gemini-1.5-pro':        'gemini-2.5-pro',
+  'gemini-pro':            'gemini-2.5-flash',
 };
 function remapGeminiModel(model: string): string {
   return GEMINI_DEPRECATED[model] ?? model;
@@ -156,7 +157,7 @@ export default async function handler(req: any, res: any) {
 
     const provider    = ((settings?.ai_provider as string) || 'gemini').toLowerCase() as 'gemini' | 'openai' | 'anthropic';
     // Remap deprecated / unavailable Gemini model names automatically
-    const rawModel    = (settings?.ai_model as string) || 'gemini-2.0-flash';
+    const rawModel    = (settings?.ai_model as string) || 'gemini-2.5-flash';
     const model       = provider === 'gemini' ? remapGeminiModel(rawModel) : rawModel;
     const personaName = (settings?.ai_persona_name as string) || 'น้องคิง';
     const temperature = typeof settings?.ai_temperature === 'number' ? settings.ai_temperature : 0.7;
