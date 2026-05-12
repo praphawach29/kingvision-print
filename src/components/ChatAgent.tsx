@@ -4,7 +4,18 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import nongKingAvatar from '../assets/nong-king.jpg';
+
+const MAX_HISTORY = 30;
+const SESSION_KEY = 'kv_chat_session_id';
+const LOCAL_HISTORY_KEY = (id: string) => `kv_chat_history_${id}`;
+
+function getSessionId(): string {
+  let id = localStorage.getItem(SESSION_KEY);
+  if (!id) { id = crypto.randomUUID(); localStorage.setItem(SESSION_KEY, id); }
+  return id;
+}
 
 // Render assistant text: convert [label](url) markdown links into clickable elements
 function renderMessage(text: string) {
@@ -74,14 +85,47 @@ export function ChatAgent() {
   const [isLoading, setIsLoading]   = useState(false);
   const [config, setConfig]         = useState<AgentConfig>(DEFAULT_CONFIG);
   const [connStatus, setConnStatus] = useState<ConnStatus>('idle');
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sessionId = useRef<string>(getSessionId());
   const { addToCart } = useCart();
   const { user }      = useAuth();
 
-  // Load agent config on first open
+  // Load agent config + chat history on first open
   useEffect(() => {
     if (!isOpen || connStatus !== 'idle') return;
-    setConnStatus('idle');
+
+    // Load history from localStorage first (instant)
+    const localKey = LOCAL_HISTORY_KEY(user?.id ?? sessionId.current);
+    try {
+      const stored = localStorage.getItem(localKey);
+      if (stored) {
+        const parsed: Message[] = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+          setHistoryLoaded(true);
+        }
+      }
+    } catch { /* ignore parse errors */ }
+
+    // If logged in, also try to pull from Supabase (may have richer history)
+    if (user?.id) {
+      supabase
+        .from('chat_history')
+        .select('messages')
+        .eq('user_id', user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.messages && Array.isArray(data.messages) && data.messages.length > 0) {
+            setMessages(data.messages as Message[]);
+            localStorage.setItem(localKey, JSON.stringify(data.messages));
+            setHistoryLoaded(true);
+          }
+        })
+        .catch(() => { /* ignore */ });
+    }
+
+    // Fetch agent config
     fetch('/api/ai/health')
       .then(r => r.json())
       .then(data => {
@@ -92,9 +136,7 @@ export function ChatAgent() {
         });
         setConnStatus('ok');
       })
-      .catch(() => {
-        setConnStatus('error');
-      });
+      .catch(() => setConnStatus('error'));
   }, [isOpen]);
 
   useEffect(() => {
@@ -131,7 +173,20 @@ export function ChatAgent() {
       if (!res.ok) throw new Error(json?.error || 'AI request failed');
 
       const assistantMsg: Message = { role: 'assistant', content: json.text || 'ขออภัยครับ ไม่ได้รับการตอบกลับ' };
-      setMessages(prev => [...prev, assistantMsg]);
+      setMessages(prev => {
+        const next = [...prev, assistantMsg].slice(-MAX_HISTORY);
+        // Save to localStorage always
+        const localKey = LOCAL_HISTORY_KEY(user?.id ?? sessionId.current);
+        localStorage.setItem(localKey, JSON.stringify(next));
+        // Save to Supabase if logged in (background, no await)
+        if (user?.id) {
+          supabase.from('chat_history').upsert(
+            { user_id: user.id, session_id: sessionId.current, messages: next, updated_at: new Date().toISOString() },
+            { onConflict: 'user_id' }
+          ).catch(() => { /* ignore */ });
+        }
+        return next;
+      });
 
       // Execute cart actions returned by server
       if (Array.isArray(json.cartActions) && json.cartActions.length > 0) {
@@ -193,6 +248,24 @@ export function ChatAgent() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {messages.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMessages([]);
+                      setHistoryLoaded(false);
+                      const localKey = LOCAL_HISTORY_KEY(user?.id ?? sessionId.current);
+                      localStorage.removeItem(localKey);
+                      if (user?.id) {
+                        supabase.from('chat_history').delete().eq('user_id', user.id).catch(() => {});
+                      }
+                    }}
+                    className="text-white/50 hover:text-white/80 text-[10px] font-bold transition-all"
+                    title="ล้างประวัติแชท"
+                  >
+                    ล้าง
+                  </button>
+                )}
                 <a
                   href="https://line.me/ti/p/@kingvision"
                   target="_blank"

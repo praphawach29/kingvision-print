@@ -393,7 +393,23 @@ ${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจาก
     return res.json({ text: responseText, cartActions });
   } catch (error: any) {
     console.error('Chat API error:', error);
-    return res.status(500).json({ error: error.message || 'AI request failed' });
+    const msg: string = error?.message || '';
+    let friendlyText = 'ขออภัยครับ เกิดข้อผิดพลาดชั่วคราว กรุณาลองใหม่อีกครั้ง หรือติดต่อเจ้าหน้าที่ผ่าน LINE @kingvision ได้เลยครับ';
+
+    if (msg.includes('Missing') && msg.includes('API_KEY')) {
+      friendlyText = 'ขออภัยครับ ระบบ AI ยังไม่ได้ตั้งค่า API Key กรุณาติดต่อแอดมินครับ';
+    } else if (msg.includes('invalid') || msg.includes('Incorrect API key') || msg.includes('invalid x-api-key')) {
+      friendlyText = 'ขออภัยครับ API Key ของระบบ AI ไม่ถูกต้อง กรุณาติดต่อแอดมินครับ';
+    } else if (msg.includes('quota') || msg.includes('rate_limit') || msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
+      friendlyText = 'ขออภัยครับ ระบบ AI มีการใช้งานสูงเกินกว่า quota กรุณารอสักครู่แล้วลองใหม่นะครับ';
+    } else if (msg.includes('not found') || msg.includes('no longer available') || msg.includes('model')) {
+      friendlyText = 'ขออภัยครับ โมเดล AI ที่ตั้งค่าไว้ไม่รองรับ กรุณาให้แอดมินเปลี่ยนโมเดลในการตั้งค่าครับ';
+    } else if (msg.includes('fetch') || msg.includes('network') || msg.includes('ECONNREFUSED') || msg.includes('timeout')) {
+      friendlyText = 'ขออภัยครับ ไม่สามารถเชื่อมต่อกับ AI ได้ในขณะนี้ กรุณาลองใหม่อีกสักครู่นะครับ';
+    }
+
+    // Return as 200 with friendly text so chatbot shows the message normally, not an error state
+    return res.json({ text: friendlyText, cartActions: [] });
   }
 }
 
