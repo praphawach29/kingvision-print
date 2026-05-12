@@ -68,7 +68,7 @@ interface KBItem {
 }
 
 const AI_MODEL_OPTIONS: Record<'gemini' | 'openai' | 'anthropic', string[]> = {
-  gemini:    ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-1.5-flash-8b'],
+  gemini:    ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-2.0-flash-lite'],
   openai:    ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini'],
   anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6', 'claude-3-5-sonnet-latest']
 };
@@ -246,7 +246,14 @@ export function AdminSettings() {
   const testAiConnection = async () => {
     setAiStatus({ state: 'testing' });
     try {
-      const res = await fetch('/api/ai/health', { method: 'POST' });
+      const res = await fetch('/api/ai/health', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: settings.ai_provider,
+          model: settings.ai_model,
+        }),
+      });
       const data = await res.json();
       if (data.connected) {
         setAiStatus({ state: 'ok', provider: data.provider, model: data.model, latency: data.latency });
