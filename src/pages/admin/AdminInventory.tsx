@@ -272,7 +272,7 @@ export function AdminInventory() {
                   <tr className="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-wider border-b border-gray-50">
                     <th className="px-4 py-3">สินค้า</th>
                     <th className="px-4 py-3 hidden md:table-cell">หมวดหมู่</th>
-                    <th className="px-4 py-3 text-right">สต็อก</th>
+                    <th className="px-4 py-3 text-right whitespace-nowrap">สต็อก</th>
                     <th className="px-4 py-3 text-right hidden lg:table-cell">มูลค่ารวม</th>
                     <th className="px-4 py-3 text-center">จัดการ</th>
                   </tr>
