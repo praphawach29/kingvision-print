@@ -68,7 +68,7 @@ interface KBItem {
 }
 
 const AI_MODEL_OPTIONS: Record<'gemini' | 'openai' | 'anthropic', string[]> = {
-  gemini:    ['gemini-3.0-flash-preview', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash-lite'],
+  gemini:    ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash-lite'],
   openai:    ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini'],
   anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6', 'claude-3-5-sonnet-latest']
 };
