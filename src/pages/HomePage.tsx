@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, Star, ShoppingCart, ShieldCheck, Truck, RotateCcw, MessageCircle, Menu, Crown, Wallet, Wrench, ArrowRight, CheckCircle2, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -100,7 +100,7 @@ export function HomePage() {
         const { data: printerData } = await supabase
           .from('products')
           .select('*')
-          .eq('category', 'เครื่องปริ้นเตอร์')
+          .eq('category', 'à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸›à¸£à¸´à¹‰à¸™à¹€à¸•à¸­à¸£à¹Œ')
           .limit(6);
 
         if (printerData && printerData.length > 0) {
@@ -179,7 +179,7 @@ export function HomePage() {
         const { data: printerData, error: printerErr } = await supabase
           .from('products')
           .select('*')
-          .eq('category', 'เครื่องปริ้นเตอร์')
+          .eq('category', 'à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸›à¸£à¸´à¹‰à¸™à¹€à¸•à¸­à¸£à¹Œ')
           .limit(8);
 
         if (!printerErr && printerData && printerData.length > 0) {
@@ -209,92 +209,18 @@ export function HomePage() {
   async function fetchBlogPosts() {
     setIsLoadingBlog(true);
     try {
-      let { data, error } = await supabase
+      const { data, error } = await supabase
         .from('blog_posts')
         .select('*')
         .eq('published', true)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(5);
 
       if (error) throw error;
-
-      const seedData = [
-        {
-          id: 'seed-1',
-          title: 'เทคนิคการเลือกซื้อเครื่องปริ้นเตอร์มือสองให้คุ้มค่าที่สุด',
-          excerpt: 'เลือกซื้ออย่างไรให้ได้ของดี ราคาประหยัด และใช้งานได้ยาวนาน เรามีคำตอบมาฝากครับ',
-          content: 'การเลือกซื้อเครื่องปริ้นเตอร์มือสองเป็นทางเลือกที่ยอดเยี่ยม...',
-          image_url: 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=800&q=80',
-          category: 'ความรู้',
-          published: true,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 'seed-2',
-          title: 'วิธีเลือกหมึกพิมพ์ให้เหมาะกับงาน และช่วยถนอมหัวพิมพ์ของคุณ',
-          excerpt: 'หมึกแท้ หมึกเทียบเท่า หรือหมึกเติม? แบบไหนดีกว่ากัน และต่างกันอย่างไร',
-          content: 'หัวพิมพ์คือหัวใจหลักของเครื่องปริ้นเตอร์...',
-          image_url: 'https://images.unsplash.com/photo-1588600878108-578307a3cc9d?w=800&q=80',
-          category: 'ความรู้',
-          published: true,
-          created_at: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-          id: 'seed-3',
-          title: 'ข้อดีของการใช้สีเทียบเท่า ประหยัดต้นทุนได้จริงหรือไม่?',
-          excerpt: 'ไขข้อสงสัยเรื่องความคุ้มค่าของการใช้ตลับหมึกเทียบเท่าคุณภาพสูง',
-          content: 'ปัจจุบันตลับหมึกเทียบเท่า (Compatible) ได้รับการพัฒนา...',
-          image_url: 'https://images.unsplash.com/photo-1563452675059-efa1e2e7a787?w=800&q=80',
-          category: 'รีวิว',
-          published: true,
-          created_at: new Date(Date.now() - 172800000).toISOString()
-        }
-      ];
-
-      if (!data || data.length === 0) {
-        const { data: profileData } = await supabase.from('profiles').select('id').limit(1);
-        let authorId = profileData?.[0]?.id;
-
-        if (!authorId) {
-          const { data: { session } } = await supabase.auth.getSession();
-          authorId = session?.user?.id;
-        }
-
-        if (authorId) {
-          const seedWithAuthor = seedData.map(p => ({
-            title: p.title,
-            excerpt: p.excerpt,
-            content: p.content,
-            image_url: p.image_url,
-            category: p.category,
-            author_id: authorId,
-            published: true
-          }));
-
-          const { error: seedError } = await supabase.from('blog_posts').insert(seedWithAuthor);
-
-          if (!seedError) {
-            const { data: newData } = await supabase
-              .from('blog_posts')
-              .select('*')
-              .eq('published', true)
-              .order('created_at', { ascending: false });
-            if (newData && newData.length > 0) {
-              data = newData;
-            } else {
-              data = seedData;
-            }
-          } else {
-            console.error('Seeding error:', seedError);
-            data = seedData;
-          }
-        } else {
-          data = seedData;
-        }
-      }
-
-      if (data) setBlogPosts(data.slice(0, 5));
+      setBlogPosts(data || []);
     } catch (error) {
       console.error('Error fetching blog posts:', error);
+      setBlogPosts([]);
     } finally {
       setIsLoadingBlog(false);
     }
@@ -344,8 +270,8 @@ export function HomePage() {
   return (
     <div className="w-full bg-white">
       <SEO
-        title="KingVision Print - ศูนย์รวมเครื่องปริ้นเตอร์และอุปกรณ์คุณภาพ"
-        description="KingVision Print ศูนย์รวมเครื่องปริ้นเตอร์มือสอง หมึกพิมพ์ อะไหล่ และอุปกรณ์เสริม คุณภาพสูง ราคาถูก รับประกัน 3 เดือน จัดส่งทั่วประเทศ"
+        title="KingVision Print - à¸¨à¸¹à¸™à¸¢à¹Œà¸£à¸§à¸¡à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸›à¸£à¸´à¹‰à¸™à¹€à¸•à¸­à¸£à¹Œà¹à¸¥à¸°à¸­à¸¸à¸›à¸à¸£à¸“à¹Œà¸„à¸¸à¸“à¸ à¸²à¸ž"
+        description="KingVision Print à¸¨à¸¹à¸™à¸¢à¹Œà¸£à¸§à¸¡à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸›à¸£à¸´à¹‰à¸™à¹€à¸•à¸­à¸£à¹Œà¸¡à¸·à¸­à¸ªà¸­à¸‡ à¸«à¸¡à¸¶à¸à¸žà¸´à¸¡à¸žà¹Œ à¸­à¸°à¹„à¸«à¸¥à¹ˆ à¹à¸¥à¸°à¸­à¸¸à¸›à¸à¸£à¸“à¹Œà¹€à¸ªà¸£à¸´à¸¡ à¸„à¸¸à¸“à¸ à¸²à¸žà¸ªà¸¹à¸‡ à¸£à¸²à¸„à¸²à¸–à¸¹à¸ à¸£à¸±à¸šà¸›à¸£à¸°à¸à¸±à¸™ 3 à¹€à¸”à¸·à¸­à¸™ à¸ˆà¸±à¸”à¸ªà¹ˆà¸‡à¸—à¸±à¹ˆà¸§à¸›à¸£à¸°à¹€à¸—à¸¨"
       />
 
       {/* HERO */}
@@ -382,25 +308,25 @@ export function HomePage() {
               {/* Badge */}
               <div className="inline-flex items-center gap-2 bg-kv-orange/15 border border-kv-orange/25 text-kv-orange text-xs font-bold px-4 py-1.5 rounded-full mb-6">
                 <Crown size={12} />
-                ศูนย์รวมเครื่องปริ้นเตอร์ครบวงจร
+                à¸¨à¸¹à¸™à¸¢à¹Œà¸£à¸§à¸¡à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸›à¸£à¸´à¹‰à¸™à¹€à¸•à¸­à¸£à¹Œà¸„à¸£à¸šà¸§à¸‡à¸ˆà¸£
               </div>
 
               {/* Headline */}
               <h1 className="text-4xl md:text-5xl lg:text-[3.4rem] font-black text-white leading-[1.15] mb-5">
-                <span className="block">เครื่องปริ้นเตอร์</span>
+                <span className="block">à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸›à¸£à¸´à¹‰à¸™à¹€à¸•à¸­à¸£à¹Œ</span>
                 <span className="relative inline-block">
-                  <span className="text-kv-orange">คุณภาพเยี่ยม</span>
+                  <span className="text-kv-orange">à¸„à¸¸à¸“à¸ à¸²à¸žà¹€à¸¢à¸µà¹ˆà¸¢à¸¡</span>
                   {/* underline accent */}
                   <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-kv-orange/40 rounded-full" />
                 </span>
-                <span className="block mt-1">ราคาคุ้มค่า</span>
+                <span className="block mt-1">à¸£à¸²à¸„à¸²à¸„à¸¸à¹‰à¸¡à¸„à¹ˆà¸²</span>
               </h1>
 
               {/* Description */}
               <p className="text-white/65 text-base md:text-lg leading-relaxed mb-8 max-w-md">
-                เลือกซื้อเครื่องปริ้นเตอร์มือสอง หมึกพิมพ์ อะไหล่ และอุปกรณ์เสริมกว่า
-                <span className="text-white font-semibold"> 1,000+ รายการ</span>{' '}
-                พร้อมรับประกัน 3 เดือน โดยทีมช่างผู้เชี่ยวชาญ
+                à¹€à¸¥à¸·à¸­à¸à¸‹à¸·à¹‰à¸­à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸›à¸£à¸´à¹‰à¸™à¹€à¸•à¸­à¸£à¹Œà¸¡à¸·à¸­à¸ªà¸­à¸‡ à¸«à¸¡à¸¶à¸à¸žà¸´à¸¡à¸žà¹Œ à¸­à¸°à¹„à¸«à¸¥à¹ˆ à¹à¸¥à¸°à¸­à¸¸à¸›à¸à¸£à¸“à¹Œà¹€à¸ªà¸£à¸´à¸¡à¸à¸§à¹ˆà¸²
+                <span className="text-white font-semibold"> 1,000+ à¸£à¸²à¸¢à¸à¸²à¸£</span>{' '}
+                à¸žà¸£à¹‰à¸­à¸¡à¸£à¸±à¸šà¸›à¸£à¸°à¸à¸±à¸™ 3 à¹€à¸”à¸·à¸­à¸™ à¹‚à¸”à¸¢à¸—à¸µà¸¡à¸Šà¹ˆà¸²à¸‡à¸œà¸¹à¹‰à¹€à¸Šà¸µà¹ˆà¸¢à¸§à¸Šà¸²à¸
               </p>
 
               {/* CTA Buttons */}
@@ -409,23 +335,23 @@ export function HomePage() {
                   to="/shop"
                   className="group bg-kv-orange hover:bg-orange-500 text-white font-bold px-7 py-3.5 rounded-xl transition-all duration-300 hover:shadow-2xl hover:shadow-orange-500/40 hover:-translate-y-0.5 flex items-center gap-2"
                 >
-                  ดูสินค้าทั้งหมด
+                  à¸”à¸¹à¸ªà¸´à¸™à¸„à¹‰à¸²à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”
                   <ArrowRight size={17} className="group-hover:translate-x-1 transition-transform duration-300" />
                 </Link>
                 <Link
                   to="/contact"
                   className="bg-white/10 hover:bg-white/18 text-white border border-white/25 hover:border-white/40 font-bold px-7 py-3.5 rounded-xl transition-all duration-300 backdrop-blur-sm flex items-center gap-2"
                 >
-                  <MessageCircle size={17} /> ปรึกษาฟรี
+                  <MessageCircle size={17} /> à¸›à¸£à¸¶à¸à¸©à¸²à¸Ÿà¸£à¸µ
                 </Link>
               </div>
 
               {/* Trust badges */}
               <div className="flex flex-wrap gap-x-5 gap-y-2">
                 {[
-                  { icon: <ShieldCheck size={13} />, label: 'รับประกัน 3 เดือน' },
-                  { icon: <Truck size={13} />, label: 'ส่งฟรี กทม. & ปริมณฑล' },
-                  { icon: <RotateCcw size={13} />, label: 'คืนสินค้าได้ใน 7 วัน' },
+                  { icon: <ShieldCheck size={13} />, label: 'à¸£à¸±à¸šà¸›à¸£à¸°à¸à¸±à¸™ 3 à¹€à¸”à¸·à¸­à¸™' },
+                  { icon: <Truck size={13} />, label: 'à¸ªà¹ˆà¸‡à¸Ÿà¸£à¸µ à¸à¸—à¸¡. & à¸›à¸£à¸´à¸¡à¸“à¸‘à¸¥' },
+                  { icon: <RotateCcw size={13} />, label: 'à¸„à¸·à¸™à¸ªà¸´à¸™à¸„à¹‰à¸²à¹„à¸”à¹‰à¹ƒà¸™ 7 à¸§à¸±à¸™' },
                 ].map((t) => (
                   <div key={t.label} className="flex items-center gap-1.5 text-white/55 text-xs">
                     <span className="text-kv-orange/80">{t.icon}</span>
@@ -435,24 +361,24 @@ export function HomePage() {
               </div>
             </div>
 
-            {/* RIGHT: Stat cards — desktop only */}
+            {/* RIGHT: Stat cards â€” desktop only */}
             <div className="hidden lg:flex flex-col gap-4 w-72 flex-shrink-0">
 
               {/* Main card */}
               <div className="bg-white/8 backdrop-blur-md border border-white/10 rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-white/60 text-xs font-medium uppercase tracking-widest">สินค้าพร้อมส่ง</span>
-                  <span className="bg-green-500/20 text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-500/20">● LIVE</span>
+                  <span className="text-white/60 text-xs font-medium uppercase tracking-widest">à¸ªà¸´à¸™à¸„à¹‰à¸²à¸žà¸£à¹‰à¸­à¸¡à¸ªà¹ˆà¸‡</span>
+                  <span className="bg-green-500/20 text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-500/20">â— LIVE</span>
                 </div>
                 <div className="text-4xl font-black text-white mb-1">1,000<span className="text-kv-orange">+</span></div>
-                <div className="text-white/50 text-xs">รายการสินค้าพร้อมส่งทันที</div>
+                <div className="text-white/50 text-xs">à¸£à¸²à¸¢à¸à¸²à¸£à¸ªà¸´à¸™à¸„à¹‰à¸²à¸žà¸£à¹‰à¸­à¸¡à¸ªà¹ˆà¸‡à¸—à¸±à¸™à¸—à¸µ</div>
                 <div className="mt-4 h-px bg-white/8" />
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   {[
-                    { n: '50+', l: 'แบรนด์' },
-                    { n: '3 เดือน', l: 'รับประกัน' },
-                    { n: '10 ปี', l: 'ประสบการณ์' },
-                    { n: '10K+', l: 'ลูกค้า' },
+                    { n: '50+', l: 'à¹à¸šà¸£à¸™à¸”à¹Œ' },
+                    { n: '3 à¹€à¸”à¸·à¸­à¸™', l: 'à¸£à¸±à¸šà¸›à¸£à¸°à¸à¸±à¸™' },
+                    { n: '10 à¸›à¸µ', l: 'à¸›à¸£à¸°à¸ªà¸šà¸à¸²à¸£à¸“à¹Œ' },
+                    { n: '10K+', l: 'à¸¥à¸¹à¸à¸„à¹‰à¸²' },
                   ].map((s) => (
                     <div key={s.l} className="bg-white/5 rounded-xl p-2.5 text-center">
                       <div className="text-white font-black text-base leading-none">{s.n}</div>
@@ -464,7 +390,7 @@ export function HomePage() {
 
               {/* Mini brand logos strip */}
               <div className="bg-white/8 backdrop-blur-md border border-white/10 rounded-2xl px-5 py-4">
-                <div className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-3">แบรนด์ที่วางจำหน่าย</div>
+                <div className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-3">à¹à¸šà¸£à¸™à¸”à¹Œà¸—à¸µà¹ˆà¸§à¸²à¸‡à¸ˆà¸³à¸«à¸™à¹ˆà¸²à¸¢</div>
                 <div className="flex flex-wrap gap-2">
                   {['HP', 'Epson', 'Canon', 'Brother', 'Samsung', 'Fuji'].map((b) => (
                     <span key={b} className="bg-white/10 text-white/70 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-white/8">
@@ -487,10 +413,10 @@ export function HomePage() {
         <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12">
           <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100">
             {[
-              { value: '1,000+', label: 'รายการสินค้า', icon: <ShoppingCart size={20} /> },
-              { value: '50+', label: 'แบรนด์ชั้นนำ', icon: <Crown size={20} /> },
-              { value: '10,000+', label: 'ลูกค้าพึงพอใจ', icon: <Star size={20} /> },
-              { value: '10 ปี', label: 'ประสบการณ์', icon: <ShieldCheck size={20} /> },
+              { value: '1,000+', label: 'à¸£à¸²à¸¢à¸à¸²à¸£à¸ªà¸´à¸™à¸„à¹‰à¸²', icon: <ShoppingCart size={20} /> },
+              { value: '50+', label: 'à¹à¸šà¸£à¸™à¸”à¹Œà¸Šà¸±à¹‰à¸™à¸™à¸³', icon: <Crown size={20} /> },
+              { value: '10,000+', label: 'à¸¥à¸¹à¸à¸„à¹‰à¸²à¸žà¸¶à¸‡à¸žà¸­à¹ƒà¸ˆ', icon: <Star size={20} /> },
+              { value: '10 à¸›à¸µ', label: 'à¸›à¸£à¸°à¸ªà¸šà¸à¸²à¸£à¸“à¹Œ', icon: <ShieldCheck size={20} /> },
             ].map((s) => (
               <div key={s.label} className="flex items-center gap-3 py-5 px-4 md:px-8">
                 <div className="text-kv-orange flex-shrink-0">{s.icon}</div>
@@ -508,9 +434,9 @@ export function HomePage() {
       <section className="py-10 bg-gray-50">
         <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-black text-kv-navy">หมวดหมู่สินค้า</h2>
+            <h2 className="text-xl font-black text-kv-navy">à¸«à¸¡à¸§à¸”à¸«à¸¡à¸¹à¹ˆà¸ªà¸´à¸™à¸„à¹‰à¸²</h2>
             <Link to="/shop" className="text-sm text-kv-orange font-semibold hover:underline flex items-center gap-1">
-              ดูทั้งหมด <ChevronRight size={14} />
+              à¸”à¸¹à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸” <ChevronRight size={14} />
             </Link>
           </div>
           <div className="flex lg:grid lg:grid-cols-6 gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
@@ -555,30 +481,30 @@ export function HomePage() {
           <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2">
             {[
               {
-                to: '/shop?category=เครื่องปริ้นเตอร์',
+                to: '/shop?category=à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸›à¸£à¸´à¹‰à¸™à¹€à¸•à¸­à¸£à¹Œ',
                 bg: 'from-blue-900 to-blue-700',
-                badge: 'ลด 40%',
+                badge: 'à¸¥à¸” 40%',
                 badgeColor: 'bg-green-500',
-                title: 'เครื่องปริ้นเตอร์',
-                sub: 'มือสองคุณภาพสูง',
+                title: 'à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸›à¸£à¸´à¹‰à¸™à¹€à¸•à¸­à¸£à¹Œ',
+                sub: 'à¸¡à¸·à¸­à¸ªà¸­à¸‡à¸„à¸¸à¸“à¸ à¸²à¸žà¸ªà¸¹à¸‡',
                 img: 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=300&q=80',
               },
               {
-                to: '/shop?category=หมึกพิมพ์',
+                to: '/shop?category=à¸«à¸¡à¸¶à¸à¸žà¸´à¸¡à¸žà¹Œ',
                 bg: 'from-emerald-800 to-emerald-600',
-                badge: 'สินค้าใหม่',
+                badge: 'à¸ªà¸´à¸™à¸„à¹‰à¸²à¹ƒà¸«à¸¡à¹ˆ',
                 badgeColor: 'bg-kv-orange',
-                title: 'หมึกพิมพ์',
-                sub: 'ทุกยี่ห้อ ทุกรุ่น',
+                title: 'à¸«à¸¡à¸¶à¸à¸žà¸´à¸¡à¸žà¹Œ',
+                sub: 'à¸—à¸¸à¸à¸¢à¸µà¹ˆà¸«à¹‰à¸­ à¸—à¸¸à¸à¸£à¸¸à¹ˆà¸™',
                 img: 'https://images.unsplash.com/photo-1588600878108-578307a3cc9d?w=300&q=80',
               },
               {
-                to: '/shop?category=อะไหล่',
+                to: '/shop?category=à¸­à¸°à¹„à¸«à¸¥à¹ˆ',
                 bg: 'from-orange-700 to-orange-500',
-                badge: 'อะไหล่แท้',
+                badge: 'à¸­à¸°à¹„à¸«à¸¥à¹ˆà¹à¸—à¹‰',
                 badgeColor: 'bg-red-600',
-                title: 'อะไหล่ & ซ่อม',
-                sub: 'อะไหล่ครบทุกรุ่น',
+                title: 'à¸­à¸°à¹„à¸«à¸¥à¹ˆ & à¸‹à¹ˆà¸­à¸¡',
+                sub: 'à¸­à¸°à¹„à¸«à¸¥à¹ˆà¸„à¸£à¸šà¸—à¸¸à¸à¸£à¸¸à¹ˆà¸™',
                 img: 'https://images.unsplash.com/photo-1563452675059-efa1e2e7a787?w=300&q=80',
               },
             ].map((b) => (
@@ -594,7 +520,7 @@ export function HomePage() {
                   <h3 className="text-2xl font-black text-white leading-tight">{b.title}</h3>
                   <p className="text-white/70 text-sm mt-1 mb-4">{b.sub}</p>
                   <span className="inline-flex items-center gap-1 text-white text-xs font-bold border border-white/40 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors">
-                    ดูสินค้า <ChevronRight size={12} />
+                    à¸”à¸¹à¸ªà¸´à¸™à¸„à¹‰à¸² <ChevronRight size={12} />
                   </span>
                 </div>
                 <img
@@ -618,7 +544,7 @@ export function HomePage() {
             <aside className="hidden lg:block w-60 flex-shrink-0 space-y-4">
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="bg-kv-navy text-white px-4 py-3 flex items-center gap-2 font-bold text-sm">
-                  <Menu size={16} /> หมวดหมู่ทั้งหมด
+                  <Menu size={16} /> à¸«à¸¡à¸§à¸”à¸«à¸¡à¸¹à¹ˆà¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”
                 </div>
                 <ul className="divide-y divide-gray-50">
                   {isLoadingCategories
@@ -642,7 +568,7 @@ export function HomePage() {
                                   referrerPolicy="no-referrer"
                                 />
                               ) : (
-                                <span className="text-sm">📦</span>
+                                <span className="text-sm">ðŸ“¦</span>
                               )}
                               <span className="font-medium group-hover:text-kv-orange">{cat.name}</span>
                             </div>
@@ -666,14 +592,14 @@ export function HomePage() {
                     PREMIUM SERVICE
                   </span>
                   <h4 className="text-white font-black text-xl leading-tight mb-2">
-                    ซ่อมปริ้นเตอร์<br />โดยช่างผู้เชี่ยวชาญ
+                    à¸‹à¹ˆà¸­à¸¡à¸›à¸£à¸´à¹‰à¸™à¹€à¸•à¸­à¸£à¹Œ<br />à¹‚à¸”à¸¢à¸Šà¹ˆà¸²à¸‡à¸œà¸¹à¹‰à¹€à¸Šà¸µà¹ˆà¸¢à¸§à¸Šà¸²à¸
                   </h4>
-                  <p className="text-white/60 text-sm mb-4">รับประกันงานซ่อม ราคาโปร่งใส</p>
+                  <p className="text-white/60 text-sm mb-4">à¸£à¸±à¸šà¸›à¸£à¸°à¸à¸±à¸™à¸‡à¸²à¸™à¸‹à¹ˆà¸­à¸¡ à¸£à¸²à¸„à¸²à¹‚à¸›à¸£à¹ˆà¸‡à¹ƒà¸ª</p>
                   <Link
                     to="/contact"
                     className="bg-white text-kv-navy font-bold text-sm py-2.5 rounded-xl text-center hover:bg-kv-orange hover:text-white transition-all duration-300"
                   >
-                    นัดซ่อมเดี๋ยวนี้
+                    à¸™à¸±à¸”à¸‹à¹ˆà¸­à¸¡à¹€à¸”à¸µà¹‹à¸¢à¸§à¸™à¸µà¹‰
                   </Link>
                 </div>
               </div>
@@ -684,10 +610,10 @@ export function HomePage() {
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-3">
                   <div className="w-1 h-6 bg-kv-orange rounded-full" />
-                  <h2 className="text-xl font-black text-kv-navy">สินค้าแนะนำ</h2>
+                  <h2 className="text-xl font-black text-kv-navy">à¸ªà¸´à¸™à¸„à¹‰à¸²à¹à¸™à¸°à¸™à¸³</h2>
                 </div>
                 <Link to="/shop" className="text-sm text-kv-orange font-semibold hover:underline flex items-center gap-1">
-                  ดูทั้งหมด <ChevronRight size={14} />
+                  à¸”à¸¹à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸” <ChevronRight size={14} />
                 </Link>
               </div>
 
@@ -729,7 +655,7 @@ export function HomePage() {
                           onClick={(e) => { e.preventDefault(); handleAddToCart(item); }}
                           className="absolute inset-x-0 bottom-0 bg-kv-navy/90 text-white text-xs font-bold py-2.5 text-center translate-y-full group-hover:translate-y-0 transition-transform duration-300 cursor-pointer hover:bg-kv-orange flex items-center justify-center gap-1.5"
                         >
-                          <ShoppingCart size={13} /> เพิ่มลงตะกร้า
+                          <ShoppingCart size={13} /> à¹€à¸žà¸´à¹ˆà¸¡à¸¥à¸‡à¸•à¸°à¸à¸£à¹‰à¸²
                         </div>
                       </Link>
                       <div className="p-3 flex flex-col flex-1">
@@ -743,14 +669,14 @@ export function HomePage() {
                           <span className="text-[10px] text-gray-400 ml-1">(4.0)</span>
                         </div>
                         <p className="text-kv-orange font-black text-base mt-auto">
-                          ฿{(item.price || 0).toLocaleString()}
+                          à¸¿{(item.price || 0).toLocaleString()}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-16 text-gray-400">ไม่มีสินค้าแนะนำในขณะนี้</div>
+                <div className="text-center py-16 text-gray-400">à¹„à¸¡à¹ˆà¸¡à¸µà¸ªà¸´à¸™à¸„à¹‰à¸²à¹à¸™à¸°à¸™à¸³à¹ƒà¸™à¸‚à¸“à¸°à¸™à¸µà¹‰</div>
               )}
             </div>
           </div>
@@ -772,26 +698,26 @@ export function HomePage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div>
               <span className="bg-kv-orange text-white text-xs font-bold px-3 py-1 rounded-full inline-block mb-4">
-                แบรนด์ชั้นนำ
+                à¹à¸šà¸£à¸™à¸”à¹Œà¸Šà¸±à¹‰à¸™à¸™à¸³
               </span>
               <h2 className="text-3xl md:text-5xl font-black text-white leading-tight mb-2">
-                ครบทุกความต้องการ<br />
-                <span className="text-kv-orange">ด้านการพิมพ์</span>
+                à¸„à¸£à¸šà¸—à¸¸à¸à¸„à¸§à¸²à¸¡à¸•à¹‰à¸­à¸‡à¸à¸²à¸£<br />
+                <span className="text-kv-orange">à¸”à¹‰à¸²à¸™à¸à¸²à¸£à¸žà¸´à¸¡à¸žà¹Œ</span>
               </h2>
               <p className="text-white/55 text-base">Great Values. Always.</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
-                to="/shop?category=เครื่องปริ้นเตอร์"
+                to="/shop?category=à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸›à¸£à¸´à¹‰à¸™à¹€à¸•à¸­à¸£à¹Œ"
                 className="bg-kv-orange hover:bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl transition-all hover:shadow-xl hover:shadow-orange-500/30 flex items-center gap-2 justify-center"
               >
-                ช็อปเลย <ArrowRight size={18} />
+                à¸Šà¹‡à¸­à¸›à¹€à¸¥à¸¢ <ArrowRight size={18} />
               </Link>
               <Link
                 to="/contact"
                 className="bg-white/10 hover:bg-white/20 text-white border border-white/30 font-bold px-8 py-3.5 rounded-xl transition-all flex items-center gap-2 justify-center"
               >
-                ติดต่อเรา
+                à¸•à¸´à¸”à¸•à¹ˆà¸­à¹€à¸£à¸²
               </Link>
             </div>
           </div>
@@ -804,10 +730,10 @@ export function HomePage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-1 h-6 bg-kv-navy rounded-full" />
-              <h2 className="text-xl font-black text-kv-navy">สินค้าขายดี</h2>
+              <h2 className="text-xl font-black text-kv-navy">à¸ªà¸´à¸™à¸„à¹‰à¸²à¸‚à¸²à¸¢à¸”à¸µ</h2>
             </div>
             <Link to="/shop" className="text-sm text-kv-orange font-semibold hover:underline flex items-center gap-1">
-              ดูทั้งหมด <ChevronRight size={14} />
+              à¸”à¸¹à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸” <ChevronRight size={14} />
             </Link>
           </div>
 
@@ -841,7 +767,7 @@ export function HomePage() {
                       onClick={(e) => { e.preventDefault(); handleAddToCart(item); }}
                       className="absolute inset-x-0 bottom-0 bg-kv-navy/90 text-white text-[10px] font-bold py-2 text-center translate-y-full group-hover:translate-y-0 transition-transform duration-300 cursor-pointer hover:bg-kv-orange flex items-center justify-center gap-1"
                     >
-                      <ShoppingCart size={11} /> เพิ่มลงตะกร้า
+                      <ShoppingCart size={11} /> à¹€à¸žà¸´à¹ˆà¸¡à¸¥à¸‡à¸•à¸°à¸à¸£à¹‰à¸²
                     </div>
                   </Link>
                   <div className="p-2.5 flex flex-col flex-1">
@@ -849,14 +775,14 @@ export function HomePage() {
                       {item.title || item.name}
                     </Link>
                     <p className="text-kv-orange font-black text-sm mt-auto">
-                      ฿{(item.price || 0).toLocaleString()}
+                      à¸¿{(item.price || 0).toLocaleString()}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-400">ไม่มีสินค้าขายดีในขณะนี้</div>
+            <div className="text-center py-12 text-gray-400">à¹„à¸¡à¹ˆà¸¡à¸µà¸ªà¸´à¸™à¸„à¹‰à¸²à¸‚à¸²à¸¢à¸”à¸µà¹ƒà¸™à¸‚à¸“à¸°à¸™à¸µà¹‰</div>
           )}
         </div>
       </section>
@@ -867,13 +793,13 @@ export function HomePage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
             <div className="flex items-center gap-3">
               <div className="w-1 h-6 bg-red-500 rounded-full" />
-              <h2 className="text-xl font-black text-kv-navy">ดีลเด็ดประจำสัปดาห์</h2>
+              <h2 className="text-xl font-black text-kv-navy">à¸”à¸µà¸¥à¹€à¸”à¹‡à¸”à¸›à¸£à¸°à¸ˆà¸³à¸ªà¸±à¸›à¸”à¸²à¸«à¹Œ</h2>
               <span className="bg-red-50 text-red-600 border border-red-100 text-xs font-bold px-2.5 py-1 rounded-full">
-                ลดราคาพิเศษ
+                à¸¥à¸”à¸£à¸²à¸„à¸²à¸žà¸´à¹€à¸¨à¸©
               </span>
             </div>
             <Link to="/shop?sale=true" className="text-sm text-kv-orange font-semibold hover:underline flex items-center gap-1">
-              ดูดีลทั้งหมด <ChevronRight size={14} />
+              à¸”à¸¹à¸”à¸µà¸¥à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸” <ChevronRight size={14} />
             </Link>
           </div>
 
@@ -916,12 +842,12 @@ export function HomePage() {
                       ))}
                     </div>
                     <div className="flex items-center justify-between mt-auto">
-                      <p className="text-kv-orange font-black text-lg">฿{(item.price || 0).toLocaleString()}</p>
+                      <p className="text-kv-orange font-black text-lg">à¸¿{(item.price || 0).toLocaleString()}</p>
                       <button
                         onClick={() => handleAddToCart(item)}
                         className="text-kv-navy hover:text-kv-orange text-xs font-bold flex items-center gap-1 transition-colors border border-gray-200 hover:border-kv-orange px-2.5 py-1 rounded-lg"
                       >
-                        <ShoppingCart size={12} /> เพิ่ม
+                        <ShoppingCart size={12} /> à¹€à¸žà¸´à¹ˆà¸¡
                       </button>
                     </div>
                   </div>
@@ -929,7 +855,7 @@ export function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-400">ไม่มีดีลเด็ดในขณะนี้</div>
+            <div className="text-center py-12 text-gray-400">à¹„à¸¡à¹ˆà¸¡à¸µà¸”à¸µà¸¥à¹€à¸”à¹‡à¸”à¹ƒà¸™à¸‚à¸“à¸°à¸™à¸µà¹‰</div>
           )}
         </div>
       </section>
@@ -939,9 +865,9 @@ export function HomePage() {
         <section className="py-8 bg-gray-50 border-t border-gray-100">
           <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-black text-kv-navy">แบรนด์ที่วางจำหน่าย</h2>
+              <h2 className="text-xl font-black text-kv-navy">à¹à¸šà¸£à¸™à¸”à¹Œà¸—à¸µà¹ˆà¸§à¸²à¸‡à¸ˆà¸³à¸«à¸™à¹ˆà¸²à¸¢</h2>
               <Link to="/brands" className="text-sm text-kv-orange font-semibold hover:underline flex items-center gap-1">
-                ดูทั้งหมด <ChevronRight size={14} />
+                à¸”à¸¹à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸” <ChevronRight size={14} />
               </Link>
             </div>
             <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
@@ -967,17 +893,17 @@ export function HomePage() {
       <section className="py-12 bg-white">
         <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-black text-kv-navy">ทำไมต้องเลือก KingVision?</h2>
-            <p className="text-gray-500 mt-2 text-sm">เราใส่ใจในทุกรายละเอียดเพื่อประสบการณ์ที่ดีที่สุด</p>
+            <h2 className="text-2xl font-black text-kv-navy">à¸—à¸³à¹„à¸¡à¸•à¹‰à¸­à¸‡à¹€à¸¥à¸·à¸­à¸ KingVision?</h2>
+            <p className="text-gray-500 mt-2 text-sm">à¹€à¸£à¸²à¹ƒà¸ªà¹ˆà¹ƒà¸ˆà¹ƒà¸™à¸—à¸¸à¸à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¹€à¸žà¸·à¹ˆà¸­à¸›à¸£à¸°à¸ªà¸šà¸à¸²à¸£à¸“à¹Œà¸—à¸µà¹ˆà¸”à¸µà¸—à¸µà¹ˆà¸ªà¸¸à¸”</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[
-              { icon: <ShieldCheck size={26} strokeWidth={1.5} />, title: 'รับประกัน 3 เดือน', desc: 'สินค้าทุกชิ้นผ่านการตรวจสอบคุณภาพ พร้อมรับประกันการใช้งาน' },
-              { icon: <Truck size={26} strokeWidth={1.5} />, title: 'ส่งฟรี กทม. & ปริมณฑล', desc: 'บริการจัดส่งฟรีถึงหน้าบ้าน สำหรับลูกค้าในเขตกรุงเทพฯ' },
-              { icon: <Wallet size={26} strokeWidth={1.5} />, title: 'เก็บเงินปลายทาง', desc: 'สะดวก ปลอดภัย ชำระเงินเมื่อรับสินค้าได้เลย' },
-              { icon: <MessageCircle size={26} strokeWidth={1.5} />, title: 'ให้คำปรึกษาฟรี', desc: 'ทีมช่างผู้เชี่ยวชาญพร้อมให้คำแนะนำก่อนและหลังการขาย' },
-              { icon: <Wrench size={26} strokeWidth={1.5} />, title: 'อะไหล่แท้ & เทียบเท่า', desc: 'มีอะไหล่รองรับทุกรุ่น มั่นใจในคุณภาพและอายุการใช้งาน' },
-              { icon: <RotateCcw size={26} strokeWidth={1.5} />, title: 'คืนสินค้าได้ใน 7 วัน', desc: 'หากสินค้ามีปัญหา สามารถเปลี่ยนหรือคืนได้ทันที' },
+              { icon: <ShieldCheck size={26} strokeWidth={1.5} />, title: 'à¸£à¸±à¸šà¸›à¸£à¸°à¸à¸±à¸™ 3 à¹€à¸”à¸·à¸­à¸™', desc: 'à¸ªà¸´à¸™à¸„à¹‰à¸²à¸—à¸¸à¸à¸Šà¸´à¹‰à¸™à¸œà¹ˆà¸²à¸™à¸à¸²à¸£à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¸„à¸¸à¸“à¸ à¸²à¸ž à¸žà¸£à¹‰à¸­à¸¡à¸£à¸±à¸šà¸›à¸£à¸°à¸à¸±à¸™à¸à¸²à¸£à¹ƒà¸Šà¹‰à¸‡à¸²à¸™' },
+              { icon: <Truck size={26} strokeWidth={1.5} />, title: 'à¸ªà¹ˆà¸‡à¸Ÿà¸£à¸µ à¸à¸—à¸¡. & à¸›à¸£à¸´à¸¡à¸“à¸‘à¸¥', desc: 'à¸šà¸£à¸´à¸à¸²à¸£à¸ˆà¸±à¸”à¸ªà¹ˆà¸‡à¸Ÿà¸£à¸µà¸–à¸¶à¸‡à¸«à¸™à¹‰à¸²à¸šà¹‰à¸²à¸™ à¸ªà¸³à¸«à¸£à¸±à¸šà¸¥à¸¹à¸à¸„à¹‰à¸²à¹ƒà¸™à¹€à¸‚à¸•à¸à¸£à¸¸à¸‡à¹€à¸—à¸žà¸¯' },
+              { icon: <Wallet size={26} strokeWidth={1.5} />, title: 'à¹€à¸à¹‡à¸šà¹€à¸‡à¸´à¸™à¸›à¸¥à¸²à¸¢à¸—à¸²à¸‡', desc: 'à¸ªà¸°à¸”à¸§à¸ à¸›à¸¥à¸­à¸”à¸ à¸±à¸¢ à¸Šà¸³à¸£à¸°à¹€à¸‡à¸´à¸™à¹€à¸¡à¸·à¹ˆà¸­à¸£à¸±à¸šà¸ªà¸´à¸™à¸„à¹‰à¸²à¹„à¸”à¹‰à¹€à¸¥à¸¢' },
+              { icon: <MessageCircle size={26} strokeWidth={1.5} />, title: 'à¹ƒà¸«à¹‰à¸„à¸³à¸›à¸£à¸¶à¸à¸©à¸²à¸Ÿà¸£à¸µ', desc: 'à¸—à¸µà¸¡à¸Šà¹ˆà¸²à¸‡à¸œà¸¹à¹‰à¹€à¸Šà¸µà¹ˆà¸¢à¸§à¸Šà¸²à¸à¸žà¸£à¹‰à¸­à¸¡à¹ƒà¸«à¹‰à¸„à¸³à¹à¸™à¸°à¸™à¸³à¸à¹ˆà¸­à¸™à¹à¸¥à¸°à¸«à¸¥à¸±à¸‡à¸à¸²à¸£à¸‚à¸²à¸¢' },
+              { icon: <Wrench size={26} strokeWidth={1.5} />, title: 'à¸­à¸°à¹„à¸«à¸¥à¹ˆà¹à¸—à¹‰ & à¹€à¸—à¸µà¸¢à¸šà¹€à¸—à¹ˆà¸²', desc: 'à¸¡à¸µà¸­à¸°à¹„à¸«à¸¥à¹ˆà¸£à¸­à¸‡à¸£à¸±à¸šà¸—à¸¸à¸à¸£à¸¸à¹ˆà¸™ à¸¡à¸±à¹ˆà¸™à¹ƒà¸ˆà¹ƒà¸™à¸„à¸¸à¸“à¸ à¸²à¸žà¹à¸¥à¸°à¸­à¸²à¸¢à¸¸à¸à¸²à¸£à¹ƒà¸Šà¹‰à¸‡à¸²à¸™' },
+              { icon: <RotateCcw size={26} strokeWidth={1.5} />, title: 'à¸„à¸·à¸™à¸ªà¸´à¸™à¸„à¹‰à¸²à¹„à¸”à¹‰à¹ƒà¸™ 7 à¸§à¸±à¸™', desc: 'à¸«à¸²à¸à¸ªà¸´à¸™à¸„à¹‰à¸²à¸¡à¸µà¸›à¸±à¸à¸«à¸² à¸ªà¸²à¸¡à¸²à¸£à¸–à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸«à¸£à¸·à¸­à¸„à¸·à¸™à¹„à¸”à¹‰à¸—à¸±à¸™à¸—à¸µ' },
             ].map((f) => (
               <div key={f.title} className="bg-gray-50 rounded-2xl p-5 flex items-start gap-4 hover:shadow-md hover:bg-white border border-transparent hover:border-kv-orange/10 transition-all duration-300 group">
                 <div className="text-kv-orange bg-orange-50 group-hover:bg-orange-100 p-2.5 rounded-xl flex-shrink-0 transition-colors">{f.icon}</div>
@@ -1005,14 +931,14 @@ export function HomePage() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
             <div>
               <span className="text-kv-orange text-xs font-bold uppercase tracking-widest">Blog & Knowledge</span>
-              <h2 className="text-2xl font-black text-white mt-1">สาระน่ารู้เกี่ยวกับเครื่องปริ้นเตอร์</h2>
-              <p className="text-white/50 text-sm mt-1">เทคนิค การดูแลรักษา และการแก้ไขปัญหาเบื้องต้น</p>
+              <h2 className="text-2xl font-black text-white mt-1">à¸ªà¸²à¸£à¸°à¸™à¹ˆà¸²à¸£à¸¹à¹‰à¹€à¸à¸µà¹ˆà¸¢à¸§à¸à¸±à¸šà¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸›à¸£à¸´à¹‰à¸™à¹€à¸•à¸­à¸£à¹Œ</h2>
+              <p className="text-white/50 text-sm mt-1">à¹€à¸—à¸„à¸™à¸´à¸„ à¸à¸²à¸£à¸”à¸¹à¹à¸¥à¸£à¸±à¸à¸©à¸² à¹à¸¥à¸°à¸à¸²à¸£à¹à¸à¹‰à¹„à¸‚à¸›à¸±à¸à¸«à¸²à¹€à¸šà¸·à¹‰à¸­à¸‡à¸•à¹‰à¸™</p>
             </div>
             <Link
               to="/blog"
               className="bg-white/10 hover:bg-kv-orange text-white border border-white/20 font-bold px-6 py-2.5 rounded-xl transition-all text-sm flex items-center gap-2 w-max"
             >
-              อ่านบทความทั้งหมด <ArrowRight size={16} />
+              à¸­à¹ˆà¸²à¸™à¸šà¸—à¸„à¸§à¸²à¸¡à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸” <ArrowRight size={16} />
             </Link>
           </div>
 
@@ -1054,7 +980,7 @@ export function HomePage() {
                     )}
                     <div className="absolute top-3 left-3">
                       <span className="bg-kv-orange text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow">
-                        {post.category || 'บทความ'}
+                        {post.category || 'à¸šà¸—à¸„à¸§à¸²à¸¡'}
                       </span>
                     </div>
                   </div>
@@ -1066,14 +992,14 @@ export function HomePage() {
                       <p className="text-white/45 text-xs mt-1.5 line-clamp-2 leading-relaxed">{post.excerpt}</p>
                     )}
                     <div className="flex items-center gap-1 mt-3 text-kv-orange text-xs font-bold">
-                      อ่านต่อ <ArrowRight size={12} />
+                      à¸­à¹ˆà¸²à¸™à¸•à¹ˆà¸­ <ArrowRight size={12} />
                     </div>
                   </div>
                 </Link>
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-white/40">ไม่มีบทความในขณะนี้</div>
+            <div className="text-center py-12 text-white/40">à¹„à¸¡à¹ˆà¸¡à¸µà¸šà¸—à¸„à¸§à¸²à¸¡à¹ƒà¸™à¸‚à¸“à¸°à¸™à¸µà¹‰</div>
           )}
         </div>
       </section>
@@ -1083,8 +1009,8 @@ export function HomePage() {
         <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-10 xl:px-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="text-center md:text-left">
-              <h3 className="text-2xl font-black text-white">ยังไม่แน่ใจ? ปรึกษาผู้เชี่ยวชาญฟรี!</h3>
-              <p className="text-white/80 mt-1 text-sm">ทีมงานพร้อมช่วยคุณเลือกสินค้าที่เหมาะสมที่สุด</p>
+              <h3 className="text-2xl font-black text-white">à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¹à¸™à¹ˆà¹ƒà¸ˆ? à¸›à¸£à¸¶à¸à¸©à¸²à¸œà¸¹à¹‰à¹€à¸Šà¸µà¹ˆà¸¢à¸§à¸Šà¸²à¸à¸Ÿà¸£à¸µ!</h3>
+              <p className="text-white/80 mt-1 text-sm">à¸—à¸µà¸¡à¸‡à¸²à¸™à¸žà¸£à¹‰à¸­à¸¡à¸Šà¹ˆà¸§à¸¢à¸„à¸¸à¸“à¹€à¸¥à¸·à¸­à¸à¸ªà¸´à¸™à¸„à¹‰à¸²à¸—à¸µà¹ˆà¹€à¸«à¸¡à¸²à¸°à¸ªà¸¡à¸—à¸µà¹ˆà¸ªà¸¸à¸”</p>
             </div>
             <div className="flex gap-3">
               <a
@@ -1099,7 +1025,7 @@ export function HomePage() {
                 to="/contact"
                 className="bg-kv-navy text-white font-bold px-6 py-3 rounded-xl hover:bg-kv-navy/90 transition-all flex items-center gap-2 text-sm"
               >
-                ติดต่อเรา <ArrowRight size={16} />
+                à¸•à¸´à¸”à¸•à¹ˆà¸­à¹€à¸£à¸² <ArrowRight size={16} />
               </Link>
             </div>
           </div>
@@ -1117,8 +1043,8 @@ export function HomePage() {
           >
             <CheckCircle2 size={22} className="shrink-0" />
             <div>
-              <p className="font-bold text-sm">เพิ่มสินค้าสำเร็จ</p>
-              <p className="text-xs opacity-80">สินค้าถูกเพิ่มลงในตะกร้าแล้ว</p>
+              <p className="font-bold text-sm">à¹€à¸žà¸´à¹ˆà¸¡à¸ªà¸´à¸™à¸„à¹‰à¸²à¸ªà¸³à¹€à¸£à¹‡à¸ˆ</p>
+              <p className="text-xs opacity-80">à¸ªà¸´à¸™à¸„à¹‰à¸²à¸–à¸¹à¸à¹€à¸žà¸´à¹ˆà¸¡à¸¥à¸‡à¹ƒà¸™à¸•à¸°à¸à¸£à¹‰à¸²à¹à¸¥à¹‰à¸§</p>
             </div>
           </motion.div>
         )}
