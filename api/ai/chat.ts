@@ -81,9 +81,10 @@ const TOOL_DECLARATIONS = [
   }
 ];
 
-// Convert lowercase schema types to UPPERCASE for Gemini REST API
+// Convert lowercase schema types to UPPERCASE for Gemini REST API.
+// Also skips empty properties (Gemini rejects them).
 function toGeminiSchema(schema: any): any {
-  if (!schema) return schema;
+  if (!schema) return null;
   const typeMap: Record<string, string> = {
     object: 'OBJECT', string: 'STRING', number: 'NUMBER',
     boolean: 'BOOLEAN', array: 'ARRAY', integer: 'INTEGER'
@@ -91,13 +92,27 @@ function toGeminiSchema(schema: any): any {
   const out: any = {};
   if (schema.type) out.type = typeMap[schema.type.toLowerCase()] ?? schema.type.toUpperCase();
   if (schema.description) out.description = schema.description;
-  if (schema.properties) {
+  const props = schema.properties;
+  if (props && Object.keys(props).length > 0) {
     out.properties = Object.fromEntries(
-      Object.entries(schema.properties).map(([k, v]) => [k, toGeminiSchema(v)])
+      Object.entries(props).map(([k, v]) => [k, toGeminiSchema(v)])
     );
   }
-  if (schema.required) out.required = schema.required;
+  if (schema.required?.length) out.required = schema.required;
   return out;
+}
+
+// Parse a tool result string into a JSON object safe for Gemini's functionResponse.
+// Gemini requires the response field to be a real JSON object, never a raw string.
+function toGeminiResponse(resultStr: string): Record<string, any> {
+  try {
+    const parsed = JSON.parse(resultStr);
+    if (Array.isArray(parsed)) return { items: parsed };
+    if (typeof parsed === 'object' && parsed !== null) return parsed;
+    return { result: parsed };
+  } catch {
+    return { result: resultStr };
+  }
 }
 
 export default async function handler(req: any, res: any) {
@@ -324,19 +339,23 @@ async function runGemini(
   executeTool: (name: string, args: any) => Promise<string>
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('Missing GEMINI_API_KEY environment variable');
+  if (!apiKey) throw new Error('Missing GEMINI_API_KEY — add it to Vercel environment variables');
 
   let contents: any[] = messages.map(m => ({
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }]
   }));
 
+  // Build Gemini function declarations.
+  // IMPORTANT: omit `parameters` entirely when there are no properties —
+  // Gemini rejects schemas with empty properties objects.
   const geminiTools = [{
-    functionDeclarations: TOOL_DECLARATIONS.map(t => ({
-      name:        t.name,
-      description: t.description,
-      parameters:  toGeminiSchema(t.parameters)
-    }))
+    functionDeclarations: TOOL_DECLARATIONS.map(t => {
+      const schema = toGeminiSchema(t.parameters);
+      const decl: any = { name: t.name, description: t.description };
+      if (schema?.properties) decl.parameters = schema;
+      return decl;
+    })
   }];
 
   for (let i = 0; i < 5; i++) {
@@ -349,35 +368,50 @@ async function runGemini(
           contents,
           tools: geminiTools,
           systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: { temperature, maxOutputTokens: 700, candidateCount: 1 }
+          generationConfig: { temperature, maxOutputTokens: 800 }
         })
       }
     );
+
     const j: any = await r.json();
-    if (!r.ok) throw new Error(j?.error?.message || `Gemini error ${r.status}`);
-
-    const parts: any[] = j?.candidates?.[0]?.content?.parts ?? [];
-    const funcCalls = parts.filter(p => p.functionCall);
-
-    if (funcCalls.length === 0) {
-      return parts.find(p => p.text)?.text ?? '';
+    if (!r.ok) {
+      const msg = j?.error?.message ?? `Gemini HTTP ${r.status}`;
+      throw new Error(`Gemini error: ${msg}`);
     }
 
-    // Add model message
+    // Guard against blocked / empty responses
+    const candidate = j?.candidates?.[0];
+    if (!candidate?.content) {
+      const blockReason = j?.promptFeedback?.blockReason;
+      if (blockReason) return `ขออภัยครับ เนื้อหาถูกบล็อกโดยระบบความปลอดภัย (${blockReason})`;
+      return 'ขออภัยครับ ไม่ได้รับการตอบกลับจาก Gemini กรุณาลองใหม่ครับ';
+    }
+
+    const parts: any[] = candidate.content.parts ?? [];
+    const funcCalls = parts.filter((p: any) => p.functionCall);
+
+    if (funcCalls.length === 0) {
+      return parts.find((p: any) => p.text)?.text ?? '';
+    }
+
+    // Append model turn (contains functionCall parts)
     contents.push({ role: 'model', parts });
 
-    // Execute tools and collect results
-    const results: any[] = [];
+    // Execute each tool and build functionResponse parts.
+    // CRITICAL: Gemini requires `response` to be a real JSON object, never a plain string.
+    const toolResults: any[] = [];
     for (const p of funcCalls) {
-      const result = await executeTool(p.functionCall.name, p.functionCall.args ?? {});
-      results.push({
+      const resultStr = await executeTool(p.functionCall.name, p.functionCall.args ?? {});
+      toolResults.push({
         functionResponse: {
-          name: p.functionCall.name,
-          response: { content: result }
+          name:     p.functionCall.name,
+          response: toGeminiResponse(resultStr)  // ← parsed object, not raw string
         }
       });
     }
-    contents.push({ role: 'user', parts: results });
+
+    // Append user turn with tool results
+    contents.push({ role: 'user', parts: toolResults });
   }
 
   return 'ขออภัยครับ ระบบประมวลผลนานเกินไป กรุณาลองใหม่อีกครั้งนะครับ';
@@ -392,7 +426,7 @@ async function runOpenAI(
   executeTool: (name: string, args: any) => Promise<string>
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('Missing OPENAI_API_KEY environment variable');
+  if (!apiKey) throw new Error('Missing OPENAI_API_KEY — add it to Vercel environment variables');
 
   let oaiMessages: any[] = [
     { role: 'system', content: systemPrompt },
@@ -411,7 +445,7 @@ async function runOpenAI(
       body: JSON.stringify({ model, messages: oaiMessages, tools, temperature, max_tokens: 700 })
     });
     const j: any = await r.json();
-    if (!r.ok) throw new Error(j?.error?.message || `OpenAI error ${r.status}`);
+    if (!r.ok) throw new Error(`OpenAI error: ${j?.error?.message ?? r.status}`);
 
     const msg = j?.choices?.[0]?.message;
     if (!msg?.tool_calls?.length) return msg?.content ?? '';
@@ -437,7 +471,7 @@ async function runAnthropic(
   executeTool: (name: string, args: any) => Promise<string>
 ): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('Missing ANTHROPIC_API_KEY environment variable');
+  if (!apiKey) throw new Error('Missing ANTHROPIC_API_KEY — add it to Vercel environment variables');
 
   let anthMessages: any[] = messages.map(m => ({
     role: m.role === 'assistant' ? 'assistant' : 'user',
@@ -465,7 +499,7 @@ async function runAnthropic(
       })
     });
     const j: any = await r.json();
-    if (!r.ok) throw new Error(j?.error?.message || `Anthropic error ${r.status}`);
+    if (!r.ok) throw new Error(`Anthropic error: ${j?.error?.message ?? r.status}`);
 
     const content: any[] = j?.content ?? [];
     const toolUses = content.filter(c => c.type === 'tool_use');
