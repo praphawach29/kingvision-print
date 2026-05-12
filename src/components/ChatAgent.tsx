@@ -88,7 +88,7 @@ export function ChatAgent() {
 
     setMessages(prev => [...prev, modelMessage]);
 
-    if (response.functionCalls) {
+    if (Array.isArray(response.functionCalls) && response.functionCalls.length > 0) {
       const functionResponses: Message = {
         role: 'function',
         parts: []
