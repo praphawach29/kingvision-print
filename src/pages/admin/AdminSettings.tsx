@@ -624,19 +624,25 @@ export function AdminSettings() {
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Model</label>
-                <select
+                <input
+                  type="text"
+                  list={`model-list-${settings.ai_provider || 'gemini'}`}
                   value={settings.ai_model || AI_MODEL_OPTIONS[(settings.ai_provider || 'gemini')][0]}
                   onChange={e => {
                     const next = { ...settings, ai_model: e.target.value };
                     setSettings(next);
-                    saveAiSettingsInstant(next);
                   }}
+                  onBlur={e => {
+                    if (e.target.value.trim()) saveAiSettingsInstant({ ...settings, ai_model: e.target.value.trim() });
+                  }}
+                  placeholder="พิมพ์ model ID หรือเลือกจากรายการ"
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
-                >
+                />
+                <datalist id={`model-list-${settings.ai_provider || 'gemini'}`}>
                   {AI_MODEL_OPTIONS[(settings.ai_provider || 'gemini')].map(m => (
-                    <option key={m} value={m}>{m}</option>
+                    <option key={m} value={m} />
                   ))}
-                </select>
+                </datalist>
               </div>
             </div>
 
