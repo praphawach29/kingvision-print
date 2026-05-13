@@ -22,6 +22,10 @@ const BlogPage        = lazy(() => import('./pages/BlogPage').then(m => ({ defau
 const BlogPostPage    = lazy(() => import('./pages/BlogPostPage').then(m => ({ default: m.BlogPostPage })));
 const ContactPage     = lazy(() => import('./pages/ContactPage').then(m => ({ default: m.ContactPage })));
 const TrackOrderPage  = lazy(() => import('./pages/TrackOrderPage').then(m => ({ default: m.TrackOrderPage })));
+const FAQPage         = lazy(() => import('./pages/FAQPage').then(m => ({ default: m.FAQPage })));
+const ShippingPage    = lazy(() => import('./pages/ShippingPage').then(m => ({ default: m.ShippingPage })));
+const ReturnsPage     = lazy(() => import('./pages/ReturnsPage').then(m => ({ default: m.ReturnsPage })));
+const WarrantyPage    = lazy(() => import('./pages/WarrantyPage').then(m => ({ default: m.WarrantyPage })));
 
 // Admin — all lazy loaded (heaviest, only used by staff)
 const AdminLayout     = lazy(() => import('./layouts/AdminLayout').then(m => ({ default: m.AdminLayout })));
@@ -113,6 +117,10 @@ export default function App() {
                       <Route path="blog/:id" element={<BlogPostPage />} />
                       <Route path="contact" element={<ContactPage />} />
                       <Route path="track-order" element={<TrackOrderPage />} />
+                      <Route path="faq" element={<FAQPage />} />
+                      <Route path="shipping" element={<ShippingPage />} />
+                      <Route path="returns" element={<ReturnsPage />} />
+                      <Route path="warranty" element={<WarrantyPage />} />
                     </Route>
 
                     <Route path="/admin" element={<AdminLayout />}>
