@@ -214,12 +214,6 @@ export function MobileMenuDrawer({ isOpen, onClose }: MobileMenuDrawerProps) {
                     </li>
                   )}
                   <li>
-                    <Link to="/wishlist" onClick={onClose} className="flex items-center justify-between p-4 text-gray-700 hover:bg-gray-50 transition-colors">
-                      <span className="font-medium">รายการโปรด</span>
-                      <ChevronRight size={18} className="text-gray-400" />
-                    </Link>
-                  </li>
-                  <li>
                     <Link to="/contact" onClick={onClose} className="flex items-center justify-between p-4 text-gray-700 hover:bg-gray-50 transition-colors">
                       <span className="font-medium">ศูนย์ช่วยเหลือ</span>
                       <ChevronRight size={18} className="text-gray-400" />
