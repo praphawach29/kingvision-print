@@ -202,6 +202,24 @@ export function CheckoutPage() {
       setPlacedTotal(grandTotal);
       setOrderSuccess(true);
       clearCart();
+
+      // Send order confirmation email (best-effort — don't block on failure)
+      const customerEmail = formData.email || user?.email;
+      if (customerEmail) {
+        fetch('/api/send-order-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            toEmail: customerEmail,
+            toName: `${formData.firstName} ${formData.lastName}`.trim() || customerEmail,
+            orderRef: `KV-${shortRef}`,
+            total: grandTotal,
+            items: items.map(i => ({ title: i.title, quantity: i.quantity, price: i.price })),
+            paymentMethod,
+            shippingAddress: `${formData.firstName} ${formData.lastName}\n${formData.address}${formData.address2 ? ' ' + formData.address2 : ''}\n${formData.subDistrict} ${formData.district}\n${formData.province} ${formData.zipCode}`,
+          }),
+        }).catch(err => console.warn('Email send failed:', err));
+      }
     } catch (err: any) {
       console.error('Failed to place order:', err);
       alert('เกิดข้อผิดพลาดในการสั่งซื้อ: ' + err.message);

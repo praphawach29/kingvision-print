@@ -80,7 +80,7 @@ export function AuthPage() {
           .eq('id', user?.id)
           .single();
 
-        if (profile?.role === 'admin' || profile?.role === 'super_admin' || email === 'jack291625@gmail.com') {
+        if (profile?.role === 'admin' || profile?.role === 'super_admin') {
           navigate('/admin');
         } else {
           navigate('/account');
