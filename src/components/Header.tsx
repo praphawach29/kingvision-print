@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { LayoutDashboard, Phone, MessageCircle, Search, ShoppingCart, Heart, User, Menu, ChevronDown, Crown, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -10,8 +10,15 @@ export function Header({ onOpenMobileMenu }: { onOpenMobileMenu: () => void }) {
   const { totalItems } = useCart();
   const { settings } = useSettings();
   const { role } = useAuth();
+  const [scrolled, setScrolled] = useState(false);
 
   const isAdmin = role === 'admin' || role === 'super_admin';
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 80);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
     <header className="w-full">
@@ -108,6 +115,55 @@ export function Header({ onOpenMobileMenu }: { onOpenMobileMenu: () => void }) {
             )}
             <span className="text-xs mt-1">ตะกร้า</span>
           </Link>
+        </div>
+      </div>
+
+      {/* Sticky navbar — slides in after scrolling past top bar */}
+      <div
+        className={`fixed top-0 inset-x-0 z-[90] bg-kv-navy shadow-lg transition-transform duration-300 ${
+          scrolled ? 'translate-y-0' : '-translate-y-full'
+        }`}
+      >
+        <div className="mx-auto max-w-[1360px] px-4 lg:px-8 flex items-center gap-4 h-14">
+          {/* Mobile: hamburger + logo + cart */}
+          <button className="lg:hidden text-white p-1" onClick={onOpenMobileMenu}>
+            <Menu size={24} />
+          </button>
+          <Link to="/" className="flex items-center gap-1 text-white font-bold text-xl flex-shrink-0">
+            <Crown size={20} className="text-kv-orange" />
+            King<span className="text-kv-orange">Vision</span>
+          </Link>
+
+          {/* Desktop nav links */}
+          <nav className="hidden lg:flex items-center gap-1 flex-1">
+            {[
+              { label: 'หน้าแรก', to: '/' },
+              { label: 'เครื่องปริ้นเตอร์', to: '/shop?category=เครื่องปริ้นเตอร์' },
+              { label: 'หมึกพิมพ์', to: '/shop?category=หมึกพิมพ์' },
+              { label: 'อะไหล่', to: '/shop?category=อะไหล่' },
+              { label: 'แบรนด์', to: '/brands' },
+              { label: 'บทความ', to: '/blog' },
+              { label: 'ติดต่อเรา', to: '/contact' },
+            ].map(({ label, to }) => (
+              <Link key={to} to={to} className="text-white/80 hover:text-kv-orange transition-colors text-sm font-medium px-3 py-1">
+                {label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Right icons */}
+          <div className="flex items-center gap-3 text-white ml-auto">
+            <NotificationBell />
+            <Link to="/cart" className="relative">
+              <ShoppingCart size={22} />
+              {totalItems > 0 && (
+                <span className="absolute -top-2 -right-2 bg-kv-orange text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
+            <Link to="/account" className="hidden lg:block"><User size={22} /></Link>
+          </div>
         </div>
       </div>
 
