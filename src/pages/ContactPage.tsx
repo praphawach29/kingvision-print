@@ -12,31 +12,35 @@ export function ContactPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSuccess(true);
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: ''
+    setError('');
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
       });
-      
-      // Reset success message after 5 seconds
-      setTimeout(() => setIsSuccess(false), 5000);
-    }, 1500);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'ส่งข้อความไม่สำเร็จ');
+
+      setIsSuccess(true);
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+      setTimeout(() => setIsSuccess(false), 8000);
+    } catch (err: any) {
+      setError(err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -242,6 +246,12 @@ export function ContactPage() {
                       placeholder="พิมพ์ข้อความของคุณที่นี่..."
                     ></textarea>
                   </div>
+
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                      {error}
+                    </div>
+                  )}
 
                   <button
                     type="submit"
