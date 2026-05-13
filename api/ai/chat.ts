@@ -78,6 +78,28 @@ const TOOL_DECLARATIONS = [
       },
       required: ['productId']
     }
+  },
+  {
+    name: 'get_upsell_products',
+    description: 'หาสินค้ารุ่นที่ดีกว่าในหมวดเดียวกัน (upsell) — ใช้เมื่อลูกค้าสนใจสินค้าแล้วอยากเสนอทางเลือกที่คุ้มกว่า',
+    parameters: {
+      type: 'object',
+      properties: {
+        productId: { type: 'string', description: 'รหัสสินค้าที่ลูกค้าสนใจ' }
+      },
+      required: ['productId']
+    }
+  },
+  {
+    name: 'get_crosssell_products',
+    description: 'หาสินค้าที่ใช้ร่วมกันได้ (cross-sell) — ใช้หลังลูกค้าสนใจหรือเพิ่มสินค้าลงตะกร้า เช่น ลูกค้าดูเครื่องปริ้น → แนะนำหมึก/อะไหล่แบรนด์เดียวกัน',
+    parameters: {
+      type: 'object',
+      properties: {
+        productId: { type: 'string', description: 'รหัสสินค้าหลักที่ลูกค้าสนใจ' }
+      },
+      required: ['productId']
+    }
   }
 ];
 
@@ -275,6 +297,18 @@ ${styleGuide}
 - เพิ่มสินค้าลงตะกร้าให้ลูกค้าได้เลย
 - ให้คำแนะนำเชิงเทคนิคเกี่ยวกับเครื่องพิมพ์
 
+### กลยุทธ์การขาย (สำคัญมาก — ทำทุกครั้ง):
+**Upsell** — เมื่อลูกค้าสนใจสินค้าใด ให้เรียก get_upsell_products เสมอ
+- ถ้ามีรุ่นที่ดีกว่าในราคาใกล้เคียง (ต่างไม่เกิน 30-50%) ให้พูดถึงสั้นๆ 1-2 ประโยค
+- เน้นว่าที่ดีกว่าตรงไหน (เช่น "WiFi ในตัว", "ความเร็วสูงกว่า", "ประหยัดหมึกกว่า")
+- อย่า push มากเกินไป — เสนอให้ลูกค้าตัดสินใจเอง
+
+**Cross-sell** — เมื่อลูกค้าสนใจหรือเพิ่มสินค้าลงตะกร้าแล้ว ให้เรียก get_crosssell_products ทันที
+- เครื่องปริ้นเตอร์ → แนะนำหมึกพิมพ์ที่ใช้ร่วมกันได้ (แบรนด์เดียวกันก่อน)
+- หมึกพิมพ์ → แนะนำอะไหล่หรืออุปกรณ์เสริมที่เกี่ยวข้อง
+- พูดแบบเป็นธรรมชาติ เช่น "อ้อ แล้วก็อย่าลืมหมึกด้วยนะครับ เผื่อหมดเร็ว 🖨️" หรือ "เครื่องนี้ใช้หมึกรุ่น [ชื่อ] ร้านเราก็มีพอดีครับ"
+- ถ้าลูกค้าเพิ่งกด add_to_cart ให้แนะนำของ cross-sell ก่อนปิดการสนทนาเสมอ
+
 ### กฎสำคัญเรื่องลิงค์สินค้า:
 - เมื่อแนะนำสินค้า ให้ลิงค์ไปยังหน้าสินค้าในเว็บไซต์ของร้านเสมอ โดยใช้ค่า product_url ที่ได้จาก tool
 - รูปแบบที่ถูกต้อง: [ชื่อสินค้า](product_url) เช่น [HP CF350A](/product/abc-123)
@@ -365,6 +399,81 @@ ${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจาก
               quantity:    qty
             });
             return `เพิ่ม "${prod.title}" จำนวน ${qty} ชิ้น ลงตะกร้าเรียบร้อยแล้วครับ ✅`;
+          }
+          case 'get_upsell_products': {
+            const { data: base } = await db
+              .from('products')
+              .select('id, title, price, category, brand')
+              .eq('id', args.productId)
+              .single();
+            if (!base) return 'ไม่พบสินค้าต้นทางครับ';
+            // Find same category, same brand, higher price (up to 2x), exclude self
+            const { data } = await db
+              .from('products')
+              .select('id, title, price, brand, category, stock, image_url, condition')
+              .eq('category', base.category)
+              .eq('brand', base.brand)
+              .neq('id', base.id)
+              .gt('price', base.price)
+              .lte('price', base.price * 2)
+              .gt('stock', 0)
+              .order('price', { ascending: true })
+              .limit(3);
+            if (!data?.length) {
+              // Fallback: same category any brand, higher price
+              const { data: fallback } = await db
+                .from('products')
+                .select('id, title, price, brand, category, stock, image_url, condition')
+                .eq('category', base.category)
+                .neq('id', base.id)
+                .gt('price', base.price)
+                .lte('price', base.price * 1.8)
+                .gt('stock', 0)
+                .order('price', { ascending: true })
+                .limit(3);
+              if (!fallback?.length) return 'ไม่พบสินค้ารุ่นที่ดีกว่าในขณะนี้ครับ';
+              return JSON.stringify(fallback.map((p: any) => ({ ...p, product_url: `/product/${p.id}` })));
+            }
+            return JSON.stringify(data.map((p: any) => ({ ...p, product_url: `/product/${p.id}` })));
+          }
+          case 'get_crosssell_products': {
+            const { data: base } = await db
+              .from('products')
+              .select('id, title, price, category, brand')
+              .eq('id', args.productId)
+              .single();
+            if (!base) return 'ไม่พบสินค้าต้นทางครับ';
+            // Map each category to what customers typically also need
+            const crossMap: Record<string, string[]> = {
+              'เครื่องปริ้นเตอร์': ['หมึกพิมพ์', 'อะไหล่'],
+              'หมึกพิมพ์':         ['เครื่องปริ้นเตอร์', 'อะไหล่'],
+              'อะไหล่':            ['หมึกพิมพ์', 'เครื่องปริ้นเตอร์'],
+              'อุปกรณ์เสริม':      ['เครื่องปริ้นเตอร์', 'หมึกพิมพ์'],
+            };
+            const targetCats: string[] = crossMap[base.category] ?? [];
+            if (!targetCats.length) return 'ไม่มีสินค้าที่เกี่ยวข้องสำหรับหมวดนี้ครับ';
+            // Prefer same brand first
+            const { data: sameBrand } = await db
+              .from('products')
+              .select('id, title, price, brand, category, stock, image_url, condition')
+              .in('category', targetCats)
+              .eq('brand', base.brand)
+              .gt('stock', 0)
+              .order('price', { ascending: true })
+              .limit(4);
+            if (sameBrand?.length) {
+              return JSON.stringify(sameBrand.map((p: any) => ({ ...p, product_url: `/product/${p.id}` })));
+            }
+            // Fallback: any brand
+            const { data: anyBrand } = await db
+              .from('products')
+              .select('id, title, price, brand, category, stock, image_url, condition')
+              .in('category', targetCats)
+              .gt('stock', 0)
+              .order('price', { ascending: true })
+              .limit(4);
+            if (!anyBrand?.length) return 'ไม่พบสินค้าที่ใช้ร่วมกันได้ในขณะนี้ครับ';
+            return JSON.stringify(anyBrand.map((p: any) => ({ ...p, product_url: `/product/${p.id}` })));
           }
           default:
             return `ไม่รู้จัก tool: ${name}`;
