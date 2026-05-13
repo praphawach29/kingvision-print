@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Twitter, Instagram, Youtube, MapPin, Phone, Mail } from 'lucide-react';
+import { MapPin, Phone, Mail } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
 export function Footer() {
@@ -41,7 +41,6 @@ export function Footer() {
               <li><Link to="/shop?category=หมึกพิมพ์" className="hover:text-kv-orange transition-colors">หมึกพิมพ์</Link></li>
               <li><Link to="/shop?category=อะไหล่" className="hover:text-kv-orange transition-colors">อะไหล่ปริ้นเตอร์</Link></li>
               <li><Link to="/brands" className="hover:text-kv-orange transition-colors">แบรนด์ทั้งหมด</Link></li>
-              <li><Link to="/promotions" className="hover:text-kv-orange transition-colors">โปรโมชั่น</Link></li>
             </ul>
           </div>
 
@@ -64,7 +63,6 @@ export function Footer() {
               <li><Link to="/account" className="hover:text-kv-orange transition-colors">เข้าสู่ระบบ / สมัครสมาชิก</Link></li>
               <li><Link to="/account" className="hover:text-kv-orange transition-colors">ประวัติการสั่งซื้อ</Link></li>
               <li><Link to="/track-order" className="hover:text-kv-orange transition-colors">ติดตามสถานะออเดอร์</Link></li>
-              <li><Link to="/wishlist" className="hover:text-kv-orange transition-colors">รายการโปรด</Link></li>
               <li><Link to="/cart" className="hover:text-kv-orange transition-colors">ตะกร้าสินค้า</Link></li>
             </ul>
           </div>
@@ -76,22 +74,6 @@ export function Footer() {
             &copy; {new Date().getFullYear()} KingVision. All rights reserved.
           </p>
           
-          {/* Social Media */}
-          <div className="flex space-x-4 mb-4 md:mb-0">
-            <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-kv-orange transition-colors">
-              <Facebook size={18} />
-            </a>
-            <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-kv-orange transition-colors">
-              <Twitter size={18} />
-            </a>
-            <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-kv-orange transition-colors">
-              <Instagram size={18} />
-            </a>
-            <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-kv-orange transition-colors">
-              <Youtube size={18} />
-            </a>
-          </div>
-
           {/* Payment Methods */}
           <div className="flex flex-wrap items-center justify-center gap-2">
             <div className="bg-white px-2 py-1 rounded text-xs font-bold text-[#1434CB] border border-gray-200 shadow-sm">VISA</div>
