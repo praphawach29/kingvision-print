@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Package, Settings, LogOut, Shield, Save, Loader2, CheckCircle2, AlertCircle, Clock, ChevronRight, Truck, Bell } from 'lucide-react';
+import { User, Package, Settings, LogOut, Shield, Save, Loader2, CheckCircle2, AlertCircle, Clock, ChevronRight, ChevronDown, Truck, Bell, CreditCard, QrCode, Building2, X } from 'lucide-react';
 import { Breadcrumb } from '../components/Breadcrumb';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
@@ -66,13 +66,13 @@ function NotificationsList({ userId }: { userId: string }) {
 
 export function AccountPage() {
   const { user, role, signOut, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'notifications' | 'settings'>('profile');
-  const [profile, setProfile] = useState({
-    full_name: '',
-    phone: '',
-    address: ''
-  });
+  const [searchParams] = useSearchParams();
+  const initialTab = (searchParams.get('tab') as any) || 'profile';
+  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'notifications' | 'settings'>(initialTab);
+  const [profile, setProfile] = useState({ full_name: '', phone: '', address: '' });
   const [orders, setOrders] = useState<any[]>([]);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [orderItems, setOrderItems] = useState<Record<string, any[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -114,11 +114,32 @@ export function AccountPage() {
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       setOrders(data || []);
     } catch (error) {
       console.error('Error fetching orders:', error);
+    }
+  }
+
+  async function fetchOrderItems(orderId: string) {
+    if (orderItems[orderId]) return;
+    try {
+      const { data } = await supabase
+        .from('order_items')
+        .select('*, products(title, image_url, price)')
+        .eq('order_id', orderId);
+      setOrderItems(prev => ({ ...prev, [orderId]: data || [] }));
+    } catch (err) {
+      console.error('Error fetching order items:', err);
+    }
+  }
+
+  function toggleOrder(orderId: string) {
+    if (expandedOrderId === orderId) {
+      setExpandedOrderId(null);
+    } else {
+      setExpandedOrderId(orderId);
+      fetchOrderItems(orderId);
     }
   }
 
@@ -352,52 +373,165 @@ export function AccountPage() {
                   <h2 className="text-xl font-bold text-kv-navy mb-6 border-b pb-4">ประวัติการสั่งซื้อ</h2>
                   
                   {orders.length > 0 ? (
-                    <div className="space-y-4">
-                      {orders.map((order) => (
-                        <div key={order.id} className="border border-gray-100 rounded-2xl p-4 md:p-6 hover:border-kv-orange/30 transition-all group">
-                          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-kv-navy">
-                                <Package size={20} />
-                              </div>
-                              <div>
-                                <div className="font-bold text-kv-navy">ออเดอร์ #{order.id.slice(0, 8)}</div>
-                                <div className="text-xs text-gray-500 flex items-center gap-1">
-                                  <Clock size={12} /> {new Date(order.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    <div className="space-y-3">
+                      {orders.map((order) => {
+                        const isExpanded = expandedOrderId === order.id;
+                        const items = orderItems[order.id] || [];
+                        const isPending = (order.status || '').toLowerCase() === 'pending';
+                        const isShipped = (order.status || '').toLowerCase() === 'shipped';
+                        return (
+                          <div key={order.id} className={`border rounded-2xl overflow-hidden transition-all ${isExpanded ? 'border-kv-orange/40 shadow-md' : 'border-gray-100 hover:border-gray-200'}`}>
+                            {/* Order header row */}
+                            <button
+                              onClick={() => toggleOrder(order.id)}
+                              className="w-full flex items-center justify-between gap-3 p-4 md:p-5 text-left"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isExpanded ? 'bg-kv-orange text-white' : 'bg-gray-100 text-kv-navy'}`}>
+                                  <Package size={18} />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="font-black text-kv-navy text-sm">ออเดอร์ #{order.id.slice(0, 8).toUpperCase()}</div>
+                                  <div className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                                    <Clock size={11} />
+                                    {new Date(order.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <div className="text-right">
-                                <div className="text-xs text-gray-500">ยอดรวม</div>
-                                <div className="font-bold text-kv-navy">฿{order.total_amount?.toLocaleString()}</div>
-                              </div>
-                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(order.status)}`}>
-                                {getStatusText(order.status)}
-                              </span>
-                              <ChevronRight size={20} className="text-gray-300 group-hover:text-kv-orange transition-colors" />
-                            </div>
-                          </div>
-                          {order.tracking_number && (
-                            <div className="mt-4 pt-4 border-t border-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                              <div className="flex items-center gap-2">
-                                <Truck size={16} className="text-kv-orange" />
-                                <span className="text-xs font-bold text-gray-500">เลขพัสดุ:</span>
-                                <span className="text-xs font-black text-kv-navy">
-                                  {order.shipping_provider && `${order.shipping_provider}: `}
-                                  {order.tracking_number}
+                              <div className="flex items-center gap-3 shrink-0">
+                                <div className="text-right hidden sm:block">
+                                  <div className="text-xs text-gray-400">ยอดรวม</div>
+                                  <div className="font-black text-kv-navy text-sm">฿{order.total_amount?.toLocaleString()}</div>
+                                </div>
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-black ${getStatusColor(order.status)}`}>
+                                  {getStatusText(order.status)}
                                 </span>
+                                {isExpanded ? <ChevronDown size={18} className="text-kv-orange" /> : <ChevronRight size={18} className="text-gray-300" />}
                               </div>
-                              <Link 
-                                to={`/track-order?id=${order.id.slice(0, 8)}`}
-                                className="text-xs font-black text-kv-orange hover:underline flex items-center gap-1"
-                              >
-                                ติดตามสถานะ <ChevronRight size={12} />
-                              </Link>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                            </button>
+
+                            {/* Expanded detail */}
+                            <AnimatePresence>
+                              {isExpanded && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="border-t border-gray-100 p-4 md:p-5 space-y-4 bg-gray-50/50">
+
+                                    {/* Amount (mobile) */}
+                                    <div className="sm:hidden flex justify-between items-center">
+                                      <span className="text-xs text-gray-400 font-bold">ยอดรวม</span>
+                                      <span className="font-black text-kv-navy">฿{order.total_amount?.toLocaleString()}</span>
+                                    </div>
+
+                                    {/* Status timeline */}
+                                    <div>
+                                      <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-3">สถานะออเดอร์</p>
+                                      <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                                        {[
+                                          { key: 'pending', label: 'รอชำระ' },
+                                          { key: 'processing', label: 'กำลังดำเนินการ' },
+                                          { key: 'shipped', label: 'จัดส่งแล้ว' },
+                                          { key: 'delivered', label: 'ได้รับแล้ว' },
+                                        ].map((step, idx, arr) => {
+                                          const statuses = ['pending', 'processing', 'shipped', 'delivered'];
+                                          const currentIdx = statuses.indexOf((order.status || '').toLowerCase());
+                                          const stepIdx = statuses.indexOf(step.key);
+                                          const done = stepIdx <= currentIdx;
+                                          return (
+                                            <React.Fragment key={step.key}>
+                                              <div className="flex flex-col items-center shrink-0">
+                                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black transition-all ${done ? 'bg-kv-orange text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                                  {done ? '✓' : idx + 1}
+                                                </div>
+                                                <span className={`text-[9px] mt-1 font-bold whitespace-nowrap ${done ? 'text-kv-orange' : 'text-gray-400'}`}>{step.label}</span>
+                                              </div>
+                                              {idx < arr.length - 1 && (
+                                                <div className={`h-[2px] flex-1 min-w-[16px] ${stepIdx < currentIdx ? 'bg-kv-orange' : 'bg-gray-200'}`} />
+                                              )}
+                                            </React.Fragment>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+
+                                    {/* Payment info button for pending orders */}
+                                    {isPending && (
+                                      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-2">
+                                          <CreditCard size={16} className="text-yellow-600 shrink-0" />
+                                          <span className="text-xs font-bold text-yellow-700">รอการชำระเงิน — กรุณาโอนเงินและแนบสลิปครับ</span>
+                                        </div>
+                                        <Link to="/contact" className="text-xs font-black text-yellow-700 bg-yellow-100 px-3 py-1.5 rounded-lg hover:bg-yellow-200 transition-all whitespace-nowrap">
+                                          ติดต่อร้าน
+                                        </Link>
+                                      </div>
+                                    )}
+
+                                    {/* Tracking */}
+                                    {isShipped && order.tracking_number && (
+                                      <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-2">
+                                          <Truck size={16} className="text-indigo-600 shrink-0" />
+                                          <div>
+                                            <div className="text-xs font-bold text-indigo-700">{order.shipping_provider}</div>
+                                            <div className="text-xs font-black text-kv-navy">{order.tracking_number}</div>
+                                          </div>
+                                        </div>
+                                        <Link to={`/track-order?id=${order.id.slice(0, 8)}`}
+                                          className="text-xs font-black text-indigo-600 bg-white px-3 py-1.5 rounded-lg border border-indigo-200 hover:bg-indigo-50 transition-all whitespace-nowrap">
+                                          ติดตามพัสดุ
+                                        </Link>
+                                      </div>
+                                    )}
+
+                                    {/* Order items */}
+                                    <div>
+                                      <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">รายการสินค้า</p>
+                                      {items.length === 0 ? (
+                                        <div className="flex justify-center py-4"><Loader2 className="animate-spin text-gray-300" size={20} /></div>
+                                      ) : (
+                                        <div className="space-y-2">
+                                          {items.map((item: any) => (
+                                            <div key={item.id} className="flex items-center gap-3 bg-white rounded-xl p-3 border border-gray-100">
+                                              <div className="w-12 h-12 bg-gray-50 rounded-lg border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
+                                                {item.products?.image_url
+                                                  ? <img src={item.products.image_url} alt={item.products.title} className="w-full h-full object-contain p-1" />
+                                                  : <Package size={18} className="text-gray-300" />
+                                                }
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                <div className="text-xs font-bold text-kv-navy line-clamp-2">{item.products?.title || 'สินค้า'}</div>
+                                                <div className="text-[10px] text-gray-400 mt-0.5">จำนวน: {item.quantity}</div>
+                                              </div>
+                                              <div className="text-sm font-black text-kv-navy shrink-0">
+                                                ฿{((item.unit_price || item.price || 0) * item.quantity).toLocaleString()}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Address */}
+                                    {order.address && (
+                                      <div className="text-xs text-gray-500 bg-white rounded-xl p-3 border border-gray-100">
+                                        <span className="font-black text-gray-400 uppercase tracking-wider text-[9px]">ที่อยู่จัดส่ง</span>
+                                        <p className="mt-1 whitespace-pre-line leading-relaxed">{order.address}</p>
+                                      </div>
+                                    )}
+
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
