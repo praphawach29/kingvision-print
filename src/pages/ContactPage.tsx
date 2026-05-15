@@ -309,16 +309,42 @@ export function ContactPage() {
           </div>
           <div className="w-full h-[400px] bg-gray-100 relative">
             {settings.map_embed_url ? (
-              <iframe
-                src={settings.map_embed_url}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen={true}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="KingVision Location"
-              />
+              (() => {
+                const isEmbedUrl = settings.map_embed_url.includes('/maps/embed') || settings.map_embed_url.includes('output=embed');
+                if (isEmbedUrl) {
+                  return (
+                    <iframe
+                      src={settings.map_embed_url}
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen={true}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="KingVision Location"
+                    />
+                  );
+                }
+                return (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-gray-500 bg-gray-50">
+                    <div className="w-16 h-16 bg-kv-orange/10 rounded-full flex items-center justify-center">
+                      <MapPin size={32} className="text-kv-orange" />
+                    </div>
+                    <div className="text-center">
+                      <p className="font-bold text-gray-700 mb-1">ดูแผนที่การเดินทาง</p>
+                      {settings.address && <p className="text-sm text-gray-500 max-w-xs">{settings.address}</p>}
+                    </div>
+                    <a
+                      href={settings.map_embed_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-6 py-3 bg-kv-navy text-white rounded-xl font-bold text-sm hover:bg-kv-orange transition-all flex items-center gap-2"
+                    >
+                      <MapPin size={16} /> เปิดใน Google Maps
+                    </a>
+                  </div>
+                );
+              })()
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-gray-400">
                 <MapPin size={40} className="text-gray-300" />

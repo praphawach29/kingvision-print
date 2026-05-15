@@ -554,7 +554,8 @@ export function AdminSettings() {
                 placeholder="https://www.google.com/maps/embed?pb=..."
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
               />
-              <p className="text-[11px] text-gray-400">Google Maps → Share → Embed a map → คัดลอก URL จาก src="..."</p>
+              <p className="text-[11px] text-gray-400">⚠️ ต้องใช้ <strong>Embed URL</strong> เท่านั้น: Google Maps → Share → <strong>Embed a map</strong> → คัดลอก URL จาก src="..." (ไม่ใช่ลิงก์แชร์ทั่วไป)</p>
+              <p className="text-[11px] text-blue-500 font-bold">หากใส่ลิงก์แชร์ธรรมดา (maps.app.goo.gl หรือ goo.gl) จะแสดงเป็นปุ่ม "เปิดใน Google Maps" แทน</p>
             </div>
           </div>
         </div>
