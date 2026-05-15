@@ -62,10 +62,6 @@ export function AdminOrders() {
         .from('orders')
         .select(`
           *,
-          profiles:user_id (
-            full_name,
-            email
-          ),
           order_items (
             *,
             products (

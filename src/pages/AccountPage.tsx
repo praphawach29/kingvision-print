@@ -163,23 +163,29 @@ export function AccountPage() {
 
   const isAdmin = role === 'admin' || role === 'super_admin';
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+  const getStatusColor = (status: string | null) => {
+    switch ((status || '').toLowerCase()) {
       case 'completed': return 'bg-green-100 text-green-700';
       case 'processing': return 'bg-blue-100 text-blue-700';
       case 'pending': return 'bg-yellow-100 text-yellow-700';
+      case 'confirmed': return 'bg-blue-100 text-blue-700';
+      case 'shipped': return 'bg-indigo-100 text-indigo-700';
+      case 'delivered': return 'bg-green-100 text-green-700';
       case 'cancelled': return 'bg-red-100 text-red-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status.toLowerCase()) {
+  const getStatusText = (status: string | null) => {
+    switch ((status || '').toLowerCase()) {
       case 'completed': return 'สำเร็จแล้ว';
       case 'processing': return 'กำลังดำเนินการ';
       case 'pending': return 'รอชำระเงิน';
+      case 'confirmed': return 'ยืนยันแล้ว';
+      case 'shipped': return 'จัดส่งแล้ว';
+      case 'delivered': return 'ได้รับแล้ว';
       case 'cancelled': return 'ยกเลิกแล้ว';
-      default: return status;
+      default: return status || 'รอดำเนินการ';
     }
   };
 
