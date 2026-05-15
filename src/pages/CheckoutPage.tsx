@@ -144,6 +144,7 @@ export function CheckoutPage() {
             order_id: order.id,
             product_id: item.id,
             quantity: item.quantity,
+            unit_price: item.price,
             price: item.price,
             selected_options: item.selectedOptions
           }]);
