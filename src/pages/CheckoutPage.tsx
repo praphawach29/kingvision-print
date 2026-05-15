@@ -146,6 +146,7 @@ export function CheckoutPage() {
             quantity: item.quantity,
             unit_price: item.price,
             price: item.price,
+            subtotal: item.price * item.quantity,
             selected_options: item.selectedOptions
           }]);
 
