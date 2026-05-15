@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, Phone, MessageCircle, Search, ShoppingCart, Heart, User, Menu, ChevronDown, Crown, X } from 'lucide-react';
+import { LayoutDashboard, Phone, MessageCircle, Search, ShoppingCart, User, Menu, ChevronDown, Crown, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
@@ -56,9 +56,15 @@ export function Header({ onOpenMobileMenu }: { onOpenMobileMenu: () => void }) {
         </button>
 
         {/* Logo */}
-        <Link to="/" className="text-2xl lg:text-3xl font-bold text-kv-navy flex items-center mx-auto lg:mx-0">
-          <Crown className="text-kv-orange mr-1 lg:mr-2" size={28} />
-          King<span className="text-kv-orange">Vision</span>
+        <Link to="/" className="flex items-center mx-auto lg:mx-0">
+          {settings.logo_url ? (
+            <img src={settings.logo_url} alt={settings.store_name} className="h-10 lg:h-12 w-auto object-contain" />
+          ) : (
+            <span className="text-2xl lg:text-3xl font-bold text-kv-navy flex items-center">
+              <Crown className="text-kv-orange mr-1 lg:mr-2" size={28} />
+              King<span className="text-kv-orange">Vision</span>
+            </span>
+          )}
         </Link>
 
         {/* Icons - Mobile (Right side) */}
@@ -101,11 +107,6 @@ export function Header({ onOpenMobileMenu }: { onOpenMobileMenu: () => void }) {
             <User size={24} />
             <span className="text-xs mt-1">บัญชี</span>
           </Link>
-          <Link to="/wishlist" className="flex flex-col items-center hover:text-kv-orange transition-colors relative">
-            <Heart size={24} />
-            <span className="absolute -top-2 -right-2 bg-kv-orange text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">0</span>
-            <span className="text-xs mt-1">รายการโปรด</span>
-          </Link>
           <Link to="/cart" className="flex flex-col items-center hover:text-kv-orange transition-colors relative">
             <ShoppingCart size={24} />
             {totalItems > 0 && (
@@ -129,9 +130,15 @@ export function Header({ onOpenMobileMenu }: { onOpenMobileMenu: () => void }) {
           <button className="lg:hidden text-white p-1" onClick={onOpenMobileMenu}>
             <Menu size={24} />
           </button>
-          <Link to="/" className="flex items-center gap-1 text-white font-bold text-xl flex-shrink-0">
-            <Crown size={20} className="text-kv-orange" />
-            King<span className="text-kv-orange">Vision</span>
+          <Link to="/" className="flex items-center flex-shrink-0">
+            {settings.logo_url ? (
+              <img src={settings.logo_url} alt={settings.store_name} className="h-8 w-auto object-contain brightness-0 invert" />
+            ) : (
+              <span className="flex items-center gap-1 text-white font-bold text-xl">
+                <Crown size={20} className="text-kv-orange" />
+                King<span className="text-kv-orange">Vision</span>
+              </span>
+            )}
           </Link>
 
           {/* Desktop nav links */}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Phone, Mail } from 'lucide-react';
+import { MapPin, Phone, Mail, Crown } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 
 export function Footer() {
@@ -11,8 +11,15 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-12">
           {/* Brand & Contact */}
           <div className="lg:col-span-2">
-            <Link to="/" className="text-3xl font-bold text-white mb-6 block">
-              {settings.store_name.split(' ')[0]}<span className="text-kv-orange">{settings.store_name.split(' ')[1] || ''}</span>
+            <Link to="/" className="mb-6 block">
+              {settings.logo_url ? (
+                <img src={settings.logo_url} alt={settings.store_name} className="h-12 w-auto object-contain brightness-0 invert" />
+              ) : (
+                <span className="text-3xl font-bold text-white flex items-center gap-2">
+                  <Crown className="text-kv-orange" size={28} />
+                  {settings.store_name.split(' ')[0]}<span className="text-kv-orange">{settings.store_name.split(' ')[1] || ''}</span>
+                </span>
+              )}
             </Link>
             <p className="text-gray-300 mb-6 max-w-sm">
               จำหน่ายเครื่องปริ้นเตอร์ หมึกพิมพ์ และอะไหล่ปริ้นเตอร์คุณภาพสูง พร้อมบริการหลังการขายที่ยอดเยี่ยม

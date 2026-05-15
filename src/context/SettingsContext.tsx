@@ -33,6 +33,7 @@ interface StoreSettings {
   email_sales?: string;
   business_hours?: string;
   map_embed_url?: string;
+  logo_url?: string;
 }
 
 interface SettingsContextType {
