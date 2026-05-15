@@ -633,7 +633,7 @@ export function CheckoutPage() {
                 {items.map((item) => (
                   <div key={item.id} className="flex gap-4 py-4 border-b border-gray-50 last:border-0">
                     <div className="w-16 h-16 bg-gray-50 rounded-lg border border-gray-100 flex items-center justify-center p-2 shrink-0">
-                      <img src={item.image_url} alt={item.name} className="max-h-full object-contain" referrerPolicy="no-referrer" />
+                      <img src={item.image} alt={item.name} className="max-h-full object-contain" referrerPolicy="no-referrer" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-black text-kv-navy line-clamp-2 mb-1 leading-tight">{item.name}</div>
