@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { MapPin, Phone, Mail, Clock, Send, MessageCircle } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 export function ContactPage() {
+  const { settings } = useSettings();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -85,64 +87,78 @@ export function ContactPage() {
               <h2 className="text-2xl font-bold text-kv-navy mb-6">ข้อมูลการติดต่อ</h2>
               
               <div className="space-y-6">
-                <div className="flex items-start">
-                  <div className="w-12 h-12 bg-blue-50 text-kv-navy rounded-full flex items-center justify-center shrink-0 mr-4">
-                    <MapPin size={24} />
+                {settings.address && (
+                  <div className="flex items-start">
+                    <div className="w-12 h-12 bg-blue-50 text-kv-navy rounded-full flex items-center justify-center shrink-0 mr-4">
+                      <MapPin size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 mb-1">ที่ตั้งสำนักงาน</h3>
+                      <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{settings.address}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 mb-1">ที่ตั้งสำนักงานใหญ่</h3>
-                    <p className="text-gray-600 text-sm leading-relaxed">
-                      123 ถนนพระราม 2 แขวงแสมดำ<br />
-                      เขตบางขุนเทียน กรุงเทพมหานคร 10150
-                    </p>
-                  </div>
-                </div>
+                )}
 
-                <div className="flex items-start">
-                  <div className="w-12 h-12 bg-orange-50 text-kv-orange rounded-full flex items-center justify-center shrink-0 mr-4">
-                    <Phone size={24} />
+                {(settings.phone_main || settings.phone_support) && (
+                  <div className="flex items-start">
+                    <div className="w-12 h-12 bg-orange-50 text-kv-orange rounded-full flex items-center justify-center shrink-0 mr-4">
+                      <Phone size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 mb-1">เบอร์โทรศัพท์</h3>
+                      {settings.phone_main && (
+                        <a href={`tel:${settings.phone_main.replace(/-/g, '')}`} className="block text-gray-600 text-sm hover:text-kv-orange transition-colors">
+                          {settings.phone_main} (ฝ่ายขาย)
+                        </a>
+                      )}
+                      {settings.phone_support && (
+                        <a href={`tel:${settings.phone_support.replace(/-/g, '')}`} className="block text-gray-600 text-sm hover:text-kv-orange transition-colors">
+                          {settings.phone_support} (ฝ่ายซัพพอร์ต)
+                        </a>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 mb-1">เบอร์โทรศัพท์</h3>
-                    <p className="text-gray-600 text-sm">02-123-4567 (ฝ่ายขาย)</p>
-                    <p className="text-gray-600 text-sm">081-234-5678 (ฝ่ายซัพพอร์ต)</p>
-                  </div>
-                </div>
+                )}
 
-                <div className="flex items-start">
-                  <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center shrink-0 mr-4">
-                    <MessageCircle size={24} />
+                {(settings.line_oa_id || settings.line_oa_link) && (
+                  <div className="flex items-start">
+                    <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center shrink-0 mr-4">
+                      <MessageCircle size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 mb-1">LINE Official</h3>
+                      {settings.line_oa_id && <p className="text-gray-600 text-sm">{settings.line_oa_id}</p>}
+                      <a href={settings.line_oa_link || '#'} target="_blank" rel="noopener noreferrer" className="text-green-600 text-sm font-bold hover:underline mt-1 inline-block">
+                        คลิกเพื่อแอดไลน์
+                      </a>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 mb-1">LINE Official</h3>
-                    <p className="text-gray-600 text-sm">@kingvision</p>
-                    <a href="https://line.me/R/ti/p/@kingvision" target="_blank" rel="noopener noreferrer" className="text-green-600 text-sm font-bold hover:underline mt-1 inline-block">
-                      คลิกเพื่อแอดไลน์
-                    </a>
-                  </div>
-                </div>
+                )}
 
-                <div className="flex items-start">
-                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shrink-0 mr-4">
-                    <Mail size={24} />
+                {(settings.contact_email || settings.email_sales) && (
+                  <div className="flex items-start">
+                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shrink-0 mr-4">
+                      <Mail size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 mb-1">อีเมล</h3>
+                      {settings.contact_email && <p className="text-gray-600 text-sm">{settings.contact_email}</p>}
+                      {settings.email_sales && <p className="text-gray-600 text-sm">{settings.email_sales}</p>}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 mb-1">อีเมล</h3>
-                    <p className="text-gray-600 text-sm">support@kingvision.com</p>
-                    <p className="text-gray-600 text-sm">sales@kingvision.com</p>
-                  </div>
-                </div>
+                )}
 
-                <div className="flex items-start">
-                  <div className="w-12 h-12 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center shrink-0 mr-4">
-                    <Clock size={24} />
+                {settings.business_hours && (
+                  <div className="flex items-start">
+                    <div className="w-12 h-12 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center shrink-0 mr-4">
+                      <Clock size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 mb-1">เวลาทำการ</h3>
+                      <p className="text-gray-600 text-sm whitespace-pre-line">{settings.business_hours}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 mb-1">เวลาทำการ</h3>
-                    <p className="text-gray-600 text-sm">จันทร์ - เสาร์: 09:00 - 18:00 น.</p>
-                    <p className="text-gray-600 text-sm">หยุดวันอาทิตย์และวันหยุดนักขัตฤกษ์</p>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </motion.div>
@@ -291,18 +307,25 @@ export function ContactPage() {
           <div className="p-6 border-b border-gray-100">
             <h2 className="text-xl font-bold text-kv-navy">แผนที่การเดินทาง</h2>
           </div>
-          <div className="w-full h-[400px] bg-gray-200 relative">
-            {/* Embed Google Maps - Using a generic Bangkok location for demo */}
-            <iframe 
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d124041.52055627236!2d100.44855011746274!3d13.670697711467403!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x30e2a1e050302325%3A0x6e768e9871788289!2sBang%20Khun%20Thian%2C%20Bangkok!5e0!3m2!1sen!2sth!4v1712800000000!5m2!1sen!2sth" 
-              width="100%" 
-              height="100%" 
-              style={{ border: 0 }} 
-              allowFullScreen={true} 
-              loading="lazy" 
-              referrerPolicy="no-referrer-when-downgrade"
-              title="KingVision Location"
-            ></iframe>
+          <div className="w-full h-[400px] bg-gray-100 relative">
+            {settings.map_embed_url ? (
+              <iframe
+                src={settings.map_embed_url}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen={true}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="KingVision Location"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-gray-400">
+                <MapPin size={40} className="text-gray-300" />
+                <p className="text-sm font-medium">ยังไม่ได้ตั้งค่าแผนที่</p>
+                <p className="text-xs">ไปที่ Admin → ตั้งค่า → ข้อมูลหน้าติดต่อเรา เพื่อเพิ่ม Google Maps</p>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

@@ -28,6 +28,11 @@ interface StoreSettings {
   line_oa_id?: string;
   line_oa_link?: string;
   notify_new_order: boolean;
+  phone_main?: string;
+  phone_support?: string;
+  email_sales?: string;
+  business_hours?: string;
+  map_embed_url?: string;
 }
 
 interface SettingsContextType {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Bell, Globe, Shield, CreditCard, Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Package, ShoppingCart, Bot, BookOpen, Edit2, ToggleLeft, ToggleRight, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import { Settings, Save, Bell, Globe, Shield, CreditCard, Loader2, CheckCircle2, AlertCircle, Plus, Trash2, Package, ShoppingCart, Bot, BookOpen, Edit2, ToggleLeft, ToggleRight, Wifi, WifiOff, RefreshCw, Phone, Mail, Clock, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '../../lib/supabase';
 
@@ -44,6 +44,12 @@ interface StoreSettings {
   bank_name?: string;
   bank_account?: string;
   bank_account_name?: string;
+  // Contact page fields
+  phone_main?: string;
+  phone_support?: string;
+  email_sales?: string;
+  business_hours?: string;
+  map_embed_url?: string;
   // AI settings
   ai_provider?: 'gemini' | 'openai' | 'anthropic';
   ai_model?: string;
@@ -91,6 +97,11 @@ export function AdminSettings() {
     store_name: 'KingVision Print',
     contact_email: 'contact@kingvision.com',
     address: '123 ถนนสุขุมวิท แขวงคลองเตย เขตคลองเตย กรุงเทพฯ 10110',
+    phone_main: '095-585-1136',
+    phone_support: '',
+    email_sales: '',
+    business_hours: 'จันทร์ - เสาร์: 09:00 - 18:00 น.\nหยุดวันอาทิตย์และวันหยุดนักขัตฤกษ์',
+    map_embed_url: '',
     payment_methods: [
       { id: '1', name: 'PromptPay', description: 'ชำระผ่าน QR Code', enabled: true, type: 'promptpay', details: '081-234-5678' },
       { id: '2', name: 'Bank Transfer', description: 'โอนเงินผ่านธนาคาร', enabled: true, type: 'bank', details: 'ธนาคารกสิกรไทย\nเลขที่บัญชี: 123-4-56789-0\nชื่อบัญชี: บจก. คิงวิชั่น' }
@@ -401,6 +412,79 @@ export function AdminSettings() {
                 onChange={(e) => setSettings({...settings, address: e.target.value})}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none resize-none font-bold text-kv-navy transition-all"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Page Settings */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden">
+          <div className="p-4 sm:p-6 border-b border-gray-50 bg-gray-50/30 flex items-center gap-2">
+            <div className="w-1.5 h-5 bg-kv-orange rounded-full" />
+            <h3 className="font-black text-kv-navy flex items-center gap-2 text-sm sm:text-base">
+              <Phone size={18} className="text-kv-orange" /> ข้อมูลหน้าติดต่อเรา
+            </h3>
+          </div>
+          <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <Phone size={12} /> เบอร์โทรหลัก
+              </label>
+              <input
+                type="text"
+                value={settings.phone_main || ''}
+                onChange={(e) => setSettings({ ...settings, phone_main: e.target.value })}
+                placeholder="เช่น 095-585-1136"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <Phone size={12} /> เบอร์โทรซัพพอร์ต (ถ้ามี)
+              </label>
+              <input
+                type="text"
+                value={settings.phone_support || ''}
+                onChange={(e) => setSettings({ ...settings, phone_support: e.target.value })}
+                placeholder="เช่น 081-234-5678"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <Mail size={12} /> อีเมลฝ่ายขาย (ถ้ามี)
+              </label>
+              <input
+                type="email"
+                value={settings.email_sales || ''}
+                onChange={(e) => setSettings({ ...settings, email_sales: e.target.value })}
+                placeholder="sales@yourdomain.com"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <Clock size={12} /> เวลาทำการ
+              </label>
+              <textarea
+                rows={2}
+                value={settings.business_hours || ''}
+                onChange={(e) => setSettings({ ...settings, business_hours: e.target.value })}
+                placeholder={'จันทร์ - เสาร์: 09:00 - 18:00 น.\nหยุดวันอาทิตย์'}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none resize-none font-bold text-kv-navy transition-all"
+              />
+            </div>
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <MapPin size={12} /> Google Maps Embed URL
+              </label>
+              <input
+                type="url"
+                value={settings.map_embed_url || ''}
+                onChange={(e) => setSettings({ ...settings, map_embed_url: e.target.value })}
+                placeholder="https://www.google.com/maps/embed?pb=..."
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
+              />
+              <p className="text-[11px] text-gray-400">Google Maps → Share → Embed a map → คัดลอก URL จาก src="..."</p>
             </div>
           </div>
         </div>
