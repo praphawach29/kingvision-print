@@ -624,23 +624,87 @@ export function AdminSettings() {
                   </div>
                 </div>
                 
-                <div className="space-y-1.5 pt-2 border-t border-gray-100">
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-wider ml-1">ชื่อบัญชี</label>
-                  <input 
-                    type="text"
-                    value={method.account_name || ''}
-                    onChange={(e) => updatePaymentMethod(method.id, { account_name: e.target.value })}
-                    placeholder="ชื่อบัญชี..."
-                    className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-[11px] mb-2"
-                  />
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-wider ml-1">รายละเอียดเพิ่มเติม (เช่น เลขที่บัญชี)</label>
-                  <textarea 
-                    value={method.details || ''}
-                    onChange={(e) => updatePaymentMethod(method.id, { details: e.target.value })}
-                    rows={2}
-                    placeholder="ระบุเลขที่บัญชี หรือข้อมูลการชำระเงิน..."
-                    className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-[11px] resize-none"
-                  />
+                <div className="space-y-3 pt-2 border-t border-gray-100">
+                  {method.type === 'promptpay' || method.type === 'qr' ? (
+                    <>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-wider ml-1">PromptPay ID (เบอร์โทร หรือ เลขบัตรประชาชน)</label>
+                        <input
+                          type="text"
+                          value={settings.promptpay_id || ''}
+                          onChange={e => setSettings(prev => ({ ...prev, promptpay_id: e.target.value }))}
+                          placeholder="เช่น 0812345678"
+                          className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-[11px]"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-wider ml-1">ชื่อบัญชี (แสดงใต้ QR)</label>
+                        <input
+                          type="text"
+                          value={settings.bank_account_name || ''}
+                          onChange={e => setSettings(prev => ({ ...prev, bank_account_name: e.target.value }))}
+                          placeholder="เช่น บจก. คิงวิชั่น"
+                          className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-[11px]"
+                        />
+                      </div>
+                    </>
+                  ) : method.type === 'bank_transfer' || method.type === 'transfer' || method.type === 'bank' ? (
+                    <>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-wider ml-1">ธนาคาร</label>
+                        <input
+                          type="text"
+                          value={settings.bank_name || ''}
+                          onChange={e => setSettings(prev => ({ ...prev, bank_name: e.target.value }))}
+                          placeholder="เช่น ธนาคารกสิกรไทย"
+                          className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-[11px]"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-wider ml-1">เลขที่บัญชี</label>
+                        <input
+                          type="text"
+                          value={settings.bank_account || ''}
+                          onChange={e => setSettings(prev => ({ ...prev, bank_account: e.target.value }))}
+                          placeholder="เช่น 123-4-56789-0"
+                          className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-[11px]"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-wider ml-1">ชื่อบัญชี</label>
+                        <input
+                          type="text"
+                          value={settings.bank_account_name || ''}
+                          onChange={e => setSettings(prev => ({ ...prev, bank_account_name: e.target.value }))}
+                          placeholder="เช่น บจก. คิงวิชั่น"
+                          className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-[11px]"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-wider ml-1">ชื่อบัญชี</label>
+                        <input
+                          type="text"
+                          value={method.account_name || ''}
+                          onChange={(e) => updatePaymentMethod(method.id, { account_name: e.target.value })}
+                          placeholder="ชื่อบัญชี..."
+                          className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-[11px]"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-wider ml-1">รายละเอียดเพิ่มเติม</label>
+                        <textarea
+                          value={method.details || ''}
+                          onChange={(e) => updatePaymentMethod(method.id, { details: e.target.value })}
+                          rows={2}
+                          placeholder="ระบุข้อมูลการชำระเงิน..."
+                          className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-[11px] resize-none"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
@@ -705,66 +769,6 @@ export function AdminSettings() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Payment Settings */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden">
-          <div className="p-4 sm:p-6 border-b border-gray-50 bg-gray-50/30">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-5 bg-green-500 rounded-full" />
-              <h3 className="font-black text-kv-navy flex items-center gap-2 text-sm sm:text-base">
-                <CreditCard size={18} className="text-green-500" /> ข้อมูลรับชำระเงิน
-              </h3>
-            </div>
-            <p className="text-xs text-gray-400 mt-1 ml-3.5">แสดง QR และข้อมูลธนาคารให้ลูกค้าหลังสั่งซื้อ</p>
-          </div>
-          <div className="p-4 sm:p-6 space-y-5">
-            {/* PromptPay */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-wider">PromptPay ID (เบอร์โทร หรือ เลขบัตรประชาชน)</label>
-              <input
-                type="text"
-                value={settings.promptpay_id || ''}
-                onChange={e => setSettings(prev => ({ ...prev, promptpay_id: e.target.value }))}
-                placeholder="เช่น 0812345678"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-green-400 outline-none font-bold text-kv-navy transition-all"
-              />
-            </div>
-            {/* Bank Info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">ธนาคาร</label>
-                <input
-                  type="text"
-                  value={settings.bank_name || ''}
-                  onChange={e => setSettings(prev => ({ ...prev, bank_name: e.target.value }))}
-                  placeholder="เช่น ธนาคารกสิกรไทย"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-green-400 outline-none font-bold text-kv-navy transition-all"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">เลขบัญชี</label>
-                <input
-                  type="text"
-                  value={settings.bank_account || ''}
-                  onChange={e => setSettings(prev => ({ ...prev, bank_account: e.target.value }))}
-                  placeholder="เช่น 123-4-56789-0"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-green-400 outline-none font-bold text-kv-navy transition-all"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">ชื่อบัญชี</label>
-                <input
-                  type="text"
-                  value={settings.bank_account_name || ''}
-                  onChange={e => setSettings(prev => ({ ...prev, bank_account_name: e.target.value }))}
-                  placeholder="เช่น บจก. คิงวิชั่น"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-green-400 outline-none font-bold text-kv-navy transition-all"
-                />
-              </div>
-            </div>
-            <p className="text-xs text-gray-400">💡 กรอก PromptPay ID เพื่อสร้าง QR Code อัตโนมัติ หรือกรอกข้อมูลธนาคารเพื่อแสดงให้ลูกค้าโอนเงิน</p>
           </div>
         </div>
 
