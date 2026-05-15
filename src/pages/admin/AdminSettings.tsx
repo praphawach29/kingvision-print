@@ -763,8 +763,8 @@ export function AdminSettings() {
                     <span className="text-xs text-gray-400">฿</span>
                     <input 
                       type="number"
-                      value={method.price}
-                      onChange={(e) => updateShippingMethod(method.id, { price: Number(e.target.value) })}
+                      value={method.price === 0 ? '' : method.price}
+                      onChange={(e) => updateShippingMethod(method.id, { price: e.target.value === '' ? 0 : Number(e.target.value) })}
                       className="font-black text-kv-navy text-sm bg-transparent border-none p-0 focus:ring-0 w-20"
                     />
                   </div>
