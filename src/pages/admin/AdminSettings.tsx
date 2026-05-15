@@ -327,9 +327,9 @@ export function AdminSettings() {
     const newMethod: PaymentMethod = {
       id: Math.random().toString(36).substr(2, 9),
       name: 'ช่องทางใหม่',
-      description: 'คำอธิบาย',
+      description: 'เลือกประเภทด้านล่าง',
       enabled: true,
-      type: 'custom'
+      type: 'promptpay'
     };
     setSettings({ ...settings, payment_methods: [...settings.payment_methods, newMethod] });
   };
@@ -583,20 +583,22 @@ export function AdminSettings() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-gray-100">
-                      {method.type === 'promptpay' ? (
+                      {method.type === 'promptpay' || method.type === 'qr' ? (
                         <img src="https://upload.wikimedia.org/wikipedia/commons/c/c5/PromptPay-logo.png" alt="PromptPay" className="h-5 object-contain" referrerPolicy="no-referrer" />
+                      ) : method.type === 'cod' ? (
+                        <span className="text-lg">🚚</span>
                       ) : (
                         <CreditCard className="text-blue-500" size={20} />
                       )}
                     </div>
                     <div className="flex-1">
-                      <input 
+                      <input
                         type="text"
                         value={method.name}
                         onChange={(e) => updatePaymentMethod(method.id, { name: e.target.value })}
                         className="font-black text-kv-navy text-sm bg-transparent border-none p-0 focus:ring-0 w-full"
                       />
-                      <input 
+                      <input
                         type="text"
                         value={method.description}
                         onChange={(e) => updatePaymentMethod(method.id, { description: e.target.value })}
@@ -625,6 +627,20 @@ export function AdminSettings() {
                 </div>
                 
                 <div className="space-y-3 pt-2 border-t border-gray-100">
+                  {/* Type selector */}
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-wider ml-1">ประเภทการชำระเงิน</label>
+                    <select
+                      value={method.type}
+                      onChange={(e) => updatePaymentMethod(method.id, { type: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-[11px]"
+                    >
+                      <option value="promptpay">PromptPay / QR Code</option>
+                      <option value="bank_transfer">โอนบัญชีธนาคาร</option>
+                      <option value="cod">เก็บเงินปลายทาง (COD)</option>
+                      <option value="custom">อื่นๆ</option>
+                    </select>
+                  </div>
                   {method.type === 'promptpay' || method.type === 'qr' ? (
                     <>
                       <div className="space-y-1.5">
@@ -648,6 +664,10 @@ export function AdminSettings() {
                         />
                       </div>
                     </>
+                  ) : method.type === 'cod' ? (
+                    <div className="bg-green-50 border border-green-100 rounded-xl px-3 py-2">
+                      <p className="text-[11px] font-bold text-green-700">🚚 ไม่ต้องกรอกข้อมูลเพิ่มเติม — ลูกค้าชำระเงินเมื่อรับสินค้า</p>
+                    </div>
                   ) : method.type === 'bank_transfer' || method.type === 'transfer' || method.type === 'bank' ? (
                     <>
                       <div className="space-y-1.5">
