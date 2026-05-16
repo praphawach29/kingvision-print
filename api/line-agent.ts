@@ -289,15 +289,16 @@ async function buildSystemPrompt(settings: any, db: any): Promise<string> {
   // Load knowledge base + store contact info in parallel
   const [{ data: kb }, { data: storeInfo }] = await Promise.all([
     db.from('ai_knowledge_base').select('question, answer').eq('is_active', true).order('sort_order').limit(25),
-    db.from('store_settings').select('store_name,store_phone,line_oa_id,line_oa_link,address,contact_email').single(),
+    db.from('store_settings').select('store_name,phone_main,business_hours,line_oa_id,line_oa_link,line_oa_admin_id,address,contact_email').single(),
   ]);
   const knowledgeContext = kb?.length
     ? '\n### คลังความรู้ร้าน (ตอบตามนี้ก่อน):\n' +
       (kb as any[]).map(k => `Q: ${k.question}\nA: ${k.answer}`).join('\n---\n')
     : '';
-  const lineOaId   = storeInfo?.line_oa_id   || '@kingvision';
-  const lineOaLink = storeInfo?.line_oa_link  || `https://line.me/R/ti/p/${lineOaId}`;
-  const storePhone = storeInfo?.store_phone   || '';
+  const lineRawId  = storeInfo?.line_oa_id || storeInfo?.line_oa_admin_id || '@kingvision';
+  const lineOaId   = String(lineRawId).startsWith('@') ? String(lineRawId) : `@${lineRawId}`;
+  const lineOaLink = storeInfo?.line_oa_link || `https://line.me/R/ti/p/${lineOaId}`;
+  const storePhone = storeInfo?.phone_main || '';
 
   return `คุณคือ "${personaName}" พนักงานขายมืออาชีพของร้าน KingVision Print (คิงวิชั่น พริ้นท์)
 คุณเชี่ยวชาญด้านเครื่องพิมพ์และอุปกรณ์สำนักงานมากกว่า 10 ปี มีความรู้ด้านเทคนิคอย่างลึกซึ้ง
@@ -404,9 +405,17 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
 
         case 'get_store_info': {
           const { data } = await db.from('store_settings')
-            .select('store_name,contact_email,address,line_oa_id,line_oa_link,store_phone')
+            .select('store_name,contact_email,address,phone_main,business_hours,line_oa_id,line_oa_link,line_oa_admin_id')
             .single();
-          return data ? JSON.stringify(data) : '{}';
+          if (!data) return '{}';
+          const lineRawId = (data as any).line_oa_id || (data as any).line_oa_admin_id || '';
+          const lineOaId = lineRawId ? (String(lineRawId).startsWith('@') ? String(lineRawId) : `@${lineRawId}`) : '';
+          const lineOaLink = (data as any).line_oa_link || (lineOaId ? `https://line.me/R/ti/p/${lineOaId}` : '');
+          return JSON.stringify({
+            ...data,
+            line_oa_id: lineOaId,
+            line_oa_link: lineOaLink,
+          });
         }
 
         case 'get_categories_and_brands': {
@@ -828,6 +837,34 @@ export default async function handler(req: any, res: any) {
 
       if (settings?.ai_enabled === false) {
         await lineReply(replyToken, [{ type: 'text', text: 'ขออภัยครับ ระบบแชตบอทปิดอยู่ชั่วคราว กรุณาติดต่อเจ้าหน้าที่ผ่าน LINE ครับ' }], channelToken);
+        continue;
+      }
+
+      // Hard guard: answer store contact/location/hours directly from admin settings.
+      const normalized = text.toLowerCase();
+      const asksStoreInfo = /ที่อยู่|ที่ตั้ง|ที่ตั้งร้าน|address|location|map|แผนที่|เปิด|ปิด|เวลาทำการ|เวลาเปิด|เวลาปิด|hours|ติดต่อ|contact|line|โทร|phone|email/.test(normalized);
+      if (asksStoreInfo) {
+        const { data: storeInfo } = await db
+          .from('store_settings')
+          .select('store_name,address,contact_email,phone_main,business_hours,line_oa_id,line_oa_link,line_oa_admin_id')
+          .single();
+        const storeName = (storeInfo as any)?.store_name || 'KingVision Print';
+        const address = (storeInfo as any)?.address || '-';
+        const email = (storeInfo as any)?.contact_email || '-';
+        const phone = (storeInfo as any)?.phone_main || '-';
+        const hours = (storeInfo as any)?.business_hours || '-';
+        const lineRawId = (storeInfo as any)?.line_oa_id || (storeInfo as any)?.line_oa_admin_id || '';
+        const lineOaId = lineRawId ? (String(lineRawId).startsWith('@') ? String(lineRawId) : `@${lineRawId}`) : '-';
+        const lineOaLink = (storeInfo as any)?.line_oa_link || (lineOaId !== '-' ? `https://line.me/R/ti/p/${lineOaId}` : '-');
+        const storeReply =
+          `ชื่อร้าน: ${storeName}\n` +
+          `ที่อยู่: ${address}\n` +
+          `เบอร์โทร: ${phone}\n` +
+          `อีเมล: ${email}\n` +
+          `เวลาทำการ: ${hours}\n` +
+          `LINE OA: ${lineOaId}\n` +
+          `ลิงก์ LINE: ${lineOaLink}`;
+        await lineReply(replyToken, [{ type: 'text', text: storeReply }], channelToken);
         continue;
       }
 
