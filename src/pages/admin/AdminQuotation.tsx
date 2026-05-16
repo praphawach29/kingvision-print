@@ -288,11 +288,12 @@ export function AdminQuotation() {
 
       if (words.length === 0) { setSearchResults([]); return; }
 
-      // OR every word across name + brand + sku (one single query, no special chars)
+      // OR every word across name + brand + sku
+      // NOTE: inside .or() Supabase uses * as wildcard, not %
       const orParts = words.flatMap(w => [
-        `name.ilike.%${w}%`,
-        `brand.ilike.%${w}%`,
-        `sku.ilike.%${w}%`,
+        `name.ilike.*${w}*`,
+        `brand.ilike.*${w}*`,
+        `sku.ilike.*${w}*`,
       ]);
 
       const { data } = await supabase
