@@ -279,12 +279,38 @@ export function AdminQuotation() {
     if (!q.trim()) { setSearchResults([]); return; }
     setSearching(true);
     try {
-      const { data } = await supabase
-        .from('products')
-        .select('id, name, price, sku, category, brand')
-        .or(`name.ilike.%${q}%,sku.ilike.%${q}%,category.ilike.%${q}%`)
-        .limit(12);
-      setSearchResults(data || []);
+      const words = q.trim().split(/\s+/).filter(Boolean);
+
+      if (words.length === 1) {
+        // Single word — search across name, sku, category, brand
+        const w = words[0];
+        const { data } = await supabase
+          .from('products')
+          .select('id, name, price, sku, category, brand')
+          .or(`name.ilike.%${w}%,sku.ilike.%${w}%,category.ilike.%${w}%,brand.ilike.%${w}%`)
+          .limit(15);
+        setSearchResults(data || []);
+      } else {
+        // Multi-word — each word must appear somewhere in name (AND logic)
+        let query = supabase
+          .from('products')
+          .select('id, name, price, sku, category, brand');
+        for (const w of words) {
+          query = query.ilike('name', `%${w}%`);
+        }
+        const { data } = await query.limit(15);
+        // If AND gives no results, fallback to first word only
+        if (data && data.length > 0) {
+          setSearchResults(data);
+        } else {
+          const { data: fallback } = await supabase
+            .from('products')
+            .select('id, name, price, sku, category, brand')
+            .or(`name.ilike.%${words[0]}%,brand.ilike.%${words[0]}%`)
+            .limit(15);
+          setSearchResults(fallback || []);
+        }
+      }
     } catch { setSearchResults([]); }
     finally { setSearching(false); }
   }, []);
