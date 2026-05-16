@@ -279,43 +279,73 @@ export function AdminQuotation() {
     if (!q.trim()) { setSearchResults([]); return; }
     setSearching(true);
     try {
-      // Strip special chars that break PostgREST, split into meaningful words
+      // Normalize: remove special chars, split into words ≥2 chars
       const words = q
         .replace(/[+\-_()\[\]{}.,:;/\\*"']/g, ' ')
         .split(/\s+/)
-        .map(w => w.trim())
         .filter(w => w.length >= 2);
 
       if (words.length === 0) { setSearchResults([]); return; }
 
-      // OR every word across name + brand + sku
-      // NOTE: inside .or() Supabase uses * as wildcard, not %
-      const orParts = words.flatMap(w => [
-        `name.ilike.*${w}*`,
-        `brand.ilike.*${w}*`,
-        `sku.ilike.*${w}*`,
+      // Use first word for DB query (avoid .or() syntax issues — use direct .ilike() instead)
+      const primary = words[0];
+      const [byName, byBrand] = await Promise.all([
+        supabase
+          .from('products')
+          .select('id, name, price, sku, category, brand')
+          .ilike('name', `%${primary}%`)
+          .limit(50),
+        supabase
+          .from('products')
+          .select('id, name, price, sku, category, brand')
+          .ilike('brand', `%${primary}%`)
+          .limit(30),
       ]);
 
-      const { data } = await supabase
-        .from('products')
-        .select('id, name, price, sku, category, brand')
-        .or(orParts.join(','))
-        .limit(30);
+      // Merge + deduplicate by id
+      const all = [...(byName.data || []), ...(byBrand.data || [])];
+      const unique = [...new Map(all.map(p => [p.id, p])).values()];
 
-      if (!data || data.length === 0) { setSearchResults([]); return; }
-
-      // Score client-side: count how many search words appear in the product name
       const lc = (s: string) => (s || '').toLowerCase();
-      const scored = data
+
+      // For multi-word: client-side AND filter (all words must appear in name or brand)
+      const andMatched = words.length === 1
+        ? unique
+        : unique.filter(p =>
+            words.every(w =>
+              lc(p.name).includes(lc(w)) || lc(p.brand || '').includes(lc(w))
+            )
+          );
+
+      // Fallback to OR if AND gives nothing
+      const results = andMatched.length > 0
+        ? andMatched
+        : unique.filter(p =>
+            words.some(w =>
+              lc(p.name).includes(lc(w)) || lc(p.brand || '').includes(lc(w))
+            )
+          );
+
+      // Score and sort: name match = 2pts, brand match = 1pt per word
+      const scored = results
         .map(p => ({
           ...p,
-          _score: words.reduce((acc, w) => acc + (lc(p.name).includes(lc(w)) ? 1 : 0) + (lc(p.brand || '').includes(lc(w)) ? 0.5 : 0), 0),
+          _score: words.reduce(
+            (acc, w) =>
+              acc +
+              (lc(p.name).includes(lc(w)) ? 2 : 0) +
+              (lc(p.brand || '').includes(lc(w)) ? 1 : 0),
+            0
+          ),
         }))
         .sort((a, b) => b._score - a._score)
         .slice(0, 15);
 
       setSearchResults(scored);
-    } catch { setSearchResults([]); }
+    } catch (err) {
+      console.error('Product search error:', err);
+      setSearchResults([]);
+    }
     finally { setSearching(false); }
   }, []);
 
