@@ -6,7 +6,7 @@ import html2canvas from 'html2canvas';
 
 interface Product {
   id: string;
-  name: string;
+  title: string;
   price: number;
   sku?: string;
   category?: string;
@@ -254,6 +254,7 @@ export function AdminQuotation() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -279,74 +280,56 @@ export function AdminQuotation() {
     if (!q.trim()) { setSearchResults([]); return; }
     setSearching(true);
     try {
-      // Normalize: remove special chars, split into words ≥2 chars
-      const words = q
-        .replace(/[+\-_()\[\]{}.,:;/\\*"']/g, ' ')
-        .split(/\s+/)
-        .filter(w => w.length >= 2);
+      const term = q.trim().replace(/[+\-_()\[\]{}.,:;/\\*"']/g, ' ').trim();
 
-      if (words.length === 0) { setSearchResults([]); return; }
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, title, price, sku, category, brand')
+        .or(`title.ilike.%${term}%,brand.ilike.%${term}%`)
+        .limit(30);
 
-      // Use first word for DB query (avoid .or() syntax issues — use direct .ilike() instead)
-      const primary = words[0];
-      const [byName, byBrand] = await Promise.all([
-        supabase
-          .from('products')
-          .select('id, name, price, sku, category, brand')
-          .ilike('name', `%${primary}%`)
-          .limit(50),
-        supabase
-          .from('products')
-          .select('id, name, price, sku, category, brand')
-          .ilike('brand', `%${primary}%`)
-          .limit(30),
-      ]);
+      if (error) {
+        setSearchError(error.message);
+        setSearchResults([]);
+        return;
+      }
 
-      // Merge + deduplicate by id
-      const all = [...(byName.data || []), ...(byBrand.data || [])];
-      const unique = [...new Map(all.map(p => [p.id, p])).values()];
-
+      // Client-side multi-word AND filter for better precision
+      const words = term.split(/\s+/).filter(w => w.length >= 1);
       const lc = (s: string) => (s || '').toLowerCase();
+      const all = data || [];
 
-      // For multi-word: client-side AND filter (all words must appear in name or brand)
-      const andMatched = words.length === 1
-        ? unique
-        : unique.filter(p =>
+      const andMatched = words.length <= 1
+        ? all
+        : all.filter(p =>
             words.every(w =>
-              lc(p.name).includes(lc(w)) || lc(p.brand || '').includes(lc(w))
+              lc(p.title).includes(lc(w)) || lc(p.brand || '').includes(lc(w))
             )
           );
 
-      // Fallback to OR if AND gives nothing
-      const results = andMatched.length > 0
-        ? andMatched
-        : unique.filter(p =>
-            words.some(w =>
-              lc(p.name).includes(lc(w)) || lc(p.brand || '').includes(lc(w))
-            )
-          );
+      const results = andMatched.length > 0 ? andMatched : all;
 
-      // Score and sort: name match = 2pts, brand match = 1pt per word
       const scored = results
         .map(p => ({
           ...p,
           _score: words.reduce(
             (acc, w) =>
               acc +
-              (lc(p.name).includes(lc(w)) ? 2 : 0) +
+              (lc(p.title).includes(lc(w)) ? 2 : 0) +
               (lc(p.brand || '').includes(lc(w)) ? 1 : 0),
             0
           ),
         }))
-        .sort((a, b) => b._score - a._score)
-        .slice(0, 15);
+        .sort((a, b) => b._score - a._score);
 
+      setSearchError(null);
       setSearchResults(scored);
-    } catch (err) {
-      console.error('Product search error:', err);
+    } catch (err: any) {
+      setSearchError(err?.message || 'เกิดข้อผิดพลาด');
       setSearchResults([]);
+    } finally {
+      setSearching(false);
     }
-    finally { setSearching(false); }
   }, []);
 
   // Debounce search
@@ -359,10 +342,11 @@ export function AdminQuotation() {
     setOpenSearchId(itemId);
     setSearchQuery('');
     setSearchResults([]);
+    setSearchError(null);
   }
 
   function pickProduct(itemId: string, product: Product) {
-    updateItem(itemId, 'description', product.name);
+    updateItem(itemId, 'description', product.title);
     updateItem(itemId, 'unitPrice', product.price || 0);
     setOpenSearchId(null);
     setSearchQuery('');
@@ -634,10 +618,13 @@ export function AdminQuotation() {
                         {searching && <Loader2 size={13} className="animate-spin text-kv-orange shrink-0" />}
                       </div>
                       <div className="max-h-52 overflow-y-auto">
-                        {searchResults.length === 0 && !searching && searchQuery.trim() && (
+                        {searchError && (
+                          <p className="text-xs text-red-500 font-bold text-center py-4 px-2">ข้อผิดพลาด: {searchError}</p>
+                        )}
+                        {!searchError && searchResults.length === 0 && !searching && searchQuery.trim() && (
                           <p className="text-xs text-gray-400 font-bold text-center py-4">ไม่พบสินค้าที่ตรงกัน</p>
                         )}
-                        {searchResults.length === 0 && !searchQuery.trim() && (
+                        {!searchError && searchResults.length === 0 && !searchQuery.trim() && (
                           <p className="text-xs text-gray-400 text-center py-4">พิมพ์เพื่อค้นหาสินค้า</p>
                         )}
                         {searchResults.map(product => (
@@ -648,9 +635,9 @@ export function AdminQuotation() {
                             className="w-full flex items-center justify-between gap-3 px-3 py-2.5 hover:bg-kv-orange/5 transition-colors text-left border-b border-gray-50 last:border-0"
                           >
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-bold text-kv-navy truncate">{product.name}</p>
+                              <p className="text-sm font-bold text-kv-navy truncate">{product.title}</p>
                               <p className="text-[10px] text-gray-400">
-                                {product.sku && <span className="mr-2">SKU: {product.sku}</span>}
+                                {product.brand && <span className="mr-2">{product.brand}</span>}
                                 {product.category && <span>{product.category}</span>}
                               </p>
                             </div>
