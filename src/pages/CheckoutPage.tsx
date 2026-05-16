@@ -404,13 +404,13 @@ export function CheckoutPage() {
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-kv-navy">อีเมล <span className="text-red-500">*</span></label>
-                  <input 
-                    type="email" 
+                  <label className="text-xs font-bold text-kv-navy">อีเมล <span className="text-gray-400 font-normal">(ไม่บังคับ — สำหรับรับใบยืนยันคำสั่งซื้อ)</span></label>
+                  <input
+                    type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    placeholder="example@email.com" 
+                    placeholder="example@email.com"
                     className="w-full p-3 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-kv-orange focus:ring-4 focus:ring-kv-orange/5 transition-all"
                   />
                 </div>
