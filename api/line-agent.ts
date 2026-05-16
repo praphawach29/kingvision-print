@@ -363,12 +363,14 @@ ${knowledgeContext ? knowledgeContext.trim() : 'ยังไม่มีข้�
 - **เมื่อลูกค้าถามที่อยู่หรือเส้นทางมาร้าน ให้แนบลิงก์ Google Maps เสมอ**
 
 ### ข้อมูลติดต่อร้าน (ใช้ข้อมูลนี้เสมอ ห้ามเดา ห้ามแต่งเอง):
-- LINE OA: ${lineOaId}${lineOaLink ? ` (${lineOaLink})` : ''}
 ${storePhone ? `- โทร: ${storePhone}` : ''}
-${storeAddress ? `- ที่อยู่: ${storeAddress}` : ''}
-${mapUrl ? `- Google Maps: ${mapUrl}` : ''}
-${storeInfo?.business_hours ? `- เวลาทำการ: ${storeInfo.business_hours}` : ''}
 ${storeInfo?.contact_email ? `- อีเมล: ${storeInfo.contact_email}` : ''}
+${storeInfo?.business_hours ? `- เวลาทำการ: ${storeInfo.business_hours}` : ''}
+${storeAddress ? `- ที่อยู่: ${storeAddress}` : ''}
+${mapUrl ? `- Google Maps (แนบ URL นี้เสมอเมื่อถามที่อยู่): ${mapUrl}` : ''}
+- LINE OA ID: ${lineOaId}
+${lineOaLink ? `- ลิงก์เพิ่มเพื่อน LINE (แนบ URL นี้เสมอเมื่อถาม LINE): ${lineOaLink}` : ''}
+- **เมื่อบอก LINE ให้แสดง ID และ URL แยกกันคนละบรรทัดเสมอ เพื่อให้ลูกค้ากดลิงก์ได้**
 
 ### เกี่ยวกับร้าน KingVision Print:
 - เชี่ยวชาญ Dot Matrix (Epson LQ series) และ Laser Printer ทุกแบรนด์
@@ -870,33 +872,8 @@ export default async function handler(req: any, res: any) {
         continue;
       }
 
-      // Hard guard: answer store contact/location/hours directly from admin settings.
-      const normalized = text.toLowerCase();
-      const asksStoreInfo = /ที่อยู่|ที่ตั้ง|ที่ตั้งร้าน|อยู่แถวไหน|แถวไหน|พิกัด|address|location|map|แผนที่|เปิด|ปิด|เวลาทำการ|เวลาเปิด|เวลาปิด|hours|ติดต่อ|contact|line|โทร|phone|email/.test(normalized);
-      if (asksStoreInfo) {
-        const { data: storeInfo } = await db
-          .from('store_settings')
-          .select('store_name,address,contact_email,phone_main,business_hours,line_oa_id,line_oa_link,line_oa_admin_id')
-          .single();
-        const storeName = (storeInfo as any)?.store_name || 'KingVision Print';
-        const address = (storeInfo as any)?.address || '-';
-        const email = (storeInfo as any)?.contact_email || '-';
-        const phone = (storeInfo as any)?.phone_main || '-';
-        const hours = (storeInfo as any)?.business_hours || '-';
-        const lineRawId = (storeInfo as any)?.line_oa_id || (storeInfo as any)?.line_oa_admin_id || '';
-        const lineOaId = lineRawId ? (String(lineRawId).startsWith('@') ? String(lineRawId) : `@${lineRawId}`) : '-';
-        const lineOaLink = (storeInfo as any)?.line_oa_link || (lineOaId !== '-' ? `https://line.me/R/ti/p/${lineOaId}` : '-');
-        const storeReply =
-          `ชื่อร้าน: ${storeName}\n` +
-          `ที่อยู่: ${address}\n` +
-          `เบอร์โทร: ${phone}\n` +
-          `อีเมล: ${email}\n` +
-          `เวลาทำการ: ${hours}\n` +
-          `LINE OA: ${lineOaId}\n` +
-          `ลิงก์ LINE: ${lineOaLink}`;
-        await lineReply(replyToken, [{ type: 'text', text: storeReply }], channelToken);
-        continue;
-      }
+      // Show typing indicator immediately for every customer message
+      lineTyping(userId, channelToken, 30);
 
       const provider    = ((settings?.ai_provider as string) || 'gemini').toLowerCase();
       const model       = (settings?.ai_model as string) || 'gemini-2.5-flash';
@@ -908,9 +885,6 @@ export default async function handler(req: any, res: any) {
       const executeTool = buildExecuteTool(db, userId, displayName, pendingProducts);
 
       const historyWithUser: MsgHistory = [...history, { role: 'user', parts: [{ text }] }];
-
-      // Show typing indicator while AI is processing
-      lineTyping(userId, channelToken, 30);
 
       let aiText = '';
       if (provider === 'openai') {
