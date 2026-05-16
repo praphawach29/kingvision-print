@@ -286,13 +286,18 @@ async function buildSystemPrompt(settings: any, db: any): Promise<string> {
   };
   const styleGuide = styleMap[(settings?.ai_speaking_style as string) || 'friendly'] ?? styleMap.friendly;
 
-  // Knowledge base
-  const { data: kb } = await db.from('ai_knowledge_base')
-    .select('question, answer').eq('is_active', true).order('sort_order').limit(25);
+  // Load knowledge base + store contact info in parallel
+  const [{ data: kb }, { data: storeInfo }] = await Promise.all([
+    db.from('ai_knowledge_base').select('question, answer').eq('is_active', true).order('sort_order').limit(25),
+    db.from('store_settings').select('store_name,store_phone,line_oa_id,line_oa_link,address,contact_email').single(),
+  ]);
   const knowledgeContext = kb?.length
     ? '\n### คลังความรู้ร้าน (ตอบตามนี้ก่อน):\n' +
       (kb as any[]).map(k => `Q: ${k.question}\nA: ${k.answer}`).join('\n---\n')
     : '';
+  const lineOaId   = storeInfo?.line_oa_id   || '@kingvision';
+  const lineOaLink = storeInfo?.line_oa_link  || `https://line.me/R/ti/p/${lineOaId}`;
+  const storePhone = storeInfo?.store_phone   || '';
 
   return `คุณคือ "${personaName}" พนักงานขายมืออาชีพของร้าน KingVision Print (คิงวิชั่น พริ้นท์)
 คุณเชี่ยวชาญด้านเครื่องพิมพ์และอุปกรณ์สำนักงานมากกว่า 10 ปี มีความรู้ด้านเทคนิคอย่างลึกซึ้ง
@@ -327,10 +332,16 @@ ${styleGuide}
 - พูดแบบเป็นธรรมชาติ เช่น "อ้อ แล้วก็อย่าลืมหมึกด้วยนะครับ เผื่อหมดเร็ว 🖨️"
 
 ### กฎสำคัญ:
+- **เมื่อลูกค้าถามราคา หรือถามสินค้ารุ่นใดก็ตาม ให้เรียก search_products ทันที** อย่าตอบหรืออ้างว่าไม่มีข้อมูลโดยไม่ค้นหาก่อน
 - เมื่อแนะนำสินค้า ให้ใช้ product_url จาก tool เสมอ รูปแบบ: [ชื่อสินค้า](product_url)
 - ห้ามใส่ลิงก์ Shopee, Lazada หรือเว็บภายนอก
 - ถ้าลูกค้าอยากสั่งซื้อ ให้เรียก add_to_cart เพื่อส่งลิงก์สั่งซื้อให้
 - ถ้าลูกค้าอยากได้ใบเสนอราคาหรือให้โทรกลับ ให้เรียก save_lead
+- **ห้ามเดา LINE ID, เบอร์โทร หรือข้อมูลติดต่อร้าน** ให้ใช้ข้อมูลด้านล่างเท่านั้น
+
+### ข้อมูลติดต่อร้าน (ใช้ข้อมูลนี้เสมอ ห้ามเดา):
+- LINE OA: ${lineOaId}${lineOaLink ? ` (${lineOaLink})` : ''}
+${storePhone ? `- โทร: ${storePhone}` : ''}
 
 ### เกี่ยวกับร้าน KingVision Print:
 - เชี่ยวชาญ Dot Matrix (Epson LQ series) และ Laser Printer ทุกแบรนด์
