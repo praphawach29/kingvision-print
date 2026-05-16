@@ -8,7 +8,6 @@ interface Product {
   id: string;
   title: string;
   price: number;
-  sku?: string;
   category?: string;
   brand?: string;
 }
@@ -284,7 +283,7 @@ export function AdminQuotation() {
 
       const { data, error } = await supabase
         .from('products')
-        .select('id, title, price, sku, category, brand')
+        .select('id, title, price, category, brand')
         .or(`title.ilike.%${term}%,brand.ilike.%${term}%`)
         .limit(30);
 
