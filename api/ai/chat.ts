@@ -211,11 +211,33 @@ export default async function handler(req: any, res: any) {
     // Load agent settings from DB
     const { data: settings } = await db
       .from('store_settings')
-      .select('ai_provider, ai_model, ai_enabled, ai_persona_name, ai_system_prompt, ai_speaking_style, ai_temperature, ai_gender')
+      .select('ai_provider, ai_model, ai_enabled, ai_persona_name, ai_system_prompt, ai_speaking_style, ai_temperature, ai_gender, store_name, contact_email, address, line_oa_admin_id')
       .single();
 
     if (settings?.ai_enabled === false) {
       return res.json({ text: 'ขออภัยครับ ระบบแชตบอทปิดอยู่ชั่วคราว กรุณาติดต่อเจ้าหน้าที่ผ่าน LINE ครับ', cartActions: [] });
+    }
+
+    // Always answer contact/address questions from store_settings directly.
+    const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
+    const normalized = String(lastUserMessage).toLowerCase();
+    const asksStoreInfo =
+      /ที่อยู่|address|location|map|แผนที่|เปิด|ปิด|เวลาทำการ|hours|ติดต่อ|contact|line|โทร|phone|email/.test(normalized);
+    if (asksStoreInfo) {
+      const storeName = (settings as any)?.store_name || 'KingVision Print';
+      const address = (settings as any)?.address || '-';
+      const email = (settings as any)?.contact_email || '-';
+      const lineId = (settings as any)?.line_oa_admin_id || '';
+      const lineHandle = lineId ? (lineId.startsWith('@') ? lineId : `@${lineId}`) : '';
+      const lineLink = lineHandle ? `https://line.me/R/ti/p/${lineHandle}` : '-';
+      const lines = [
+        `ชื่อร้าน: ${storeName}`,
+        `ที่อยู่: ${address}`,
+        `อีเมล: ${email}`,
+        `LINE OA: ${lineHandle || '-'}`,
+        `ลิงก์ LINE: ${lineLink}`,
+      ];
+      return res.json({ text: lines.join('\n'), cartActions: [] });
     }
 
     const provider    = ((settings?.ai_provider as string) || 'gemini').toLowerCase() as 'gemini' | 'openai' | 'anthropic';
@@ -321,7 +343,7 @@ ${styleGuide}
 - มีทั้งมือหนึ่งและมือสอง (มือสองผ่านการ QC แล้ว มีประกัน)
 - ออกใบกำกับภาษีได้
 - จัดส่งทั่วประเทศ Kerry/Flash Express
-- LINE OA: @kingvision
+- LINE OA: ${settings?.line_oa_admin_id || '@kingvision'}
 ${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจากเจ้าของร้าน:\n${settings.ai_system_prompt}` : ''}${customerContext}${knowledgeContext}`;
 
     // Collect cart actions to return to client
@@ -359,9 +381,17 @@ ${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจาก
           case 'get_store_info': {
             const { data } = await db
               .from('store_settings')
-              .select('store_name, contact_email, address, line_oa_id, line_oa_link')
+              .select('store_name, contact_email, address, line_oa_admin_id')
               .single();
-            return data ? JSON.stringify(data) : '{}';
+            if (!data) return '{}';
+            const lineId = (data as any).line_oa_admin_id || '';
+            const lineHandle = lineId ? (lineId.startsWith('@') ? lineId : `@${lineId}`) : '';
+            const lineLink = lineHandle ? `https://line.me/R/ti/p/${lineHandle}` : '';
+            return JSON.stringify({
+              ...data,
+              line_oa_id: lineHandle,
+              line_oa_link: lineLink
+            });
           }
           case 'get_categories_and_brands': {
             const [{ data: cats }, { data: brands }] = await Promise.all([
