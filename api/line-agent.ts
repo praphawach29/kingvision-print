@@ -363,11 +363,13 @@ ${knowledgeContext ? knowledgeContext.trim() : 'ยังไม่มีข้�
 - **ห้ามเดา LINE ID, เบอร์โทร หรือข้อมูลติดต่อร้าน** ให้ใช้ข้อมูลด้านล่างเท่านั้น
 - **เมื่อลูกค้าถามที่อยู่หรือเส้นทางมาร้าน ให้แนบลิงก์ Google Maps เสมอ**
 
-### ข้อมูลติดต่อร้าน (ใช้ข้อมูลนี้เสมอ ห้ามเดา):
+### ข้อมูลติดต่อร้าน (ใช้ข้อมูลนี้เสมอ ห้ามเดา ห้ามแต่งเอง):
 - LINE OA: ${lineOaId}${lineOaLink ? ` (${lineOaLink})` : ''}
 ${storePhone ? `- โทร: ${storePhone}` : ''}
 ${storeAddress ? `- ที่อยู่: ${storeAddress}` : ''}
 ${mapUrl ? `- Google Maps: ${mapUrl}` : ''}
+${storeInfo?.business_hours ? `- เวลาทำการ: ${storeInfo.business_hours}` : ''}
+${storeInfo?.contact_email ? `- อีเมล: ${storeInfo.contact_email}` : ''}
 
 ### เกี่ยวกับร้าน KingVision Print:
 - เชี่ยวชาญ Dot Matrix (Epson LQ series) และ Laser Printer ทุกแบรนด์
