@@ -60,11 +60,29 @@ interface Order {
   shipping_provider?: string;
   shipped_at?: string;
   payment_slip_url?: string;
+  shipping_data?: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    address?: string;
+    subDistrict?: string;
+    district?: string;
+    province?: string;
+    zipCode?: string;
+  };
   profiles?: {
     full_name: string;
     email: string;
   };
   order_items?: OrderItem[];
+}
+
+function getCustomerName(order: Order): string {
+  const fromShipping = [order.shipping_data?.firstName, order.shipping_data?.lastName].filter(Boolean).join(' ');
+  if (fromShipping) return fromShipping;
+  const firstLine = order.address?.split('\n')[0]?.trim();
+  if (firstLine) return firstLine;
+  return order.profiles?.full_name || 'ไม่ระบุชื่อ';
 }
 
 export function AdminOrders() {
@@ -305,7 +323,7 @@ export function AdminOrders() {
                       })}
                     </td>
                     <td className="p-4">
-                      <div className="font-bold text-kv-navy">{order.profiles?.full_name || 'ไม่ระบุชื่อ'}</div>
+                      <div className="font-bold text-kv-navy">{getCustomerName(order)}</div>
                       <div className="text-xs text-gray-400">{order.profiles?.email}</div>
                     </td>
                     <td className="p-4 font-black text-kv-navy text-base">฿{order.total_amount.toLocaleString()}</td>
@@ -344,7 +362,7 @@ export function AdminOrders() {
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="text-xs font-bold text-blue-600">#{order.id.slice(0, 8).toUpperCase()}</p>
-                    <p className="font-bold text-kv-navy">{order.profiles?.full_name || 'ไม่ระบุชื่อ'}</p>
+                    <p className="font-bold text-kv-navy">{getCustomerName(order)}</p>
                   </div>
                   <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${status.color}`}>
                     <StatusIcon size={10} />
@@ -535,7 +553,7 @@ export function AdminOrders() {
                   <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                     <div>
                       <p className="text-[10px] text-gray-400 font-bold">ชื่อลูกค้า</p>
-                      <p className="font-black text-kv-navy text-xs mt-0.5">{selectedOrder.profiles?.full_name || 'ไม่ระบุ'}</p>
+                      <p className="font-black text-kv-navy text-xs mt-0.5">{getCustomerName(selectedOrder)}</p>
                     </div>
                     <div>
                       <p className="text-[10px] text-gray-400 font-bold">เบอร์โทร</p>
