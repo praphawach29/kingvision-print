@@ -842,7 +842,7 @@ export default async function handler(req: any, res: any) {
 
       // Hard guard: answer store contact/location/hours directly from admin settings.
       const normalized = text.toLowerCase();
-      const asksStoreInfo = /ที่อยู่|ที่ตั้ง|ที่ตั้งร้าน|address|location|map|แผนที่|เปิด|ปิด|เวลาทำการ|เวลาเปิด|เวลาปิด|hours|ติดต่อ|contact|line|โทร|phone|email/.test(normalized);
+      const asksStoreInfo = /ที่อยู่|ที่ตั้ง|ที่ตั้งร้าน|อยู่แถวไหน|แถวไหน|พิกัด|address|location|map|แผนที่|เปิด|ปิด|เวลาทำการ|เวลาเปิด|เวลาปิด|hours|ติดต่อ|contact|line|โทร|phone|email/.test(normalized);
       if (asksStoreInfo) {
         const { data: storeInfo } = await db
           .from('store_settings')
