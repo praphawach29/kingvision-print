@@ -120,7 +120,7 @@ export function BrandsPage() {
             <Loader2 className="animate-spin text-kv-orange" size={48} />
           </div>
         ) : filteredBrands.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6">
             {filteredBrands.map((brand, index) => (
               <motion.div
                 key={brand.id}
@@ -129,36 +129,36 @@ export function BrandsPage() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Link 
+                <Link
                   to={`/shop?brand=${encodeURIComponent(brand.name)}`}
                   className="block bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group border border-gray-100 h-full flex flex-col"
                 >
-                  <div className={`h-40 bg-gray-50 flex items-center justify-center p-8 group-hover:scale-105 transition-transform duration-500`}>
+                  <div className="h-24 sm:h-40 bg-gray-50 flex items-center justify-center p-4 sm:p-8 group-hover:scale-105 transition-transform duration-500">
                     {brand.image_url ? (
-                      <img 
-                        src={brand.image_url} 
-                        alt={brand.name} 
+                      <img
+                        src={brand.image_url}
+                        alt={brand.name}
                         className="max-h-full max-w-full object-contain filter drop-shadow-sm"
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <div className="text-kv-navy font-black text-2xl opacity-20">{brand.name}</div>
+                      <div className="text-kv-navy font-black text-lg sm:text-2xl opacity-20">{brand.name}</div>
                     )}
                   </div>
-                  <div className="p-6 flex-grow flex flex-col">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-xl font-bold text-kv-navy group-hover:text-kv-orange transition-colors">
+                  <div className="p-3 sm:p-6 flex-grow flex flex-col">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 mb-1 sm:mb-2">
+                      <h3 className="text-sm sm:text-xl font-bold text-kv-navy group-hover:text-kv-orange transition-colors leading-tight">
                         {brand.name}
                       </h3>
-                      <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded-full">
+                      <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-full w-fit">
                         {brand.product_count} สินค้า
                       </span>
                     </div>
-                    <p className="text-gray-500 text-sm flex-grow mb-4 line-clamp-2">
+                    <p className="text-gray-500 text-xs sm:text-sm flex-grow mb-2 sm:mb-4 line-clamp-2 hidden sm:block">
                       {brand.description}
                     </p>
-                    <div className="flex items-center text-kv-orange font-medium text-sm group-hover:translate-x-2 transition-transform">
-                      ดูสินค้าทั้งหมด <ChevronRight size={16} className="ml-1" />
+                    <div className="flex items-center text-kv-orange font-medium text-xs sm:text-sm group-hover:translate-x-1 transition-transform">
+                      ดูสินค้า <ChevronRight size={14} className="ml-0.5" />
                     </div>
                   </div>
                 </Link>

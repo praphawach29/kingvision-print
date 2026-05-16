@@ -193,9 +193,11 @@ export function AdminBlog() {
       };
 
       if (editingPost) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id: _id, created_at: _ca, ...updatePayload } = dataToSave as any;
         const { error } = await supabase
           .from('blog_posts')
-          .update(dataToSave)
+          .update(updatePayload)
           .eq('id', editingPost.id);
         if (error) throw error;
       } else {
@@ -454,29 +456,29 @@ export function AdminBlog() {
                   </div>
                 )}
 
-                {!editingPost && (
-                  <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
-                    <label className="text-xs font-black text-indigo-700 uppercase tracking-wider">สร้างบทความด้วย AI</label>
-                    <div className="mt-2 flex flex-col sm:flex-row gap-2">
-                      <input
-                        type="text"
-                        value={aiTopic}
-                        onChange={(e) => setAiTopic(e.target.value)}
-                        placeholder="ใส่หัวข้อที่อยากให้ AI เขียน เช่น วิธีเลือกเครื่องพิมพ์สำหรับร้านค้า"
-                        className="flex-1 px-4 py-2.5 bg-white border border-indigo-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-semibold text-kv-navy"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleGenerateWithAI}
-                        disabled={isGeneratingAI}
-                        className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2"
-                      >
-                        {isGeneratingAI ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
-                        สร้างด้วย AI
-                      </button>
-                    </div>
+                <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+                  <label className="text-xs font-black text-indigo-700 uppercase tracking-wider">
+                    {editingPost ? 'เขียนใหม่ด้วย AI' : 'สร้างบทความด้วย AI'}
+                  </label>
+                  <div className="mt-2 flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={aiTopic}
+                      onChange={(e) => setAiTopic(e.target.value)}
+                      placeholder="ใส่หัวข้อที่อยากให้ AI เขียน เช่น วิธีเลือกเครื่องพิมพ์สำหรับร้านค้า"
+                      className="flex-1 px-4 py-2.5 bg-white border border-indigo-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-semibold text-kv-navy"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleGenerateWithAI}
+                      disabled={isGeneratingAI}
+                      className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                    >
+                      {isGeneratingAI ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
+                      {editingPost ? 'เขียนใหม่' : 'สร้างด้วย AI'}
+                    </button>
                   </div>
-                )}
+                </div>
 
                 <div className="space-y-6">
                   <div className="space-y-1.5">
@@ -524,15 +526,24 @@ export function AdminBlog() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-black text-gray-400 uppercase tracking-wider ml-1">รูปภาพหน้าปก</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-200 rounded-2xl cursor-pointer hover:bg-gray-50 transition-all">
-                        {isUploading ? <Loader2 className="animate-spin text-kv-orange" /> : (
-                          <>
-                            <Upload className="text-gray-400 mb-2" />
-                            <p className="text-[10px] font-bold text-gray-500">คลิกเพื่ออัปโหลดรูปภาพ</p>
-                          </>
-                        )}
-                        <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
-                      </label>
+                      <div className="space-y-2">
+                        <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-200 rounded-2xl cursor-pointer hover:bg-gray-50 transition-all">
+                          {isUploading ? <Loader2 className="animate-spin text-kv-orange" /> : (
+                            <>
+                              <Upload className="text-gray-400 mb-1" size={20} />
+                              <p className="text-[10px] font-bold text-gray-500">อัปโหลดรูปภาพ</p>
+                            </>
+                          )}
+                          <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+                        </label>
+                        <input
+                          type="url"
+                          value={formData.image_url || ''}
+                          onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                          placeholder="หรือวาง URL รูปภาพที่นี่..."
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none text-xs font-bold text-kv-navy"
+                        />
+                      </div>
                       <div className="h-32 bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden flex items-center justify-center">
                         {formData.image_url ? (
                           <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
