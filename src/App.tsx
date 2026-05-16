@@ -65,6 +65,11 @@ class ErrorBoundary extends React.Component<
     return { hasError: true, error };
   }
 
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('[ErrorBoundary] Caught error:', error);
+    console.error('[ErrorBoundary] Component stack:', info.componentStack);
+  }
+
   render() {
     if (this.state.hasError) {
       return (
@@ -79,8 +84,8 @@ class ErrorBoundary extends React.Component<
             >
               รีเฟรชหน้าเว็บ
             </button>
-            {import.meta.env.DEV && this.state.error && (
-              <pre style={{ marginTop: 24, textAlign: 'left', background: '#1e1e1e', color: '#f8f8f2', padding: 16, borderRadius: 8, fontSize: 12, overflow: 'auto' }}>
+            {this.state.error && (
+              <pre style={{ marginTop: 24, textAlign: 'left', background: '#1e1e1e', color: '#f8f8f2', padding: 16, borderRadius: 8, fontSize: 12, overflow: 'auto', maxHeight: 200 }}>
                 {this.state.error.toString()}
               </pre>
             )}
