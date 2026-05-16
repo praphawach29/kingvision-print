@@ -17,6 +17,24 @@ import { notificationService } from '../services/notificationService';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 
+const PAYMENT_TYPE_NAMES: Record<string, { name: string; description: string }> = {
+  promptpay:     { name: 'โอนเงิน PromptPay',      description: 'สแกน QR Code หรือโอนผ่าน PromptPay' },
+  qr:            { name: 'โอนเงิน PromptPay',      description: 'สแกน QR Code หรือโอนผ่าน PromptPay' },
+  bank_transfer: { name: 'โอนเงินผ่านธนาคาร',      description: 'โอนเงินเข้าบัญชีธนาคาร' },
+  transfer:      { name: 'โอนเงินผ่านธนาคาร',      description: 'โอนเงินเข้าบัญชีธนาคาร' },
+  bank:          { name: 'โอนเงินผ่านธนาคาร',      description: 'โอนเงินเข้าบัญชีธนาคาร' },
+  cod:           { name: 'เก็บเงินปลายทาง',        description: 'ชำระเงินเมื่อได้รับสินค้า' },
+};
+
+const PLACEHOLDER_NAMES = new Set(['ช่องทางใหม่', 'โอนเข้าบัญชี', 'ช่องทางอื่นๆ', 'custom', 'คำอธิบาย', 'เลือกประเภทด้านล่าง']);
+
+function getMethodDisplay(method: { name: string; description: string; type: string }) {
+  const fallback = PAYMENT_TYPE_NAMES[method.type];
+  const name = (!method.name || PLACEHOLDER_NAMES.has(method.name)) && fallback ? fallback.name : method.name;
+  const description = (!method.description || PLACEHOLDER_NAMES.has(method.description)) && fallback ? fallback.description : method.description;
+  return { name, description };
+}
+
 interface PaymentMethod {
   id: string;
   name: string;
@@ -584,8 +602,8 @@ export function CheckoutPage() {
                          <CreditCard size={20} />}
                       </div>
                       <div className="flex-1">
-                        <div className="text-sm font-bold text-kv-navy">{method.name}</div>
-                        <div className="text-xs text-gray-500">{method.description}</div>
+                        <div className="text-sm font-bold text-kv-navy">{getMethodDisplay(method).name}</div>
+                        <div className="text-xs text-gray-500">{getMethodDisplay(method).description}</div>
                       </div>
                     </label>
                     
