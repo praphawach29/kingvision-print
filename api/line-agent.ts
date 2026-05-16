@@ -202,6 +202,14 @@ async function fetchLineImage(messageId: string, token: string) {
   return { buffer: Buffer.from(await r.arrayBuffer()), contentType: r.headers.get('content-type') || 'image/jpeg' };
 }
 
+async function lineTyping(chatId: string, token: string, loadingSeconds = 20) {
+  await fetch('https://api.line.me/v2/bot/chat/loading/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ chatId, loadingSeconds }),
+  }).catch(() => {});
+}
+
 // ── Flex Message product cards ────────────────────────────────────────────────
 function buildProductFlex(products: any[], altText = 'สินค้าแนะนำ'): any {
   const bubbles = products.slice(0, 10).map((p) => ({
@@ -822,6 +830,9 @@ export default async function handler(req: any, res: any) {
       const executeTool = buildExecuteTool(db, userId, displayName, pendingProducts);
 
       const historyWithUser: MsgHistory = [...history, { role: 'user', parts: [{ text }] }];
+
+      // Show typing indicator while AI is processing
+      lineTyping(userId, channelToken, 30);
 
       let aiText = '';
       if (provider === 'openai') {
