@@ -55,6 +55,7 @@ const AdminCategories = lazyWithRetry(() => import('./pages/admin/AdminCategorie
 const AdminBrands     = lazyWithRetry(() => import('./pages/admin/AdminBrands').then(m => ({ default: m.AdminBrands })));
 const AdminInventory  = lazyWithRetry(() => import('./pages/admin/AdminInventory').then(m => ({ default: m.AdminInventory })));
 const AdminBackup     = lazyWithRetry(() => import('./pages/admin/AdminBackup').then(m => ({ default: m.AdminBackup })));
+const AdminQuotation  = lazyWithRetry(() => import('./pages/admin/AdminQuotation').then(m => ({ default: m.AdminQuotation })));
 
 function PageLoader() {
   return (
@@ -154,6 +155,7 @@ export default function App() {
                       <Route path="blog" element={<AdminBlog />} />
                       <Route path="analytics" element={<AdminAnalytics />} />
                       <Route path="backup" element={<AdminBackup />} />
+                      <Route path="quotation" element={<AdminQuotation />} />
                       <Route path="settings" element={<AdminSettings />} />
                       <Route path="*" element={<AdminDashboard />} />
                     </Route>

@@ -94,6 +94,8 @@ export function AdminSettings() {
   const [kbItems, setKbItems]       = useState<KBItem[]>([]);
   const [kbLoading, setKbLoading]   = useState(false);
   const [editingKB, setEditingKB]   = useState<Partial<KBItem> | null>(null);
+  const [kbError, setKbError]       = useState<string | null>(null);
+  const [kbSaving, setKbSaving]     = useState(false);
   const [aiStatus, setAiStatus]     = useState<AiStatus>({ state: 'idle' });
   const [settings, setSettings] = useState<StoreSettings>({
     store_name: 'KingVision Print',
@@ -223,28 +225,34 @@ export function AdminSettings() {
 
   const saveKBItem = async () => {
     if (!editingKB?.question?.trim() || !editingKB?.answer?.trim()) return;
+    setKbSaving(true);
+    setKbError(null);
     try {
       if (editingKB.id) {
-        await supabase.from('ai_knowledge_base').update({
-          question:   editingKB.question,
-          answer:     editingKB.answer,
-          category:   editingKB.category || 'general',
-          is_active:  editingKB.is_active ?? true,
-          updated_at: new Date().toISOString()
-        }).eq('id', editingKB.id);
-      } else {
-        await supabase.from('ai_knowledge_base').insert({
+        const { error } = await supabase.from('ai_knowledge_base').update({
           question:  editingKB.question,
           answer:    editingKB.answer,
           category:  editingKB.category || 'general',
-          is_active: true,
-          sort_order: kbItems.length
+          is_active: editingKB.is_active ?? true,
+        }).eq('id', editingKB.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('ai_knowledge_base').insert({
+          question:   editingKB.question,
+          answer:     editingKB.answer,
+          category:   editingKB.category || 'general',
+          is_active:  true,
+          sort_order: kbItems.length,
         });
+        if (error) throw error;
       }
       setEditingKB(null);
       fetchKnowledgeBase();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save KB item:', err);
+      setKbError(err?.message || 'บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setKbSaving(false);
     }
   };
 
@@ -1027,7 +1035,11 @@ export function AdminSettings() {
             </div>
             <button
               type="button"
-              onClick={() => setEditingKB({ question: '', answer: '', category: 'general', is_active: true })}
+              onClick={() => {
+                setEditingKB({ question: '', answer: '', category: 'general', is_active: true });
+                setKbError(null);
+                setTimeout(() => document.getElementById('kb-edit-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              }}
               className="text-xs font-black text-teal-600 flex items-center gap-1 hover:underline"
             >
               <Plus size={14} /> เพิ่มคำถาม
@@ -1041,6 +1053,7 @@ export function AdminSettings() {
             {/* Edit/Add Form */}
             {editingKB && (
               <motion.div
+                id="kb-edit-form"
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="p-4 bg-teal-50 rounded-2xl border border-teal-100 space-y-3"
@@ -1081,22 +1094,28 @@ export function AdminSettings() {
                       <option value="promotion">โปรโมชั่น</option>
                     </select>
                   </div>
-                  <div className="flex items-end gap-2">
-                    <button
-                      type="button"
-                      onClick={saveKBItem}
-                      disabled={!editingKB.question?.trim() || !editingKB.answer?.trim()}
-                      className="flex-1 py-2.5 bg-teal-500 text-white rounded-xl font-black text-sm hover:bg-teal-600 transition-all disabled:opacity-40"
-                    >
-                      บันทึก
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingKB(null)}
-                      className="flex-1 py-2.5 bg-gray-100 text-gray-500 rounded-xl font-black text-sm hover:bg-gray-200 transition-all"
-                    >
-                      ยกเลิก
-                    </button>
+                  <div className="space-y-2">
+                    {kbError && (
+                      <p className="text-xs font-bold text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">{kbError}</p>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={saveKBItem}
+                        disabled={!editingKB.question?.trim() || !editingKB.answer?.trim() || kbSaving}
+                        className="flex-1 py-2.5 bg-teal-500 text-white rounded-xl font-black text-sm hover:bg-teal-600 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+                      >
+                        {kbSaving && <Loader2 size={14} className="animate-spin" />}
+                        บันทึก
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setEditingKB(null); setKbError(null); }}
+                        className="flex-1 py-2.5 bg-gray-100 text-gray-500 rounded-xl font-black text-sm hover:bg-gray-200 transition-all"
+                      >
+                        ยกเลิก
+                      </button>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -1131,7 +1150,11 @@ export function AdminSettings() {
                       <button type="button" onClick={() => toggleKBItem(item)} className="p-1.5 rounded-lg hover:bg-white transition-all text-gray-400 hover:text-teal-500" title={item.is_active ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}>
                         {item.is_active ? <ToggleRight size={16} className="text-teal-500" /> : <ToggleLeft size={16} />}
                       </button>
-                      <button type="button" onClick={() => setEditingKB(item)} className="p-1.5 rounded-lg hover:bg-white transition-all text-gray-400 hover:text-blue-500">
+                      <button type="button" onClick={() => {
+                        setEditingKB(item);
+                        setKbError(null);
+                        setTimeout(() => document.getElementById('kb-edit-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                      }} className="p-1.5 rounded-lg hover:bg-white transition-all text-gray-400 hover:text-blue-500">
                         <Edit2 size={14} />
                       </button>
                       <button type="button" onClick={() => deleteKBItem(item.id)} className="p-1.5 rounded-lg hover:bg-white transition-all text-gray-400 hover:text-red-500">
