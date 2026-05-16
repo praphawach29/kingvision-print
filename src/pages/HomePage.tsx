@@ -1089,17 +1089,17 @@ export function HomePage() {
 
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-row gap-3 w-full md:w-auto">
 
               <Link
 
                 to="/shop?category=เครื่องปริ้นเตอร์"
 
-                className="bg-kv-orange hover:bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl transition-all hover:shadow-xl hover:shadow-orange-500/30 flex items-center gap-2 justify-center"
+                className="flex-1 md:flex-none bg-kv-orange hover:bg-orange-500 text-white font-bold px-5 md:px-8 py-3 md:py-3.5 rounded-xl transition-all hover:shadow-xl hover:shadow-orange-500/30 flex items-center gap-2 justify-center text-sm md:text-base"
 
               >
 
-                ช็อปเลย <ArrowRight size={18} />
+                ช็อปเลย <ArrowRight size={16} />
 
               </Link>
 
@@ -1107,7 +1107,7 @@ export function HomePage() {
 
                 to="/contact"
 
-                className="bg-white/10 hover:bg-white/20 text-white border border-white/30 font-bold px-8 py-3.5 rounded-xl transition-all flex items-center gap-2 justify-center"
+                className="flex-1 md:flex-none bg-white/10 hover:bg-white/20 text-white border border-white/30 font-bold px-5 md:px-8 py-3 md:py-3.5 rounded-xl transition-all flex items-center gap-2 justify-center text-sm md:text-base"
 
               >
 
