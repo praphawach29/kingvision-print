@@ -366,10 +366,11 @@ ${styleGuide}
 - ถ้าไม่รู้ข้อมูลสินค้า ให้ค้นหาก่อนตอบเสมอ อย่าเดา
 
 ### กฎเหล็ก — ห้ามละเมิดเด็ดขาด:
-- **ห้ามพูดว่า "ระบบค้นหาไม่ได้", "ระบบขัดข้อง", "ไม่สามารถเข้าถึงฐานข้อมูล", "โทรถามเจ้าหน้าที่"** เมื่อลูกค้าถามสินค้า/ราคา
+- **ห้ามพูดว่า "ระบบค้นหาไม่ได้", "ระบบขัดข้อง", "ไม่สามารถเข้าถึงฐานข้อมูล", "โทรถามเจ้าหน้าที่", "โทรติดต่อร้าน"** ในบริบทของการถามราคา/สินค้า
 - **ทุกคำถามเกี่ยวกับสินค้าหรือราคา = ต้องเรียก search_products ก่อนเสมอ ไม่มีข้อยกเว้น**
-- ถ้า search_products ไม่พบผล ให้พูดตรงๆ ว่า "ขณะนี้ยังไม่มีสินค้านี้ในร้านครับ" แล้วถามว่าสนใจอะไรเพิ่มเติม
-- ห้ามเดาราคา ห้ามอ้างว่าไม่มีข้อมูล — ให้ค้นหาเสมอ
+- **ห้ามตอบราคา ชื่อรุ่น หรือสต็อกจาก system prompt** — ข้อมูลเหล่านี้ต้องมาจาก search_products เท่านั้น
+- ถ้า search_products ไม่พบผล (found: false): **ให้เสนอสร้างใบเสนอราคาหรือบันทึกความต้องการทันที** ถามชื่อและเบอร์โทรลูกค้า — ห้ามบอกให้โทรหาร้าน
+- ห้ามเดาราคา ห้ามบอกราคาโดยไม่ได้เรียก search_products
 
 ### ความสามารถ:
 - ค้นหาและแนะนำสินค้าพร้อมราคา real-time (search_products)
@@ -419,10 +420,10 @@ ${lineOaLink ? `- ลิงก์เพิ่มเพื่อน LINE (แน�
 - **เมื่อบอก LINE ให้แสดง ID และ URL แยกกันคนละบรรทัดเสมอ เพื่อให้ลูกค้ากดลิงก์ได้**
 
 ### เกี่ยวกับร้าน KingVision Print:
-- เชี่ยวชาญ Dot Matrix (Epson LQ series) และ Laser Printer ทุกแบรนด์
-- แบรนด์หลัก: HP, Epson, Canon, Brother, Samsung
+- เชี่ยวชาญเครื่องพิมพ์และอุปกรณ์สำนักงานทุกประเภท ทุกแบรนด์
 - มีทั้งมือหนึ่งและมือสอง (มือสองผ่านการ QC แล้ว มีประกัน)
 - ออกใบกำกับภาษีได้ จัดส่งทั่วประเทศ Kerry/Flash Express
+- **ข้อมูลรุ่น ราคา สต็อก ต้องดูจากฐานข้อมูลเสมอ — ห้ามตอบจากความรู้ใน prompt**
 ${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจากเจ้าของร้าน:\n${settings.ai_system_prompt}` : ''}`;
 }
 
@@ -438,15 +439,21 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
           if (args.query) {
             const terms = String(args.query).trim().split(/\s+/).filter(Boolean);
             const orParts = terms.flatMap((t: string) => [
-              `title.ilike.%${t}%`, `brand.ilike.%${t}%`, `description.ilike.%${t}%`,
+              `title.ilike.%${t}%`, `brand.ilike.%${t}%`, `description.ilike.%${t}%`, `category.ilike.%${t}%`,
             ]).join(',');
             q = q.or(orParts);
           }
-          if (args.category) q = q.eq('category', args.category);
+          if (args.category) q = q.ilike('category', `%${args.category}%`);
           if (args.minPrice) q = q.gte('price', args.minPrice);
           if (args.maxPrice) q = q.lte('price', args.maxPrice);
           const { data } = await q.order('stock', { ascending: false }).limit(6);
-          if (!data?.length) return 'ไม่พบสินค้าที่ตรงกับคำค้นหาในขณะนี้ครับ';
+          if (!data?.length) {
+            return JSON.stringify({
+              found: false,
+              message: 'ไม่พบสินค้านี้ในระบบขณะนี้',
+              suggestion: 'แจ้งลูกค้าว่าสินค้านี้อาจไม่มีสต็อก แต่บอทสามารถสร้างใบเสนอราคาหรือบันทึกความต้องการให้แอดมินจัดหาได้ — ถามชื่อและเบอร์โทรลูกค้าเพื่อดำเนินการ',
+            });
+          }
           const withUrls = data.map((p: any) => ({ ...p, product_url: `${SITE_URL}/product/${p.id}` }));
           pendingProducts.push(...withUrls);
           return JSON.stringify(withUrls);
