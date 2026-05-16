@@ -31,6 +31,7 @@ interface StoreSettings {
   store_phone?: string;
   store_email?: string;
   logo_url?: string;
+  signature_url?: string;
 }
 
 interface CustomerInfo {
@@ -89,6 +90,7 @@ interface DocProps {
   total: number;
   notes: string;
   paymentTerms: string;
+  signatureDataUrl?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -131,7 +133,7 @@ const STATUS_CONFIG: Record<QuotationRecord['status'], { label: string; color: s
 
 const QuotationDoc = React.forwardRef<HTMLDivElement, DocProps>(
   ({ storeSettings, customer, items, quotationNumber, quotationDate, validUntil,
-     subtotal, vatEnabled, vatRate, vatAmount, total, notes, paymentTerms }, ref) => (
+     subtotal, vatEnabled, vatRate, vatAmount, total, notes, paymentTerms, signatureDataUrl }, ref) => (
     <div
       ref={ref}
       style={{
@@ -251,18 +253,31 @@ const QuotationDoc = React.forwardRef<HTMLDivElement, DocProps>(
 
       {/* Signatures */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', marginTop: '16px' }}>
-        {[
-          { title: 'ลายเซ็นผู้รับใบเสนอราคา', sub: 'วันที่: ____________' },
-          { title: 'ลายเซ็นผู้มีอำนาจ', sub: storeSettings.store_name || 'KingVision Print' },
-        ].map((sig, i) => (
-          <div key={i} style={{ textAlign: 'center' }}>
-            <div style={{ height: '56px' }} />
-            <div style={{ borderTop: '1px solid #d1d5db', paddingTop: '10px' }}>
-              <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600 }}>{sig.title}</div>
-              <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>{sig.sub}</div>
-            </div>
+        {/* Customer signature box */}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ height: '56px' }} />
+          <div style={{ borderTop: '1px solid #d1d5db', paddingTop: '10px' }}>
+            <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600 }}>ลายเซ็นผู้รับใบเสนอราคา</div>
+            <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>วันที่: ____________</div>
           </div>
-        ))}
+        </div>
+        {/* Authorized signatory */}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {signatureDataUrl && (
+              <img
+                src={signatureDataUrl}
+                alt="signature"
+                crossOrigin="anonymous"
+                style={{ maxHeight: '52px', maxWidth: '180px', objectFit: 'contain' }}
+              />
+            )}
+          </div>
+          <div style={{ borderTop: '1px solid #d1d5db', paddingTop: '10px' }}>
+            <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600 }}>ลายเซ็นผู้มีอำนาจ</div>
+            <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>{storeSettings.store_name || 'KingVision Print'}</div>
+          </div>
+        </div>
       </div>
 
       {/* Footer */}
@@ -350,14 +365,24 @@ export function AdminQuotation() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<'all' | QuotationRecord['status']>('all');
 
+  // ── Signature state ──
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string>('');
+  const [showSignaturePad, setShowSignaturePad] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDrawing = useRef(false);
+
   // ── Derived ──
   const subtotal = items.reduce((sum, item) => sum + item.qty * item.unitPrice, 0);
   const vatAmount = vatEnabled ? subtotal * (vatRate / 100) : 0;
   const total = subtotal + vatAmount;
 
+  // Use drawn/uploaded signature; fall back to store setting
+  const effectiveSignature = signatureDataUrl || storeSettings.signature_url || '';
+
   const docProps: DocProps = {
     storeSettings, customer, items, quotationNumber, quotationDate, validUntil,
     subtotal, vatEnabled, vatRate, vatAmount, total, notes, paymentTerms,
+    signatureDataUrl: effectiveSignature,
   };
 
   // ── Load store settings ──
@@ -471,6 +496,67 @@ export function AdminQuotation() {
     const t = setTimeout(() => searchCustomers(customerSearchQuery), 300);
     return () => clearTimeout(t);
   }, [customerSearchQuery, customerSearchOpen, searchCustomers]);
+
+  // ── Canvas signature drawing ──
+  function getPos(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current!;
+    const rect = canvas.getBoundingClientRect();
+    if ('touches' in e) {
+      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+    }
+    return { x: (e as React.MouseEvent).clientX - rect.left, y: (e as React.MouseEvent).clientY - rect.top };
+  }
+
+  function startDraw(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    e.preventDefault();
+    isDrawing.current = true;
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+    const { x, y } = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  }
+
+  function draw(e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) {
+    e.preventDefault();
+    if (!isDrawing.current) return;
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+    const { x, y } = getPos(e);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = '#1a2b4a';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
+
+  function stopDraw() { isDrawing.current = false; }
+
+  function clearCanvas() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function applySignature() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setSignatureDataUrl(canvas.toDataURL('image/png'));
+    setShowSignaturePad(false);
+  }
+
+  function handleSignatureImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setSignatureDataUrl(ev.target?.result as string);
+      setShowSignaturePad(false);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }
 
   // ── History fetch ──
   async function fetchHistory() {
@@ -1087,6 +1173,71 @@ export function AdminQuotation() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Signature card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xs font-black text-gray-400 uppercase tracking-wider">ลายเซ็นผู้มีอำนาจ</h2>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSignaturePad(v => !v)}
+                    className="px-3 py-1.5 bg-kv-navy text-white rounded-lg text-xs font-bold hover:bg-kv-orange transition-colors"
+                  >
+                    ✏️ วาดลายเซ็น
+                  </button>
+                  <label className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold hover:bg-gray-200 transition-colors cursor-pointer">
+                    📎 อัพโหลด
+                    <input type="file" accept="image/*" className="hidden" onChange={handleSignatureImageUpload} />
+                  </label>
+                  {signatureDataUrl && (
+                    <button type="button" onClick={() => setSignatureDataUrl('')} className="px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors">
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Current signature preview */}
+              {effectiveSignature ? (
+                <div className="border border-gray-100 rounded-xl p-3 bg-gray-50 flex items-center justify-center mb-3" style={{ minHeight: '64px' }}>
+                  <img src={effectiveSignature} alt="signature" className="max-h-16 object-contain" />
+                  {!signatureDataUrl && storeSettings.signature_url && (
+                    <span className="ml-3 text-[10px] text-gray-400 font-bold">จากการตั้งค่าระบบ</span>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 text-center py-4 border border-dashed border-gray-200 rounded-xl mb-3">
+                  ยังไม่มีลายเซ็น — วาดหรืออัพโหลดรูปลายเซ็น
+                </p>
+              )}
+
+              {/* Canvas drawing pad */}
+              {showSignaturePad && (
+                <div className="border border-kv-orange/30 rounded-xl overflow-hidden">
+                  <div className="bg-gray-50 px-3 py-1.5 flex items-center justify-between border-b border-gray-100">
+                    <span className="text-xs font-bold text-gray-500">วาดลายเซ็นในกรอบด้านล่าง</span>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={clearCanvas} className="text-xs text-gray-500 hover:text-red-500 font-bold transition-colors">ล้าง</button>
+                      <button type="button" onClick={applySignature} className="px-3 py-1 bg-kv-orange text-white rounded-lg text-xs font-bold hover:bg-kv-orange/90 transition-colors">ใช้ลายเซ็นนี้</button>
+                    </div>
+                  </div>
+                  <canvas
+                    ref={canvasRef}
+                    width={520}
+                    height={120}
+                    style={{ display: 'block', width: '100%', height: '120px', background: '#fff', cursor: 'crosshair', touchAction: 'none' }}
+                    onMouseDown={startDraw}
+                    onMouseMove={draw}
+                    onMouseUp={stopDraw}
+                    onMouseLeave={stopDraw}
+                    onTouchStart={startDraw}
+                    onTouchMove={draw}
+                    onTouchEnd={stopDraw}
+                  />
+                </div>
+              )}
             </div>
           </div>
 

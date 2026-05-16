@@ -45,6 +45,7 @@ interface StoreSettings {
   bank_account?: string;
   bank_account_name?: string;
   logo_url?: string;
+  signature_url?: string;
   // Contact page fields
   phone_main?: string;
   phone_support?: string;
@@ -91,6 +92,7 @@ export function AdminSettings() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError]           = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [signatureUploading, setSignatureUploading] = useState(false);
   const [kbItems, setKbItems]       = useState<KBItem[]>([]);
   const [kbLoading, setKbLoading]   = useState(false);
   const [editingKB, setEditingKB]   = useState<Partial<KBItem> | null>(null);
@@ -331,6 +333,27 @@ export function AdminSettings() {
     }
   };
 
+  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSignatureUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `signatures/store-signature-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('products')
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('products').getPublicUrl(path);
+      setSettings(prev => ({ ...prev, signature_url: data.publicUrl }));
+    } catch (err: any) {
+      setError(`อัปโหลดลายเซ็นไม่สำเร็จ: ${err.message}`);
+    } finally {
+      setSignatureUploading(false);
+      e.target.value = '';
+    }
+  };
+
   const addPaymentMethod = () => {
     const newMethod: PaymentMethod = {
       id: Math.random().toString(36).substr(2, 9),
@@ -450,6 +473,50 @@ export function AdminSettings() {
                   <p className="text-[10px] text-gray-400 font-bold break-all">{settings.logo_url}</p>
                 )}
                 <p className="text-[10px] text-gray-400">โลโก้จะแสดงที่ Header และ Footer ของหน้าร้านค้า</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Signature */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden">
+          <div className="p-4 sm:p-6 border-b border-gray-50 bg-gray-50/30 flex items-center gap-2">
+            <div className="w-1.5 h-5 bg-kv-orange rounded-full" />
+            <h3 className="font-black text-kv-navy flex items-center gap-2 text-sm sm:text-base">
+              <Edit2 size={18} className="text-kv-orange" /> ลายเซ็นผู้มีอำนาจ
+            </h3>
+          </div>
+          <div className="p-4 sm:p-6">
+            <div className="flex items-start gap-6 flex-wrap">
+              <div className="w-48 h-24 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center overflow-hidden shrink-0">
+                {settings.signature_url ? (
+                  <img src={settings.signature_url} alt="signature" className="w-full h-full object-contain p-2" />
+                ) : (
+                  <div className="text-center text-gray-300">
+                    <Edit2 size={24} className="mx-auto mb-1" />
+                    <span className="text-[10px] font-bold">ยังไม่มีลายเซ็น</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 space-y-3">
+                <p className="text-xs text-gray-500 font-bold">อัปโหลดรูปลายเซ็น (PNG พื้นหลังโปร่งใสจะแสดงผลดีที่สุด) — ลายเซ็นจะแสดงในใบเสนอราคาทุกฉบับโดยอัตโนมัติ</p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <label className={`cursor-pointer px-4 py-2.5 rounded-xl font-black text-xs flex items-center gap-2 transition-all ${signatureUploading ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-kv-navy text-white hover:bg-kv-orange'}`}>
+                    {signatureUploading ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
+                    {signatureUploading ? 'กำลังอัปโหลด...' : 'เลือกรูปลายเซ็น'}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleSignatureUpload} disabled={signatureUploading} />
+                  </label>
+                  {settings.signature_url && (
+                    <button
+                      type="button"
+                      onClick={() => setSettings(prev => ({ ...prev, signature_url: '' }))}
+                      className="px-4 py-2.5 bg-red-50 text-red-500 rounded-xl font-black text-xs flex items-center gap-2 hover:bg-red-100 transition-all"
+                    >
+                      <X size={14} /> ลบลายเซ็น
+                    </button>
+                  )}
+                </div>
+                <p className="text-[10px] text-gray-400">สามารถวาดลายเซ็นสดได้ในหน้า "ใบเสนอราคา" โดยตรง</p>
               </div>
             </div>
           </div>
