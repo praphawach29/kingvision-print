@@ -839,6 +839,7 @@ export function CheckoutPage() {
           total={placedTotal}
           paymentMethod={selectedMethodType || paymentMethod}
           paymentInfo={paymentInfo}
+          customerName={`${formData.firstName} ${formData.lastName}`.trim()}
           onClose={() => { setOrderSuccess(false); navigate('/'); }}
         />
       )}

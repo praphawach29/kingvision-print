@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 import generatePayload from 'promptpay-qr';
 import { supabase } from '../lib/supabase';
 import { motion } from 'motion/react';
+import { notificationService } from '../services/notificationService';
 
 interface PaymentInfo {
   promptpayId?: string;
@@ -19,10 +20,11 @@ interface Props {
   total: number;
   paymentMethod: string;
   paymentInfo: PaymentInfo;
+  customerName?: string;
   onClose: () => void;
 }
 
-export function PaymentModal({ orderId, orderRef, total, paymentMethod, paymentInfo, onClose }: Props) {
+export function PaymentModal({ orderId, orderRef, total, paymentMethod, paymentInfo, customerName = 'ลูกค้า', onClose }: Props) {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [qrGenerated, setQrGenerated] = useState(false);
@@ -67,6 +69,8 @@ export function PaymentModal({ orderId, orderRef, total, paymentMethod, paymentI
       const { data: { publicUrl } } = supabase.storage.from('payment-slips').getPublicUrl(path);
       await supabase.from('orders').update({ payment_slip_url: publicUrl, status: 'processing' }).eq('id', orderId);
       setSlipUploaded(true);
+      // Notify admin on LINE with slip image + confirm/reject buttons
+      notificationService.notifyPaymentSlip(orderId, orderRef, total, customerName, publicUrl, paymentMethod);
     } catch (err) {
       console.error('Slip upload error:', err);
       alert('อัปโหลดสลิปไม่สำเร็จ กรุณาลองใหม่หรือส่งสลิปผ่าน LINE ครับ');

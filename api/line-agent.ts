@@ -743,6 +743,22 @@ export default async function handler(req: any, res: any) {
   const db   = createClient(SUPABASE_URL, SERVICE_KEY);
 
   for (const event of body.events || []) {
+    // Handle postback events (admin confirm/reject payment buttons)
+    if (event.type === 'postback' && ADMIN_IDS.includes(event.source?.userId)) {
+      const params = new URLSearchParams(event.postback?.data || '');
+      const action  = params.get('action');
+      const orderId = params.get('orderId');
+      const orderRef = params.get('orderRef') || orderId?.slice(0, 8).toUpperCase() || '';
+      if (orderId && action === 'confirm_payment') {
+        await db.from('orders').update({ status: 'processing' }).eq('id', orderId);
+        await lineReply(event.replyToken, [{ type: 'text', text: `✅ ยืนยันการชำระเงินแล้วครับ\nออเดอร์ #${orderRef} เปลี่ยนเป็น "กำลังจัดเตรียมสินค้า"` }]);
+      } else if (orderId && action === 'reject_payment') {
+        await db.from('orders').update({ status: 'cancelled' }).eq('id', orderId);
+        await lineReply(event.replyToken, [{ type: 'text', text: `❌ ปฏิเสธการชำระเงินแล้วครับ\nออเดอร์ #${orderRef} ถูกยกเลิก` }]);
+      }
+      continue;
+    }
+
     if (event.type !== 'message') continue;
 
     const userId: string     = event.source?.userId;

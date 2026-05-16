@@ -59,6 +59,19 @@ export const notificationService = {
     }
   },
 
+  async notifyPaymentSlip(orderId: string, orderRef: string, total: number, customerName: string, slipUrl: string, paymentMethod: string) {
+    try {
+      const flexData = lineFlexTemplates.paymentSlip(orderId, orderRef, total, customerName, slipUrl, paymentMethod);
+      await this.sendLineMessage([{
+        type: 'flex',
+        altText: `💰 แจ้งชำระเงิน #${orderRef} — ${customerName} ฿${total.toLocaleString()}`,
+        contents: flexData,
+      }]);
+    } catch (err) {
+      console.error('Error in notifyPaymentSlip:', err);
+    }
+  },
+
   async notifyStatusUpdate(orderId: string, status: string, userId?: string) {
     try {
       const { data: settings } = await supabase

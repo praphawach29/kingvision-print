@@ -219,6 +219,80 @@ export const lineFlexTemplates = {
   },
 
   /**
+   * Payment Slip Notification — sent to admin when customer uploads a slip
+   * Footer has postback buttons: ✅ ยืนยัน / ❌ ปฏิเสธ
+   */
+  paymentSlip: (orderId: string, orderRef: string, total: number, customerName: string, slipUrl: string, paymentMethod: string) => {
+    const methodLabel: Record<string, string> = {
+      promptpay: 'พร้อมเพย์', qr: 'พร้อมเพย์',
+      bank_transfer: 'โอนเงินธนาคาร', transfer: 'โอนเงินธนาคาร',
+    };
+    return {
+      type: 'bubble',
+      header: {
+        type: 'box', layout: 'vertical',
+        backgroundColor: '#f97316', paddingAll: 'md',
+        contents: [
+          { type: 'text', text: '💰 แจ้งชำระเงินใหม่!', color: '#ffffff', weight: 'bold', size: 'lg' },
+          { type: 'text', text: `ออเดอร์ #${orderRef}`, color: '#fff7ed', size: 'xs' },
+        ],
+      },
+      hero: {
+        type: 'image', url: slipUrl, size: 'full',
+        aspectRatio: '4:3', aspectMode: 'cover',
+        action: { type: 'uri', label: 'ดูสลิป', uri: slipUrl },
+      },
+      body: {
+        type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: 'lg',
+        contents: [
+          {
+            type: 'box', layout: 'baseline', spacing: 'sm',
+            contents: [
+              { type: 'text', text: 'ลูกค้า', color: '#aaaaaa', size: 'sm', flex: 3 },
+              { type: 'text', text: customerName, wrap: true, color: '#0f1d33', size: 'sm', flex: 7, weight: 'bold' },
+            ],
+          },
+          {
+            type: 'box', layout: 'baseline', spacing: 'sm',
+            contents: [
+              { type: 'text', text: 'ยอดรวม', color: '#aaaaaa', size: 'sm', flex: 3 },
+              { type: 'text', text: `฿${total.toLocaleString()}`, color: '#f97316', size: 'md', flex: 7, weight: 'bold' },
+            ],
+          },
+          {
+            type: 'box', layout: 'baseline', spacing: 'sm',
+            contents: [
+              { type: 'text', text: 'ช่องทาง', color: '#aaaaaa', size: 'sm', flex: 3 },
+              { type: 'text', text: methodLabel[paymentMethod] || paymentMethod, color: '#333', size: 'sm', flex: 7 },
+            ],
+          },
+        ],
+      },
+      footer: {
+        type: 'box', layout: 'horizontal', spacing: 'sm', paddingAll: 'md',
+        contents: [
+          {
+            type: 'button', style: 'primary', color: '#16a34a', flex: 1,
+            action: {
+              type: 'postback', label: '✅ ยืนยัน',
+              data: `action=confirm_payment&orderId=${orderId}&orderRef=${orderRef}`,
+              displayText: `ยืนยันการชำระเงิน #${orderRef}`,
+            },
+          },
+          {
+            type: 'button', style: 'primary', color: '#dc2626', flex: 1,
+            action: {
+              type: 'postback', label: '❌ ปฏิเสธ',
+              data: `action=reject_payment&orderId=${orderId}&orderRef=${orderRef}`,
+              displayText: `ปฏิเสธการชำระเงิน #${orderRef}`,
+            },
+          },
+        ],
+      },
+    };
+  },
+
+  /**
    * Status Update Flex Message Template (Can be used for customers)
    */
   statusUpdate: (orderId: string, statusLabel: string, color: string = "#eb6c00") => {
