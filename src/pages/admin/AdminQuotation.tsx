@@ -279,7 +279,7 @@ export function AdminQuotation() {
     if (!q.trim()) { setSearchResults([]); return; }
     setSearching(true);
     try {
-      // Normalize: strip special chars (+, -, (, ), etc.) → split into plain words
+      // Strip special chars that break PostgREST, split into meaningful words
       const words = q
         .replace(/[+\-_()\[\]{}.,:;/\\*"']/g, ' ')
         .split(/\s+/)
@@ -288,36 +288,32 @@ export function AdminQuotation() {
 
       if (words.length === 0) { setSearchResults([]); return; }
 
-      // Try each word as an AND condition on name (most precise)
-      let query = supabase
-        .from('products')
-        .select('id, name, price, sku, category, brand');
-      for (const w of words) {
-        query = query.ilike('name', `%${w}%`);
-      }
-      const { data } = await query.limit(15);
+      // OR every word across name + brand + sku (one single query, no special chars)
+      const orParts = words.flatMap(w => [
+        `name.ilike.%${w}%`,
+        `brand.ilike.%${w}%`,
+        `sku.ilike.%${w}%`,
+      ]);
 
-      if (data && data.length > 0) {
-        setSearchResults(data);
-        return;
-      }
-
-      // Fallback 1: first 2 words in name
-      if (words.length > 1) {
-        let q2 = supabase.from('products').select('id, name, price, sku, category, brand');
-        for (const w of words.slice(0, 2)) q2 = q2.ilike('name', `%${w}%`);
-        const { data: d2 } = await q2.limit(15);
-        if (d2 && d2.length > 0) { setSearchResults(d2); return; }
-      }
-
-      // Fallback 2: first word across name + brand + category
-      const w0 = words[0];
-      const { data: d3 } = await supabase
+      const { data } = await supabase
         .from('products')
         .select('id, name, price, sku, category, brand')
-        .or(`name.ilike.%${w0}%,sku.ilike.%${w0}%,brand.ilike.%${w0}%,category.ilike.%${w0}%`)
-        .limit(15);
-      setSearchResults(d3 || []);
+        .or(orParts.join(','))
+        .limit(30);
+
+      if (!data || data.length === 0) { setSearchResults([]); return; }
+
+      // Score client-side: count how many search words appear in the product name
+      const lc = (s: string) => (s || '').toLowerCase();
+      const scored = data
+        .map(p => ({
+          ...p,
+          _score: words.reduce((acc, w) => acc + (lc(p.name).includes(lc(w)) ? 1 : 0) + (lc(p.brand || '').includes(lc(w)) ? 0.5 : 0), 0),
+        }))
+        .sort((a, b) => b._score - a._score)
+        .slice(0, 15);
+
+      setSearchResults(scored);
     } catch { setSearchResults([]); }
     finally { setSearching(false); }
   }, []);
