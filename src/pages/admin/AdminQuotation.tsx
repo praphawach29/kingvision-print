@@ -77,7 +77,6 @@ const QuotationDoc = React.forwardRef<HTMLDivElement, DocProps>(
       ref={ref}
       style={{
         width: '794px',
-        minHeight: '1123px',
         background: '#fff',
         fontFamily: "'Sarabun', 'Noto Sans Thai', 'TH Sarabun New', sans-serif",
         fontSize: '14px',
