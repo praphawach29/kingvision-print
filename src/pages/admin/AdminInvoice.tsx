@@ -704,42 +704,46 @@ export function AdminInvoice() {
       </div>
 
       {/* Page Header */}
-      <div className="flex items-start justify-between mb-4 gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-3">
         <div>
           <h1 className="text-2xl font-black text-kv-navy">ใบแจ้งหนี้</h1>
           <p className="text-sm text-gray-500 mt-0.5">สร้างและส่งใบแจ้งหนี้ให้ลูกค้า</p>
         </div>
         {activeTab === 'create' && (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-1.5 sm:gap-2 flex-wrap">
             <button
               onClick={() => handleSave('draft')}
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-60"
+              title="บันทึก"
+              className="flex items-center gap-1.5 px-2.5 py-2 sm:px-4 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-60"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-              บันทึก
+              <span className="hidden sm:inline">บันทึก</span>
             </button>
             <button
               onClick={() => setShowPreview(!showPreview)}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+              title={showPreview ? 'ซ่อน Preview' : 'ดู Preview'}
+              className="flex items-center gap-1.5 px-2.5 py-2 sm:px-4 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
             >
               {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
-              <span className="hidden sm:inline">{showPreview ? 'ซ่อน' : 'ดู'}</span> Preview
+              <span className="hidden sm:inline">{showPreview ? 'ซ่อน' : 'ดู'} Preview</span>
             </button>
             <button
               onClick={handleExportPDF}
               disabled={exporting}
-              className="flex items-center gap-2 px-4 py-2 bg-kv-navy text-white rounded-xl text-sm font-bold hover:bg-kv-navy/90 transition-colors shadow-sm disabled:opacity-60"
+              title="Export PDF"
+              className="flex items-center gap-1.5 px-2.5 py-2 sm:px-4 bg-kv-navy text-white rounded-xl text-sm font-bold hover:bg-kv-navy/90 transition-colors shadow-sm disabled:opacity-60"
             >
               {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-              Export PDF
+              <span className="hidden sm:inline">Export PDF</span>
             </button>
             <button
               onClick={handleSendEmail}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
+              title="ส่งอีเมล"
+              className="flex items-center gap-1.5 px-2.5 py-2 sm:px-4 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
             >
               <Mail size={16} />
-              <span className="hidden sm:inline">ส่ง</span>อีเมล
+              <span className="hidden sm:inline">ส่งอีเมล</span>
             </button>
           </div>
         )}
