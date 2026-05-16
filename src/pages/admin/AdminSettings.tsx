@@ -326,8 +326,8 @@ export function AdminSettings() {
   const addPaymentMethod = () => {
     const newMethod: PaymentMethod = {
       id: Math.random().toString(36).substr(2, 9),
-      name: 'ช่องทางใหม่',
-      description: 'เลือกประเภทด้านล่าง',
+      name: 'โอนเงิน PromptPay',
+      description: 'สแกน QR Code หรือโอนผ่าน PromptPay',
       enabled: true,
       type: 'promptpay'
     };
@@ -632,7 +632,26 @@ export function AdminSettings() {
                     <label className="text-[9px] font-black text-gray-400 uppercase tracking-wider ml-1">ประเภทการชำระเงิน</label>
                     <select
                       value={method.type}
-                      onChange={(e) => updatePaymentMethod(method.id, { type: e.target.value })}
+                      onChange={(e) => {
+                        const typeNameMap: Record<string, string> = {
+                          promptpay: 'โอนเงิน PromptPay',
+                          bank_transfer: 'โอนเงินผ่านธนาคาร',
+                          cod: 'เก็บเงินปลายทาง',
+                          custom: 'ช่องทางอื่นๆ',
+                        };
+                        const defaultDescMap: Record<string, string> = {
+                          promptpay: 'สแกน QR Code หรือโอนผ่าน PromptPay',
+                          bank_transfer: 'โอนเงินเข้าบัญชีธนาคาร',
+                          cod: 'ชำระเงินเมื่อได้รับสินค้า',
+                          custom: 'คำอธิบาย',
+                        };
+                        const newType = e.target.value;
+                        updatePaymentMethod(method.id, {
+                          type: newType,
+                          name: typeNameMap[newType] || method.name,
+                          description: defaultDescMap[newType] || method.description,
+                        });
+                      }}
                       className="w-full px-3 py-2 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-[11px]"
                     >
                       <option value="promptpay">PromptPay / QR Code</option>
