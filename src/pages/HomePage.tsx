@@ -76,6 +76,19 @@ export function HomePage() {
 
   }, []);
 
+  // Sort helper: printers first, then ink/parts/others
+  function sortPrintersFirst(products: any[]): any[] {
+    const PRINTER_KEYWORDS = ['ปริ้น', 'พิมพ์', 'printer'];
+    const SECONDARY_KEYWORDS = ['หมึก', 'อะไหล่', 'ink', 'toner', 'drum', 'กระดาษ'];
+    const score = (p: any) => {
+      const cat = (p.category || '').toLowerCase();
+      if (PRINTER_KEYWORDS.some(kw => cat.includes(kw))) return 2;
+      if (SECONDARY_KEYWORDS.some(kw => cat.includes(kw))) return 1;
+      return 0;
+    };
+    return [...products].sort((a, b) => score(b) - score(a));
+  }
+
 
 
   async function fetchDbCategories() {
@@ -182,11 +195,7 @@ export function HomePage() {
 
         .select('*')
 
-        .order('category', { ascending: true })
-
-        .order('stock', { ascending: true })
-
-        .limit(6);
+        .limit(30);
 
 
 
@@ -194,53 +203,9 @@ export function HomePage() {
 
 
 
-      if (!data || data.length === 0) {
+      const sorted = sortPrintersFirst(data || []);
 
-        const { data: printerData } = await supabase
-
-          .from('products')
-
-          .select('*')
-
-          .eq('category', 'เครื่องปริ้นเตอร์')
-
-          .limit(6);
-
-
-
-        if (printerData && printerData.length > 0) {
-
-          setBestSellers(printerData);
-
-        } else {
-
-          const { data: randomData } = await supabase
-
-            .from('products')
-
-            .select('*')
-
-            .limit(50);
-
-
-
-          if (randomData && randomData.length > 0) {
-
-            setBestSellers(randomData.sort(() => Math.random() - 0.5).slice(0, 6));
-
-          } else {
-
-            setBestSellers([]);
-
-          }
-
-        }
-
-      } else {
-
-        setBestSellers(data);
-
-      }
+      setBestSellers(sorted.slice(0, 6));
 
     } catch (error) {
 
@@ -272,9 +237,7 @@ export function HomePage() {
 
         .eq('is_sale', true)
 
-        .order('category', { ascending: true })
-
-        .limit(6);
+        .limit(30);
 
 
 
@@ -282,35 +245,9 @@ export function HomePage() {
 
 
 
-      if (!data || data.length === 0) {
+      const sorted = sortPrintersFirst(data || []);
 
-        const { data: anySaleData } = await supabase
-
-          .from('products')
-
-          .select('*')
-
-          .eq('is_sale', true)
-
-          .limit(6);
-
-
-
-        if (anySaleData && anySaleData.length > 0) {
-
-          setBestDeals(anySaleData);
-
-        } else {
-
-          setBestDeals([]);
-
-        }
-
-      } else {
-
-        setBestDeals(data);
-
-      }
+      setBestDeals(sorted.slice(0, 6));
 
     } catch (error) {
 
@@ -334,6 +271,7 @@ export function HomePage() {
 
     try {
 
+      // Try is_popular first; fall back to all products
       let { data, error } = await supabase
 
         .from('products')
@@ -342,9 +280,7 @@ export function HomePage() {
 
         .eq('is_popular', true)
 
-        .order('category', { ascending: true })
-
-        .limit(8);
+        .limit(30);
 
 
 
@@ -354,49 +290,23 @@ export function HomePage() {
 
       if (!data || data.length === 0) {
 
-        const { data: printerData, error: printerErr } = await supabase
+        const { data: allData, error: allErr } = await supabase
 
           .from('products')
 
           .select('*')
 
-          .eq('category', 'เครื่องปริ้นเตอร์')
+          .limit(30);
 
-          .limit(8);
-
-
-
-        if (!printerErr && printerData && printerData.length > 0) {
-
-          data = printerData;
-
-        } else {
-
-          const { data: allData, error: allErr } = await supabase
-
-            .from('products')
-
-            .select('*')
-
-            .limit(50);
-
-          if (!allErr && allData && allData.length > 0) {
-
-            data = allData.sort(() => Math.random() - 0.5).slice(0, 8);
-
-          } else {
-
-            data = [];
-
-          }
-
-        }
+        if (!allErr) data = allData;
 
       }
 
 
 
-      setFeaturedProducts(data || []);
+      const sorted = sortPrintersFirst(data || []);
+
+      setFeaturedProducts(sorted.slice(0, 8));
 
     } catch (error) {
 
