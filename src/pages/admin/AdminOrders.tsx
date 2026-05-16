@@ -1,8 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, Loader2, CheckCircle2, XCircle, Clock, Truck, PackageCheck, AlertCircle, Users as UsersIcon, Edit, Plus } from 'lucide-react';
+import { Search, Eye, Loader2, CheckCircle2, XCircle, Clock, Truck, PackageCheck, AlertCircle, Users as UsersIcon, Edit, Plus, Receipt, ZoomIn, ExternalLink, QrCode, Building2, CreditCard, BadgeCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
 import { notificationService } from '../../services/notificationService';
+
+const PAYMENT_LABELS: Record<string, string> = {
+  promptpay:     'โอนเงิน PromptPay',
+  qr:            'โอนเงิน PromptPay',
+  bank_transfer: 'โอนเงินผ่านธนาคาร',
+  transfer:      'โอนเงินผ่านธนาคาร',
+  bank:          'โอนเงินผ่านธนาคาร',
+  cod:           'เก็บเงินปลายทาง',
+};
+
+function paymentLabel(method: string | undefined | null) {
+  if (!method) return '-';
+  return PAYMENT_LABELS[method.toLowerCase()] || method;
+}
 
 interface OrderItem {
   id: string;
@@ -28,6 +42,7 @@ interface Order {
   tracking_number?: string;
   shipping_provider?: string;
   shipped_at?: string;
+  payment_slip_url?: string;
   profiles?: {
     full_name: string;
     email: string;
@@ -44,6 +59,7 @@ export function AdminOrders() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [shippingProvider, setShippingProvider] = useState('');
+  const [slipPreviewUrl, setSlipPreviewUrl] = useState<string | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -367,6 +383,47 @@ export function AdminOrders() {
         </div>
       )}
 
+      {/* Slip Lightbox */}
+      <AnimatePresence>
+        {slipPreviewUrl && (
+          <div
+            className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setSlipPreviewUrl(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative max-w-lg w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={slipPreviewUrl}
+                alt="สลิปการโอนเงิน"
+                className="w-full rounded-2xl shadow-2xl object-contain max-h-[80vh]"
+              />
+              <div className="absolute top-3 right-3 flex gap-2">
+                <a
+                  href={slipPreviewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white/90 text-kv-navy px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 hover:bg-white transition-all"
+                >
+                  <ExternalLink size={12} /> เปิดไฟล์ต้นฉบับ
+                </a>
+                <button
+                  onClick={() => setSlipPreviewUrl(null)}
+                  className="bg-white/90 text-kv-navy w-9 h-9 rounded-xl flex items-center justify-center hover:bg-white transition-all font-black"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-white/60 text-xs text-center mt-3 font-bold">คลิกด้านนอกเพื่อปิด</p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Order Detail Modal */}
       <AnimatePresence>
         {selectedOrder && (
@@ -424,8 +481,8 @@ export function AdminOrders() {
                           <span className="text-sm font-bold text-kv-navy">{new Date(selectedOrder.created_at).toLocaleString('th-TH')}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-400 font-bold">การชำระเงิน</span>
-                          <span className="text-sm font-black text-kv-navy">{selectedOrder.payment_method}</span>
+                          <span className="text-xs text-gray-400 font-bold">ช่องทางชำระเงิน</span>
+                          <span className="text-sm font-black text-kv-navy">{paymentLabel(selectedOrder.payment_method)}</span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-xs text-gray-400 font-bold">สถานะ</span>
@@ -488,6 +545,71 @@ export function AdminOrders() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Payment Slip Section */}
+                  {(selectedOrder.payment_slip_url || selectedOrder.status === 'pending') && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 text-kv-navy/40 mb-2">
+                        <Receipt size={14} />
+                        <span className="text-[10px] font-black uppercase tracking-widest">สลิปการชำระเงิน</span>
+                      </div>
+
+                      {selectedOrder.payment_slip_url ? (
+                        <div className="bg-gray-50 rounded-2xl p-4 space-y-4">
+                          {/* Slip image */}
+                          <div className="relative group cursor-pointer" onClick={() => setSlipPreviewUrl(selectedOrder.payment_slip_url!)}>
+                            <img
+                              src={selectedOrder.payment_slip_url}
+                              alt="สลิปการโอนเงิน"
+                              className="w-full max-h-64 object-contain rounded-xl border border-gray-200 bg-white"
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-xl transition-all flex items-center justify-center">
+                              <div className="opacity-0 group-hover:opacity-100 transition-all bg-white/90 rounded-full px-4 py-2 flex items-center gap-2 text-kv-navy font-bold text-xs shadow">
+                                <ZoomIn size={14} /> ดูรูปเต็ม
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => setSlipPreviewUrl(selectedOrder.payment_slip_url!)}
+                              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-kv-navy hover:bg-gray-50 transition-all"
+                            >
+                              <ZoomIn size={14} /> ดูสลิปเต็ม
+                            </button>
+                            <a
+                              href={selectedOrder.payment_slip_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-kv-navy hover:bg-gray-50 transition-all"
+                            >
+                              <ExternalLink size={14} /> เปิดในแท็บใหม่
+                            </a>
+
+                            {/* Confirm payment button */}
+                            {selectedOrder.status === 'pending' && (
+                              <button
+                                disabled={isUpdating}
+                                onClick={() => handleUpdateStatus(selectedOrder.id, 'processing')}
+                                className="ml-auto flex items-center gap-2 px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs font-black transition-all disabled:opacity-50 shadow-lg shadow-green-200"
+                              >
+                                {isUpdating ? <Loader2 size={14} className="animate-spin" /> : <BadgeCheck size={14} />}
+                                ยืนยันรับชำระเงินแล้ว
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 flex items-center gap-3">
+                          <Receipt size={18} className="text-yellow-500 shrink-0" />
+                          <div>
+                            <p className="text-xs font-black text-yellow-700">ยังไม่ได้รับสลิป</p>
+                            <p className="text-[11px] text-yellow-600 mt-0.5">ลูกค้ายังไม่ได้อัปโหลดสลิปการโอนเงิน</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Status Update Section */}
                   <div className="space-y-4">
