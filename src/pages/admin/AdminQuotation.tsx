@@ -1,8 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, Download, Mail, Share2, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Plus, Trash2, Download, Mail, Share2, Eye, EyeOff, Loader2, RefreshCw, Package, Search, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  sku?: string;
+  category?: string;
+  brand?: string;
+}
 
 interface QuotationItem {
   id: string;
@@ -240,11 +249,65 @@ export function AdminQuotation() {
   const [notes, setNotes] = useState('ขอบคุณที่ไว้วางใจเลือกใช้บริการของเรา\nราคานี้ยังไม่รวมค่าจัดส่ง');
   const [paymentTerms, setPaymentTerms] = useState('ชำระเงินภายใน 7 วันหลังได้รับใบแจ้งหนี้');
 
+  // Product search state
+  const [openSearchId, setOpenSearchId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [searching, setSearching] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     supabase.from('store_settings').select('*').single()
       .then(({ data }) => { if (data) setStoreSettings(data); })
       .then(() => setLoadingSettings(false), () => setLoadingSettings(false));
   }, []);
+
+  // Close search dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setOpenSearchId(null);
+        setSearchQuery('');
+        setSearchResults([]);
+      }
+    }
+    if (openSearchId) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [openSearchId]);
+
+  const searchProducts = useCallback(async (q: string) => {
+    if (!q.trim()) { setSearchResults([]); return; }
+    setSearching(true);
+    try {
+      const { data } = await supabase
+        .from('products')
+        .select('id, name, price, sku, category, brand')
+        .or(`name.ilike.%${q}%,sku.ilike.%${q}%,category.ilike.%${q}%`)
+        .limit(12);
+      setSearchResults(data || []);
+    } catch { setSearchResults([]); }
+    finally { setSearching(false); }
+  }, []);
+
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => searchProducts(searchQuery), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery, searchProducts]);
+
+  function openSearch(itemId: string) {
+    setOpenSearchId(itemId);
+    setSearchQuery('');
+    setSearchResults([]);
+  }
+
+  function pickProduct(itemId: string, product: Product) {
+    updateItem(itemId, 'description', product.name);
+    updateItem(itemId, 'unitPrice', product.price || 0);
+    setOpenSearchId(null);
+    setSearchQuery('');
+    setSearchResults([]);
+  }
 
   function addItem() {
     setItems(prev => [...prev, { id: Date.now().toString(), description: '', qty: 1, unitPrice: 0 }]);
@@ -455,50 +518,121 @@ export function AdminQuotation() {
               </button>
             </div>
 
-            <div className="grid grid-cols-12 gap-2 text-[10px] font-black text-gray-400 uppercase tracking-wider px-1 mb-2">
-              <div className="col-span-6">รายการ</div>
-              <div className="col-span-2 text-center">จำนวน</div>
-              <div className="col-span-3 text-right">ราคา/หน่วย</div>
-              <div className="col-span-1" />
-            </div>
-
-            <div className="space-y-2">
+            <div className="space-y-2" ref={searchRef}>
               {items.map((item, idx) => (
-                <div key={item.id} className="grid grid-cols-12 gap-2 items-center bg-gray-50 rounded-xl p-2">
-                  <div className="col-span-6">
-                    <input
-                      value={item.description}
-                      onChange={e => updateItem(item.id, 'description', e.target.value)}
-                      placeholder={`รายการที่ ${idx + 1}`}
-                      className="w-full px-2 py-1.5 bg-white rounded-lg text-sm border border-gray-100 focus:outline-none focus:border-kv-orange"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.qty}
-                      onChange={e => updateItem(item.id, 'qty', Math.max(1, Number(e.target.value)))}
-                      className="w-full px-2 py-1.5 bg-white rounded-lg text-sm border border-gray-100 focus:outline-none focus:border-kv-orange text-center"
-                    />
-                  </div>
-                  <div className="col-span-3">
-                    <input
-                      type="number"
-                      min="0"
-                      value={item.unitPrice}
-                      onChange={e => updateItem(item.id, 'unitPrice', Number(e.target.value))}
-                      className="w-full px-2 py-1.5 bg-white rounded-lg text-sm border border-gray-100 focus:outline-none focus:border-kv-orange text-right"
-                    />
-                  </div>
-                  <div className="col-span-1 flex justify-center">
+                <div key={item.id} className="bg-gray-50 rounded-xl p-2 space-y-1.5">
+                  {/* Row 1: description + search + delete */}
+                  <div className="flex gap-1.5 items-center">
+                    <div className="relative flex-1">
+                      <input
+                        value={item.description}
+                        onChange={e => updateItem(item.id, 'description', e.target.value)}
+                        placeholder={`รายการที่ ${idx + 1} — พิมพ์หรือค้นหาสินค้า`}
+                        className="w-full px-2 py-1.5 pr-8 bg-white rounded-lg text-sm border border-gray-100 focus:outline-none focus:border-kv-orange"
+                      />
+                      {item.description && (
+                        <button
+                          type="button"
+                          onClick={() => updateItem(item.id, 'description', '')}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
                     <button
+                      type="button"
+                      onClick={() => openSearchId === item.id ? setOpenSearchId(null) : openSearch(item.id)}
+                      title="ค้นหาสินค้าจากฐานข้อมูล"
+                      className={`p-1.5 rounded-lg transition-colors shrink-0 ${openSearchId === item.id ? 'bg-kv-orange text-white' : 'bg-white border border-gray-100 text-kv-navy hover:bg-kv-navy hover:text-white'}`}
+                    >
+                      <Package size={14} />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => items.length > 1 && removeItem(item.id)}
                       disabled={items.length <= 1}
-                      className="p-1 text-red-400 hover:text-red-600 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                      className="p-1.5 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-25 disabled:cursor-not-allowed transition-colors shrink-0"
                     >
                       <Trash2 size={14} />
                     </button>
+                  </div>
+
+                  {/* Product search dropdown */}
+                  {openSearchId === item.id && (
+                    <div className="bg-white rounded-xl border border-kv-orange/30 shadow-lg overflow-hidden">
+                      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100">
+                        <Search size={14} className="text-gray-400 shrink-0" />
+                        <input
+                          autoFocus
+                          type="text"
+                          value={searchQuery}
+                          onChange={e => setSearchQuery(e.target.value)}
+                          placeholder="ค้นหาชื่อสินค้า, SKU, หมวดหมู่..."
+                          className="flex-1 text-sm outline-none bg-transparent text-kv-navy placeholder:text-gray-400"
+                        />
+                        {searching && <Loader2 size={13} className="animate-spin text-kv-orange shrink-0" />}
+                      </div>
+                      <div className="max-h-52 overflow-y-auto">
+                        {searchResults.length === 0 && !searching && searchQuery.trim() && (
+                          <p className="text-xs text-gray-400 font-bold text-center py-4">ไม่พบสินค้าที่ตรงกัน</p>
+                        )}
+                        {searchResults.length === 0 && !searchQuery.trim() && (
+                          <p className="text-xs text-gray-400 text-center py-4">พิมพ์เพื่อค้นหาสินค้า</p>
+                        )}
+                        {searchResults.map(product => (
+                          <button
+                            key={product.id}
+                            type="button"
+                            onClick={() => pickProduct(item.id, product)}
+                            className="w-full flex items-center justify-between gap-3 px-3 py-2.5 hover:bg-kv-orange/5 transition-colors text-left border-b border-gray-50 last:border-0"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-kv-navy truncate">{product.name}</p>
+                              <p className="text-[10px] text-gray-400">
+                                {product.sku && <span className="mr-2">SKU: {product.sku}</span>}
+                                {product.category && <span>{product.category}</span>}
+                              </p>
+                            </div>
+                            <span className="text-sm font-black text-kv-orange shrink-0">
+                              ฿{fp(product.price || 0)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Row 2: qty | price | line total */}
+                  <div className="grid grid-cols-11 gap-1.5 items-center">
+                    <div className="col-span-1">
+                      <p className="text-[9px] font-black text-gray-400 uppercase text-center mb-0.5">จำนวน</p>
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.qty}
+                        onChange={e => updateItem(item.id, 'qty', Math.max(1, Number(e.target.value)))}
+                        className="w-full px-1 py-1.5 bg-white rounded-lg text-sm border border-gray-100 focus:outline-none focus:border-kv-orange text-center"
+                      />
+                    </div>
+                    <div className="col-span-1 text-center text-gray-300 font-black text-sm mt-4">×</div>
+                    <div className="col-span-4">
+                      <p className="text-[9px] font-black text-gray-400 uppercase mb-0.5">ราคา/หน่วย (บาท)</p>
+                      <input
+                        type="number"
+                        min="0"
+                        value={item.unitPrice}
+                        onChange={e => updateItem(item.id, 'unitPrice', Number(e.target.value))}
+                        className="w-full px-2 py-1.5 bg-white rounded-lg text-sm border border-gray-100 focus:outline-none focus:border-kv-orange text-right"
+                      />
+                    </div>
+                    <div className="col-span-1 text-center text-gray-300 font-black text-sm mt-4">=</div>
+                    <div className="col-span-4">
+                      <p className="text-[9px] font-black text-gray-400 uppercase mb-0.5">รวม (บาท)</p>
+                      <div className="px-2 py-1.5 bg-kv-navy/5 rounded-lg text-sm font-black text-kv-navy text-right">
+                        {fp(item.qty * item.unitPrice)}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
