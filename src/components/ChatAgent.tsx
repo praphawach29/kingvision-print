@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
@@ -63,19 +63,19 @@ type ConnStatus = 'idle' | 'ok' | 'error';
 
 function buildGreeting(cfg: AgentConfig): string {
   if (cfg.gender === 'female') {
-    return `สวัสดีค่ะ! หนู "${cfg.personaName}" พนักงานขายจาก KingVision Print 🖨️ วันนี้สนใจดูเครื่องพิมพ์รุ่นไหน หรือมีอะไรให้ช่วยเช็คสต็อกไหมคะ?`;
+    return `à¸ªà¸§à¸±à¸ªà¸”à¸µà¸„à¹ˆà¸°! à¸«à¸™à¸¹ "${cfg.personaName}" à¸žà¸™à¸±à¸à¸‡à¸²à¸™à¸‚à¸²à¸¢à¸ˆà¸²à¸ KingVision Print ðŸ–¨ï¸ à¸§à¸±à¸™à¸™à¸µà¹‰à¸ªà¸™à¹ƒà¸ˆà¸”à¸¹à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸žà¸´à¸¡à¸žà¹Œà¸£à¸¸à¹ˆà¸™à¹„à¸«à¸™ à¸«à¸£à¸·à¸­à¸¡à¸µà¸­à¸°à¹„à¸£à¹ƒà¸«à¹‰à¸Šà¹ˆà¸§à¸¢à¹€à¸Šà¹‡à¸„à¸ªà¸•à¹‡à¸­à¸à¹„à¸«à¸¡à¸„à¸°?`;
   }
-  return `สวัสดีครับ! ผม "${cfg.personaName}" พนักงานขายจาก KingVision Print 🖨️ วันนี้สนใจดูเครื่องพิมพ์รุ่นไหน หรือมีอะไรให้ผมช่วยเช็คสต็อกไหมครับ?`;
+  return `à¸ªà¸§à¸±à¸ªà¸”à¸µà¸„à¸£à¸±à¸š! à¸œà¸¡ "${cfg.personaName}" à¸žà¸™à¸±à¸à¸‡à¸²à¸™à¸‚à¸²à¸¢à¸ˆà¸²à¸ KingVision Print ðŸ–¨ï¸ à¸§à¸±à¸™à¸™à¸µà¹‰à¸ªà¸™à¹ƒà¸ˆà¸”à¸¹à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸žà¸´à¸¡à¸žà¹Œà¸£à¸¸à¹ˆà¸™à¹„à¸«à¸™ à¸«à¸£à¸·à¸­à¸¡à¸µà¸­à¸°à¹„à¸£à¹ƒà¸«à¹‰à¸œà¸¡à¸Šà¹ˆà¸§à¸¢à¹€à¸Šà¹‡à¸„à¸ªà¸•à¹‡à¸­à¸à¹„à¸«à¸¡à¸„à¸£à¸±à¸š?`;
 }
 
-const DEFAULT_CONFIG: AgentConfig = { personaName: 'น้องคิง', gender: 'male', aiEnabled: true };
+const DEFAULT_CONFIG: AgentConfig = { personaName: 'à¸™à¹‰à¸­à¸‡à¸„à¸´à¸‡', gender: 'male', aiEnabled: true };
 
 const QUICK_REPLIES = [
-  { label: 'ติดตามออเดอร์',       text: 'ติดตามออเดอร์ของฉัน' },
-  { label: 'ที่ตั้งร้าน',          text: 'ที่ตั้งร้านอยู่ที่ไหน?' },
-  { label: 'แนะนำเครื่องพิมพ์',   text: 'แนะนำเครื่องพิมพ์ที่ขายดีหน่อยครับ' },
-  { label: 'เช็คสต็อก',           text: 'อยากเช็คสต็อกสินค้า' },
-  { label: 'ราคาหมึก HP',         text: 'หมึก HP มีรุ่นไหนบ้าง ราคาเท่าไหร่?' },
+  { label: 'à¸•à¸´à¸”à¸•à¸²à¸¡à¸­à¸­à¹€à¸”à¸­à¸£à¹Œ',       text: 'à¸•à¸´à¸”à¸•à¸²à¸¡à¸­à¸­à¹€à¸”à¸­à¸£à¹Œà¸‚à¸­à¸‡à¸‰à¸±à¸™' },
+  { label: 'à¸—à¸µà¹ˆà¸•à¸±à¹‰à¸‡à¸£à¹‰à¸²à¸™',          text: 'à¸—à¸µà¹ˆà¸•à¸±à¹‰à¸‡à¸£à¹‰à¸²à¸™à¸­à¸¢à¸¹à¹ˆà¸—à¸µà¹ˆà¹„à¸«à¸™?' },
+  { label: 'à¹à¸™à¸°à¸™à¸³à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸žà¸´à¸¡à¸žà¹Œ',   text: 'à¹à¸™à¸°à¸™à¸³à¹€à¸„à¸£à¸·à¹ˆà¸­à¸‡à¸žà¸´à¸¡à¸žà¹Œà¸—à¸µà¹ˆà¸‚à¸²à¸¢à¸”à¸µà¸«à¸™à¹ˆà¸­à¸¢à¸„à¸£à¸±à¸š' },
+  { label: 'à¹€à¸Šà¹‡à¸„à¸ªà¸•à¹‡à¸­à¸',           text: 'à¸­à¸¢à¸²à¸à¹€à¸Šà¹‡à¸„à¸ªà¸•à¹‡à¸­à¸à¸ªà¸´à¸™à¸„à¹‰à¸²' },
+  { label: 'à¸£à¸²à¸„à¸²à¸«à¸¡à¸¶à¸ HP',         text: 'à¸«à¸¡à¸¶à¸ HP à¸¡à¸µà¸£à¸¸à¹ˆà¸™à¹„à¸«à¸™à¸šà¹‰à¸²à¸‡ à¸£à¸²à¸„à¸²à¹€à¸—à¹ˆà¸²à¹„à¸«à¸£à¹ˆ?' },
 ];
 
 export function ChatAgent() {
@@ -87,6 +87,7 @@ export function ChatAgent() {
   const [connStatus, setConnStatus] = useState<ConnStatus>('idle');
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sendingRef = useRef(false);
   const sessionId = useRef<string>(getSessionId());
   const { addToCart } = useCart();
   const { user }      = useAuth();
@@ -130,7 +131,7 @@ export function ChatAgent() {
       .then(r => r.json())
       .then(data => {
         setConfig({
-          personaName: data.personaName || 'น้องคิง',
+          personaName: data.personaName || 'à¸™à¹‰à¸­à¸‡à¸„à¸´à¸‡',
           gender:      data.gender === 'female' ? 'female' : 'male',
           aiEnabled:   data.aiEnabled ?? true,
         });
@@ -147,7 +148,8 @@ export function ChatAgent() {
 
   const handleSend = async (overrideText?: string) => {
     const text = (overrideText ?? input).trim();
-    if (!text || isLoading) return;
+    if (!text || isLoading || sendingRef.current) return;
+    sendingRef.current = true;
 
     const userMsg: Message = { role: 'user', content: text };
     setMessages(prev => [...prev, userMsg]);
@@ -166,14 +168,18 @@ export function ChatAgent() {
       });
       const json = await res.json();
       if (res.status === 429) {
-        setMessages(prev => [...prev, { role: 'assistant', content: json?.error || 'ส่งข้อความเร็วเกินไปครับ กรุณารอสักครู่แล้วลองใหม่' }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: json?.error || 'à¸ªà¹ˆà¸‡à¸‚à¹‰à¸­à¸„à¸§à¸²à¸¡à¹€à¸£à¹‡à¸§à¹€à¸à¸´à¸™à¹„à¸›à¸„à¸£à¸±à¸š à¸à¸£à¸¸à¸“à¸²à¸£à¸­à¸ªà¸±à¸à¸„à¸£à¸¹à¹ˆà¹à¸¥à¹‰à¸§à¸¥à¸­à¸‡à¹ƒà¸«à¸¡à¹ˆ' }]);
         setIsLoading(false);
         return;
       }
       if (!res.ok) throw new Error(json?.error || 'AI request failed');
 
-      const assistantMsg: Message = { role: 'assistant', content: json.text || 'ขออภัยครับ ไม่ได้รับการตอบกลับ' };
+      const assistantMsg: Message = { role: 'assistant', content: json.text || 'à¸‚à¸­à¸­à¸ à¸±à¸¢à¸„à¸£à¸±à¸š à¹„à¸¡à¹ˆà¹„à¸”à¹‰à¸£à¸±à¸šà¸à¸²à¸£à¸•à¸­à¸šà¸à¸¥à¸±à¸š' };
       setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === 'assistant' && last?.content?.trim() === assistantMsg.content.trim()) {
+          return prev;
+        }
         const next = [...prev, assistantMsg].slice(-MAX_HISTORY);
         // Save to localStorage always
         const localKey = LOCAL_HISTORY_KEY(user?.id ?? sessionId.current);
@@ -201,13 +207,14 @@ export function ChatAgent() {
         }
       }
     } catch (err: any) {
-      let errText = 'ขออภัยครับ เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้งนะครับ';
+      let errText = 'à¸‚à¸­à¸­à¸ à¸±à¸¢à¸„à¸£à¸±à¸š à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”à¹ƒà¸™à¸à¸²à¸£à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­ à¸à¸£à¸¸à¸“à¸²à¸¥à¸­à¸‡à¹ƒà¸«à¸¡à¹ˆà¸­à¸µà¸à¸„à¸£à¸±à¹‰à¸‡à¸™à¸°à¸„à¸£à¸±à¸š';
       if (err?.message?.includes('429') || err?.message?.toLowerCase().includes('quota')) {
-        errText = 'ขออภัยครับ ขณะนี้มีผู้ใช้งานจำนวนมาก กรุณารอสักครู่แล้วลองใหม่นะครับ';
+        errText = 'à¸‚à¸­à¸­à¸ à¸±à¸¢à¸„à¸£à¸±à¸š à¸‚à¸“à¸°à¸™à¸µà¹‰à¸¡à¸µà¸œà¸¹à¹‰à¹ƒà¸Šà¹‰à¸‡à¸²à¸™à¸ˆà¸³à¸™à¸§à¸™à¸¡à¸²à¸ à¸à¸£à¸¸à¸“à¸²à¸£à¸­à¸ªà¸±à¸à¸„à¸£à¸¹à¹ˆà¹à¸¥à¹‰à¸§à¸¥à¸­à¸‡à¹ƒà¸«à¸¡à¹ˆà¸™à¸°à¸„à¸£à¸±à¸š';
       }
       setMessages(prev => [...prev, { role: 'assistant', content: errText }]);
     } finally {
       setIsLoading(false);
+      sendingRef.current = false;
     }
   };
 
@@ -227,7 +234,7 @@ export function ChatAgent() {
                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-kv-orange shadow-lg">
                   <img
                     src={nongKingAvatar}
-                    alt="น้องคิง"
+                    alt="à¸™à¹‰à¸­à¸‡à¸„à¸´à¸‡"
                     className="w-full h-full object-cover"
                     onError={e => { (e.target as HTMLImageElement).src = 'https://picsum.photos/seed/staff-man/100/100'; }}
                   />
@@ -236,13 +243,13 @@ export function ChatAgent() {
                   <div className="text-white font-black text-sm leading-none">{config.personaName}</div>
                   <div className="text-[10px] font-bold uppercase tracking-widest mt-1 flex items-center gap-1">
                     {connStatus === 'idle' && (
-                      <><span className="w-1.5 h-1.5 bg-gray-400 rounded-full" /><span className="text-gray-300">กำลังเชื่อมต่อ...</span></>
+                      <><span className="w-1.5 h-1.5 bg-gray-400 rounded-full" /><span className="text-gray-300">à¸à¸³à¸¥à¸±à¸‡à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­...</span></>
                     )}
                     {connStatus === 'ok' && (
-                      <><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" /><span className="text-green-300">เชื่อมต่อแล้ว</span></>
+                      <><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" /><span className="text-green-300">à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­à¹à¸¥à¹‰à¸§</span></>
                     )}
                     {connStatus === 'error' && (
-                      <><span className="w-1.5 h-1.5 bg-red-400 rounded-full" /><span className="text-red-300">ไม่สามารถเชื่อมต่อได้</span></>
+                      <><span className="w-1.5 h-1.5 bg-red-400 rounded-full" /><span className="text-red-300">à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­à¹„à¸”à¹‰</span></>
                     )}
                   </div>
                 </div>
@@ -261,9 +268,9 @@ export function ChatAgent() {
                       }
                     }}
                     className="text-white/50 hover:text-white/80 text-[10px] font-bold transition-all"
-                    title="ล้างประวัติแชท"
+                    title="à¸¥à¹‰à¸²à¸‡à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¹à¸Šà¸—"
                   >
-                    ล้าง
+                    à¸¥à¹‰à¸²à¸‡
                   </button>
                 )}
                 <a
@@ -289,7 +296,7 @@ export function ChatAgent() {
               <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} className="flex justify-start">
                 <div className="max-w-[88%] p-3 rounded-2xl rounded-tl-none text-sm bg-white text-kv-navy border border-gray-100 shadow-sm leading-relaxed">
                   {connStatus === 'error'
-                    ? 'ขออภัยค่ะ/ครับ ขณะนี้ระบบ AI ไม่สามารถเชื่อมต่อได้ กรุณาติดต่อเจ้าหน้าที่ผ่าน LINE ค่ะ/ครับ'
+                    ? 'à¸‚à¸­à¸­à¸ à¸±à¸¢à¸„à¹ˆà¸°/à¸„à¸£à¸±à¸š à¸‚à¸“à¸°à¸™à¸µà¹‰à¸£à¸°à¸šà¸š AI à¹„à¸¡à¹ˆà¸ªà¸²à¸¡à¸²à¸£à¸–à¹€à¸Šà¸·à¹ˆà¸­à¸¡à¸•à¹ˆà¸­à¹„à¸”à¹‰ à¸à¸£à¸¸à¸“à¸²à¸•à¸´à¸”à¸•à¹ˆà¸­à¹€à¸ˆà¹‰à¸²à¸«à¸™à¹‰à¸²à¸—à¸µà¹ˆà¸œà¹ˆà¸²à¸™ LINE à¸„à¹ˆà¸°/à¸„à¸£à¸±à¸š'
                     : buildGreeting(config)
                   }
                 </div>
@@ -333,7 +340,7 @@ export function ChatAgent() {
                         />
                       ))}
                     </div>
-                    <span className="text-[10px] font-bold text-gray-400">น้องคิงกำลังคิด...</span>
+                    <span className="text-[10px] font-bold text-gray-400">à¸™à¹‰à¸­à¸‡à¸„à¸´à¸‡à¸à¸³à¸¥à¸±à¸‡à¸„à¸´à¸”...</span>
                   </div>
                 </div>
               )}
@@ -369,7 +376,7 @@ export function ChatAgent() {
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                  placeholder="พิมพ์ข้อความที่นี่..."
+                  placeholder="à¸žà¸´à¸¡à¸žà¹Œà¸‚à¹‰à¸­à¸„à¸§à¸²à¸¡à¸—à¸µà¹ˆà¸™à¸µà¹ˆ..."
                   className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-kv-orange text-sm"
                 />
                 <button
@@ -415,9 +422,10 @@ export function ChatAgent() {
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 border-2 border-white rounded-full animate-bounce" />
         )}
         <div className="absolute right-full mr-4 bg-white px-4 py-2 rounded-xl shadow-xl border border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap hidden sm:block">
-          <div className="text-kv-navy font-black text-xs">สอบถาม "น้องคิง" ได้ที่นี่!</div>
+          <div className="text-kv-navy font-black text-xs">à¸ªà¸­à¸šà¸–à¸²à¸¡ "à¸™à¹‰à¸­à¸‡à¸„à¸´à¸‡" à¹„à¸”à¹‰à¸—à¸µà¹ˆà¸™à¸µà¹ˆ!</div>
         </div>
       </motion.button>
     </div>
   );
 }
+
