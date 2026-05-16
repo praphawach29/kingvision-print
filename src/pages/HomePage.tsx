@@ -590,7 +590,7 @@ export function HomePage() {
 
               <p className="text-white/70 text-base md:text-lg leading-relaxed mb-8 max-w-md">
                 เลือกซื้อเครื่องปริ้นเตอร์มือสอง หมึกพิมพ์ อะไหล่ และอุปกรณ์เสริมกว่า
-                <span className="text-white font-semibold"> 1,000+ รายการ</span>{' '}
+                <span className="text-white font-semibold"> 100+ รายการ</span>{' '}
                 พร้อมรับประกัน 3 เดือน โดยทีมช่างผู้เชี่ยวชาญ
               </p>
 
@@ -647,7 +647,7 @@ export function HomePage() {
                 <span className="absolute bottom-3 left-3 text-white text-[10px] font-black bg-green-600 px-2 py-0.5 rounded-full">✓ พร้อมส่ง</span>
               </div>
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-kv-navy/90 backdrop-blur-sm border border-kv-orange/40 rounded-2xl px-4 py-2.5 text-center shadow-xl z-10">
-                <div className="text-kv-orange font-black text-2xl leading-none">1,000+</div>
+                <div className="text-kv-orange font-black text-2xl leading-none">100+</div>
                 <div className="text-white/70 text-[10px] font-bold mt-0.5">รายการสินค้า</div>
               </div>
             </div>
@@ -690,38 +690,38 @@ export function HomePage() {
               ดูทั้งหมด <ChevronRight size={14} />
             </Link>
           </div>
-          <div className="flex lg:grid lg:grid-cols-6 gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
             {isLoadingCategories
               ? [...Array(6)].map((_, i) => (
-                  <div key={i} className="animate-pulse flex-shrink-0 w-28 lg:w-auto">
-                    <div className="aspect-square rounded-2xl bg-gray-200 mb-2" />
-                    <div className="h-3 bg-gray-200 rounded w-16 mx-auto" />
-                  </div>
-                ))
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-square rounded-2xl bg-gray-200 mb-2" />
+                  <div className="h-3 bg-gray-200 rounded w-16 mx-auto" />
+                </div>
+              ))
               : dbCategories.slice(0, 6).map((cat) => (
-                  <Link
-                    key={cat.id}
-                    to={`/shop?category=${encodeURIComponent(cat.name)}`}
-                    className="flex flex-col items-center gap-2 group flex-shrink-0 w-28 lg:w-auto snap-center"
-                  >
-                    <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-white border-2 border-transparent group-hover:border-kv-orange transition-all duration-300 shadow-sm group-hover:shadow-md">
-                      <img
-                        src={cat.image_url || `https://picsum.photos/seed/${cat.name}/200/200`}
-                        alt={cat.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        referrerPolicy="no-referrer"
-                      />
-                      {categoryCounts[cat.name] > 0 && (
-                        <span className="absolute top-1.5 right-1.5 bg-kv-navy text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
-                          {categoryCounts[cat.name]}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs font-bold text-gray-700 group-hover:text-kv-orange transition-colors text-center leading-tight">
-                      {cat.name}
-                    </span>
-                  </Link>
-                ))}
+                <Link
+                  key={cat.id}
+                  to={`/shop?category=${encodeURIComponent(cat.name)}`}
+                  className="flex flex-col items-center gap-2 group"
+                >
+                  <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-white border-2 border-transparent group-hover:border-kv-orange transition-all duration-300 shadow-sm group-hover:shadow-md">
+                    <img
+                      src={cat.image_url || `https://picsum.photos/seed/${cat.name}/200/200`}
+                      alt={cat.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      referrerPolicy="no-referrer"
+                    />
+                    {categoryCounts[cat.name] > 0 && (
+                      <span className="absolute top-1.5 right-1.5 bg-kv-navy text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                        {categoryCounts[cat.name]}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs font-bold text-gray-700 group-hover:text-kv-orange transition-colors text-center leading-tight">
+                    {cat.name}
+                  </span>
+                </Link>
+              ))}
           </div>
         </div>
       </section>
@@ -865,59 +865,59 @@ export function HomePage() {
 
                     ? [...Array(6)].map((_, i) => (
 
-                        <li key={i} className="px-4 py-3 animate-pulse">
+                      <li key={i} className="px-4 py-3 animate-pulse">
 
-                          <div className="h-3 bg-gray-100 rounded w-28" />
+                        <div className="h-3 bg-gray-100 rounded w-28" />
 
-                        </li>
+                      </li>
 
-                      ))
+                    ))
 
                     : dbCategories.map((cat) => (
 
-                        <li key={cat.id}>
+                      <li key={cat.id}>
 
-                          <Link
+                        <Link
 
-                            to={`/shop?category=${encodeURIComponent(cat.name)}`}
+                          to={`/shop?category=${encodeURIComponent(cat.name)}`}
 
-                            className="flex items-center justify-between px-4 py-2.5 hover:bg-orange-50 hover:text-kv-orange transition-colors group text-sm text-gray-700"
+                          className="flex items-center justify-between px-4 py-2.5 hover:bg-orange-50 hover:text-kv-orange transition-colors group text-sm text-gray-700"
 
-                          >
+                        >
 
-                            <div className="flex items-center gap-2.5">
+                          <div className="flex items-center gap-2.5">
 
-                              {cat.image_url ? (
+                            {cat.image_url ? (
 
-                                <img
+                              <img
 
-                                  src={cat.image_url}
+                                src={cat.image_url}
 
-                                  alt={cat.name}
+                                alt={cat.name}
 
-                                  className="w-5 h-5 object-contain rounded"
+                                className="w-5 h-5 object-contain rounded"
 
-                                  referrerPolicy="no-referrer"
+                                referrerPolicy="no-referrer"
 
-                                />
+                              />
 
-                              ) : (
+                            ) : (
 
-                                <span className="text-sm">📦</span>
+                              <span className="text-sm">📦</span>
 
-                              )}
+                            )}
 
-                              <span className="font-medium group-hover:text-kv-orange">{cat.name}</span>
+                            <span className="font-medium group-hover:text-kv-orange">{cat.name}</span>
 
-                            </div>
+                          </div>
 
-                            <ChevronRight size={13} className="text-gray-300 group-hover:text-kv-orange" />
+                          <ChevronRight size={13} className="text-gray-300 group-hover:text-kv-orange" />
 
-                          </Link>
+                        </Link>
 
-                        </li>
+                      </li>
 
-                      ))}
+                    ))}
 
                 </ul>
 
