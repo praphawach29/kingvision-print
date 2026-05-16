@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PaymentModal } from '../components/PaymentModal';
+import QRCode from 'qrcode';
+import generatePayload from 'promptpay-qr';
 import { 
   ChevronRight, CreditCard, Banknote, QrCode, Upload, 
   CheckCircle2, Package, ArrowLeft, ChevronDown, ChevronUp,
@@ -59,9 +61,13 @@ export function CheckoutPage() {
     note: ''
   });
 
+  const [qrDataUrl, setQrDataUrl] = useState('');
   const { items, totalPrice, clearCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const selectedMethod = paymentMethods.find(m => m.id === paymentMethod);
+  const selectedMethodType = selectedMethod?.type || '';
 
   useEffect(() => {
     fetchSettings();
@@ -72,6 +78,17 @@ export function CheckoutPage() {
       }));
     }
   }, [user]);
+
+  useEffect(() => {
+    const isPromptPay = selectedMethodType === 'promptpay' || selectedMethodType === 'qr';
+    if (!isPromptPay || !paymentInfo.promptpayId) { setQrDataUrl(''); return; }
+    try {
+      const payload = generatePayload(paymentInfo.promptpayId, {});
+      QRCode.toDataURL(payload, { width: 200, margin: 2, color: { dark: '#0f1d33', light: '#ffffff' } })
+        .then(url => setQrDataUrl(url))
+        .catch(() => setQrDataUrl(''));
+    } catch { setQrDataUrl(''); }
+  }, [selectedMethodType, paymentInfo.promptpayId]);
 
   async function fetchSettings() {
     try {
@@ -128,7 +145,7 @@ export function CheckoutPage() {
           status: 'pending',
           address: `${formData.firstName} ${formData.lastName}\n${formData.address} ${formData.address2}\n${formData.subDistrict} ${formData.district} ${formData.province} ${formData.zipCode}`,
           phone: formData.phone,
-          payment_method: paymentMethod
+          payment_method: selectedMethodType || paymentMethod
         }])
         .select()
         .single();
@@ -217,7 +234,7 @@ export function CheckoutPage() {
             orderRef: `KV-${shortRef}`,
             total: grandTotal,
             items: items.map(i => ({ title: i.title, quantity: i.quantity, price: i.price })),
-            paymentMethod,
+            paymentMethod: selectedMethodType || paymentMethod,
             shippingAddress: `${formData.firstName} ${formData.lastName}\n${formData.address}${formData.address2 ? ' ' + formData.address2 : ''}\n${formData.subDistrict} ${formData.district}\n${formData.province} ${formData.zipCode}`,
           }),
         }).catch(err => console.warn('Email send failed:', err));
@@ -556,13 +573,15 @@ export function CheckoutPage() {
                         className="w-5 h-5 accent-kv-orange"
                       />
                       <div className={`w-11 h-11 rounded-lg flex items-center justify-center text-xl shrink-0 ${
-                        method.type === 'bank' ? 'bg-blue-50 text-blue-600' : 
-                        method.type === 'promptpay' ? 'bg-green-50 text-green-600' : 
-                        'bg-orange-50 text-orange-600'
+                        (method.type === 'bank_transfer' || method.type === 'transfer' || method.type === 'bank') ? 'bg-blue-50 text-blue-600' :
+                        (method.type === 'promptpay' || method.type === 'qr') ? 'bg-green-50 text-green-600' :
+                        method.type === 'cod' ? 'bg-orange-50 text-orange-600' :
+                        'bg-gray-50 text-gray-600'
                       }`}>
-                        {method.type === 'bank' ? <Building2 size={20} /> : 
-                         method.type === 'promptpay' ? <QrCode size={20} /> : 
-                         <Banknote size={20} />}
+                        {(method.type === 'bank_transfer' || method.type === 'transfer' || method.type === 'bank') ? <Building2 size={20} /> :
+                         (method.type === 'promptpay' || method.type === 'qr') ? <QrCode size={20} /> :
+                         method.type === 'cod' ? <Banknote size={20} /> :
+                         <CreditCard size={20} />}
                       </div>
                       <div className="flex-1">
                         <div className="text-sm font-bold text-kv-navy">{method.name}</div>
@@ -580,36 +599,34 @@ export function CheckoutPage() {
                             {method.details}
                           </div>
                         )}
-                        {method.type === 'promptpay' && (
+                        {(method.type === 'promptpay' || method.type === 'qr') && (
                           <div className="mt-4 text-center bg-white p-6 rounded-2xl border border-green-100 shadow-sm">
-                            <div className="flex justify-center mb-4">
-                              <img 
-                                src="https://upload.wikimedia.org/wikipedia/commons/d/df/PromptPay-logo.png" 
-                                alt="PromptPay" 
-                                className="h-8 object-contain"
-                              />
+                            <div className="w-52 h-52 mx-auto mb-4 flex items-center justify-center">
+                              {qrDataUrl
+                                ? <img src={qrDataUrl} alt="PromptPay QR" className="w-full h-full object-contain rounded-xl" />
+                                : <div className="w-full h-full border-4 border-kv-navy rounded-2xl flex items-center justify-center"><QrCode size={80} className="text-kv-navy opacity-30" /></div>
+                              }
                             </div>
-                            <div className="w-48 h-48 bg-white border-4 border-kv-navy rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-md relative overflow-hidden">
-                              <QrCode size={120} className="text-kv-navy" />
-                              <div className="absolute inset-0 bg-gradient-to-tr from-kv-navy/5 to-transparent pointer-events-none"></div>
-                            </div>
-                            <p className="text-[10px] text-gray-400 mb-2">สแกน QR Code นี้ด้วยแอปธนาคารของคุณ</p>
-                            <div className="flex flex-col items-center gap-2">
-                              <div className="px-4 py-2 bg-gray-50 rounded-lg border border-gray-100 flex items-center gap-3">
-                                <span className="text-sm font-black text-kv-navy tracking-wider">{method.details || '095-585-1136'}</span>
-                                <button 
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    navigator.clipboard.writeText(method.details?.replace(/-/g, '') || '0955851136');
-                                    alert('คัดลอกหมายเลข PromptPay แล้ว');
-                                  }}
-                                  className="text-[10px] bg-kv-navy text-white px-2 py-1 rounded hover:bg-kv-orange transition-colors"
-                                >
-                                  คัดลอก
-                                </button>
+                            <p className="text-[10px] text-gray-400 mb-3">สแกน QR Code นี้ด้วยแอปธนาคารของคุณ</p>
+                            {paymentInfo.promptpayId && (
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="px-4 py-2 bg-gray-50 rounded-lg border border-gray-100 flex items-center gap-3">
+                                  <span className="text-sm font-black text-kv-navy tracking-wider">{paymentInfo.promptpayId}</span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      navigator.clipboard.writeText(paymentInfo.promptpayId!);
+                                    }}
+                                    className="text-[10px] bg-kv-navy text-white px-2 py-1 rounded hover:bg-kv-orange transition-colors"
+                                  >
+                                    คัดลอก
+                                  </button>
+                                </div>
+                                {paymentInfo.bankAccountName && (
+                                  <p className="text-[11px] font-bold text-kv-navy">ชื่อบัญชี: {paymentInfo.bankAccountName}</p>
+                                )}
                               </div>
-                              <p className="text-[11px] font-bold text-kv-navy">ชื่อบัญชี: {method.account_name || 'บจก. คิงวิชั่น พรินเตอร์'}</p>
-                            </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -754,7 +771,7 @@ export function CheckoutPage() {
           orderId={placedOrderId}
           orderRef={placedOrderRef}
           total={placedTotal}
-          paymentMethod={paymentMethod}
+          paymentMethod={selectedMethodType || paymentMethod}
           paymentInfo={paymentInfo}
           onClose={() => { setOrderSuccess(false); navigate('/'); }}
         />
