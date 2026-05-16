@@ -1,33 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { LayoutDashboard, X, User, Menu as MenuIcon, ChevronRight, Crown, LogIn, LogOut } from 'lucide-react';
+import { LayoutDashboard, X, User, Menu as MenuIcon, ChevronRight, Crown, LogIn, LogOut, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
+import { supabase } from '../lib/supabase';
 
 interface MobileMenuDrawerProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  image_url?: string;
+}
+
 export function MobileMenuDrawer({ isOpen, onClose }: MobileMenuDrawerProps) {
   const [activeTab, setActiveTab] = useState<'menu' | 'categories' | 'account'>('menu');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
   const { user, role, signOut } = useAuth();
   const { settings } = useSettings();
 
   const isAdmin = role === 'admin' || role === 'super_admin';
 
-  const categories = [
-    { name: 'ปริ้นเตอร์เลเซอร์', icon: '🖨️', subItems: ['LaserJet ขาวดำ', 'LaserJet สี', 'มัลติฟังก์ชัน (MFP)'] },
-    { name: 'ปริ้นเตอร์อิงค์เจ็ท', icon: '🎨', subItems: ['Ink Tank', 'ตลับหมึก (Cartridge)', 'เครื่องพิมพ์พกพา'] },
-    { name: 'ดอทเมทริกซ์', icon: '📄', subItems: ['แคร่สั้น', 'แคร่ยาว', 'กระดาษต่อเนื่อง'] },
-    { name: 'หมึกแท้ (Original)', icon: '💧', subItems: ['หมึก HP', 'หมึก Canon', 'หมึก Epson', 'หมึก Brother'] },
-    { name: 'หมึกเทียบเท่า (Compatible)', icon: '🧪', subItems: ['ตลับหมึกเลเซอร์', 'ขวดเติมอิงค์เจ็ท', 'ตลับผ้าหมึก'] },
-    { name: 'อะไหล่ปริ้นเตอร์', icon: '⚙️', subItems: ['หัวพิมพ์ (Printhead)', 'เมนบอร์ด', 'ชุดฟีดกระดาษ', 'สายแพร'] },
-    { name: 'ดรัม (Drum Units)', icon: '🔄', subItems: ['ดรัม HP', 'ดรัม Brother', 'ดรัมแท้', 'ดรัมเทียบเท่า'] },
-    { name: 'กระดาษพิมพ์', icon: '📑', subItems: ['A4 70 แกรม', 'A4 80 แกรม', 'กระดาษโฟโต้', 'สติ๊กเกอร์'] },
-    { name: 'อุปกรณ์เสริม', icon: '🔌', subItems: ['สาย USB', 'สายไฟ', 'อแดปเตอร์'] },
-  ];
+  useEffect(() => {
+    if (isOpen && categories.length === 0) {
+      setCategoriesLoading(true);
+      supabase
+        .from('categories')
+        .select('id, name, image_url')
+        .order('name', { ascending: true })
+        .then(({ data }) => {
+          setCategories(data || []);
+          setCategoriesLoading(false);
+        });
+    }
+  }, [isOpen]);
 
   const menuItems = [
     { name: 'หน้าแรก', path: '/' },
@@ -159,21 +170,33 @@ export function MobileMenuDrawer({ isOpen, onClose }: MobileMenuDrawerProps) {
 
               {activeTab === 'categories' && (
                 <ul className="divide-y divide-kv-border">
-                  {categories.map((cat, idx) => (
-                    <li key={idx}>
-                      <Link
-                        to="/shop"
-                        onClick={onClose}
-                        className="flex items-center justify-between p-4 text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-center">
-                          <span className="mr-3 text-xl">{cat.icon}</span>
-                          <span className="font-medium">{cat.name}</span>
-                        </div>
-                        <ChevronRight size={18} className="text-gray-400" />
-                      </Link>
+                  {categoriesLoading ? (
+                    <li className="p-8 flex justify-center">
+                      <Loader2 size={24} className="animate-spin text-kv-orange" />
                     </li>
-                  ))}
+                  ) : categories.length === 0 ? (
+                    <li className="p-8 text-center text-gray-400 text-sm font-bold">ไม่พบหมวดหมู่</li>
+                  ) : (
+                    categories.map((cat) => (
+                      <li key={cat.id}>
+                        <Link
+                          to={`/shop?category=${encodeURIComponent(cat.name)}`}
+                          onClick={onClose}
+                          className="flex items-center justify-between p-4 text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            {cat.image_url ? (
+                              <img src={cat.image_url} alt={cat.name} className="w-7 h-7 object-contain rounded" />
+                            ) : (
+                              <div className="w-7 h-7 rounded bg-gray-100 flex items-center justify-center text-gray-300 text-xs">🏷️</div>
+                            )}
+                            <span className="font-medium">{cat.name}</span>
+                          </div>
+                          <ChevronRight size={18} className="text-gray-400" />
+                        </Link>
+                      </li>
+                    ))
+                  )}
                 </ul>
               )}
 
