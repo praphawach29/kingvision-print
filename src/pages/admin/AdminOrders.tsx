@@ -488,279 +488,258 @@ export function AdminOrders() {
       {/* Order Detail Modal */}
       <AnimatePresence>
         {selectedOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, y: 60 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 60 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden flex flex-col"
             >
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center shrink-0">
-                <h3 className="text-xl font-bold text-kv-navy">
-                  รายละเอียดออเดอร์ #{selectedOrder.id.slice(0, 8).toUpperCase()}
-                </h3>
-                <button onClick={() => setSelectedOrder(null)} className="text-gray-400 hover:text-gray-600">
-                  <XCircle size={24} />
+              {/* Drag handle (mobile only) */}
+              <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
+                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+              </div>
+
+              {/* Header */}
+              <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-100 flex items-center gap-3 shrink-0">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base sm:text-lg font-black text-kv-navy">
+                      #{selectedOrder.id.slice(0, 8).toUpperCase()}
+                    </h3>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${getStatusBadge(selectedOrder.status).color}`}>
+                      {getStatusBadge(selectedOrder.status).label}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {new Date(selectedOrder.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    {' · '}฿{selectedOrder.total_amount.toLocaleString()}
+                  </p>
+                </div>
+                <button onClick={() => setSelectedOrder(null)} className="text-gray-400 hover:text-gray-600 shrink-0">
+                  <XCircle size={22} />
                 </button>
               </div>
 
-                <div className="p-6 overflow-y-auto space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 text-kv-navy/40 mb-2">
-                        <UsersIcon size={14} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">ข้อมูลลูกค้า</span>
-                      </div>
-                      <div className="bg-gray-50 p-4 rounded-2xl space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-400 font-bold">ชื่อลูกค้า</span>
-                          <span className="text-sm font-black text-kv-navy">{selectedOrder.profiles?.full_name}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-400 font-bold">อีเมล</span>
-                          <span className="text-sm font-bold text-kv-navy">{selectedOrder.profiles?.email}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-400 font-bold">เบอร์โทร</span>
-                          <span className="text-sm font-bold text-kv-navy">{selectedOrder.phone}</span>
-                        </div>
-                        <div className="pt-2 border-t border-gray-100">
-                          <span className="text-xs text-gray-400 font-bold block mb-1">ที่อยู่จัดส่ง</span>
-                          <span className="text-xs font-medium text-gray-600 leading-relaxed">{selectedOrder.address}</span>
-                        </div>
-                      </div>
-                    </div>
+              {/* Scrollable body */}
+              <div className="px-4 py-4 sm:px-6 sm:py-5 overflow-y-auto space-y-4">
 
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 text-kv-navy/40 mb-2">
-                        <PackageCheck size={14} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">ข้อมูลออเดอร์</span>
+                {/* Customer + Order info — compact grid */}
+                <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ข้อมูลลูกค้า & ออเดอร์</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold">ชื่อลูกค้า</p>
+                      <p className="font-black text-kv-navy text-xs mt-0.5">{selectedOrder.profiles?.full_name || 'ไม่ระบุ'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold">เบอร์โทร</p>
+                      <p className="font-bold text-kv-navy text-xs mt-0.5">{selectedOrder.phone || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold">อีเมล</p>
+                      <p className="font-bold text-kv-navy text-xs mt-0.5 break-all">{selectedOrder.profiles?.email || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-bold">ช่องทางชำระเงิน</p>
+                      <p className="font-bold text-kv-navy text-xs mt-0.5">{paymentLabel(selectedOrder.payment_method)}</p>
+                    </div>
+                    {selectedOrder.tracking_number && (
+                      <div className="col-span-2">
+                        <p className="text-[10px] text-gray-400 font-bold">เลขพัสดุ</p>
+                        <p className="font-black text-purple-600 text-xs mt-0.5">
+                          {selectedOrder.shipping_provider ? `${selectedOrder.shipping_provider}: ` : ''}
+                          {selectedOrder.tracking_number}
+                        </p>
                       </div>
-                      <div className="bg-gray-50 p-4 rounded-2xl space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-400 font-bold">วันที่สั่งซื้อ</span>
-                          <span className="text-sm font-bold text-kv-navy">{new Date(selectedOrder.created_at).toLocaleString('th-TH')}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-400 font-bold">ช่องทางชำระเงิน</span>
-                          <span className="text-sm font-black text-kv-navy">{paymentLabel(selectedOrder.payment_method)}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-400 font-bold">สถานะ</span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${getStatusBadge(selectedOrder.status).color}`}>
-                            {getStatusBadge(selectedOrder.status).label}
-                          </span>
-                        </div>
-                        {selectedOrder.tracking_number && (
-                          <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                            <span className="text-xs text-gray-400 font-bold">เลขพัสดุ</span>
-                            <span className="text-sm font-black text-purple-600">
-                              {selectedOrder.shipping_provider && `${selectedOrder.shipping_provider}: `}
-                              {selectedOrder.tracking_number}
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                          <span className="text-xs text-gray-400 font-bold">ยอดรวมสุทธิ</span>
-                          <span className="text-lg font-black text-kv-orange">฿{selectedOrder.total_amount.toLocaleString()}</span>
-                        </div>
-                      </div>
+                    )}
+                    <div className="col-span-2 pt-2 border-t border-gray-200">
+                      <p className="text-[10px] text-gray-400 font-bold">ที่อยู่จัดส่ง</p>
+                      <p className="font-medium text-gray-600 text-xs leading-relaxed mt-0.5">{selectedOrder.address}</p>
                     </div>
                   </div>
-
-                  {/* Order Items Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-kv-navy/40 mb-2">
-                      <Plus size={14} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">รายการสินค้า</span>
-                    </div>
-                    <div className="border border-gray-100 rounded-2xl overflow-hidden">
-                      <div className="divide-y divide-gray-50">
-                        {selectedOrder.order_items?.map((item) => (
-                          <div key={item.id} className="p-4 flex items-center gap-4 bg-white">
-                            <img 
-                              src={item.products?.image_url || 'https://via.placeholder.com/50'} 
-                              alt={item.products?.title}
-                              className="w-12 h-12 rounded-lg object-cover bg-gray-50"
-                              referrerPolicy="no-referrer"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <h5 className="text-sm font-bold text-kv-navy line-clamp-1">{item.products?.title}</h5>
-                              {item.selected_options && item.selected_options.length > 0 && (
-                                <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
-                                  {item.selected_options.map((opt, idx) => (
-                                    <div key={idx} className="text-[10px] text-gray-400 font-bold">
-                                      {opt.name}: <span className="text-kv-navy">{opt.value}</span>
-                                      {opt.price_modifier > 0 && <span className="text-green-600 ml-0.5">(+฿{opt.price_modifier})</span>}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                              <p className="text-xs text-gray-400 mt-0.5">฿{item.price.toLocaleString()} x {item.quantity}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-black text-kv-navy">฿{(item.price * item.quantity).toLocaleString()}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="pt-2 border-t border-gray-200 flex justify-between items-center">
+                    <span className="text-xs text-gray-400 font-bold">ยอดรวมสุทธิ</span>
+                    <span className="text-xl font-black text-kv-orange">฿{selectedOrder.total_amount.toLocaleString()}</span>
                   </div>
+                </div>
 
-                  {/* Payment Slip Section */}
-                  {(selectedOrder.payment_slip_url || selectedOrder.status === 'pending') && (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 text-kv-navy/40 mb-2">
-                        <Receipt size={14} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">สลิปการชำระเงิน</span>
-                      </div>
-
-                      {selectedOrder.payment_slip_url ? (
-                        <div className="bg-gray-50 rounded-2xl p-4 space-y-4">
-                          {/* Slip image */}
-                          <div className="relative group cursor-pointer" onClick={() => setSlipPreviewUrl(selectedOrder.payment_slip_url!)}>
-                            <img
-                              src={selectedOrder.payment_slip_url}
-                              alt="สลิปการโอนเงิน"
-                              className="w-full max-h-64 object-contain rounded-xl border border-gray-200 bg-white"
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-xl transition-all flex items-center justify-center">
-                              <div className="opacity-0 group-hover:opacity-100 transition-all bg-white/90 rounded-full px-4 py-2 flex items-center gap-2 text-kv-navy font-bold text-xs shadow">
-                                <ZoomIn size={14} /> ดูรูปเต็ม
-                              </div>
+                {/* Order Items */}
+                <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <Plus size={11} /> รายการสินค้า
+                  </p>
+                  <div className="border border-gray-100 rounded-2xl overflow-hidden divide-y divide-gray-50">
+                    {selectedOrder.order_items?.map((item) => (
+                      <div key={item.id} className="p-3 flex items-center gap-3 bg-white">
+                        <img
+                          src={item.products?.image_url || 'https://via.placeholder.com/50'}
+                          alt={item.products?.title}
+                          className="w-10 h-10 rounded-lg object-cover bg-gray-50 shrink-0"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h5 className="text-xs font-bold text-kv-navy line-clamp-1">{item.products?.title}</h5>
+                          {item.selected_options && item.selected_options.length > 0 && (
+                            <div className="flex flex-wrap gap-x-2">
+                              {item.selected_options.map((opt, idx) => (
+                                <span key={idx} className="text-[10px] text-gray-400 font-bold">
+                                  {opt.name}: <span className="text-kv-navy">{opt.value}</span>
+                                  {opt.price_modifier > 0 && <span className="text-green-600">(+฿{opt.price_modifier})</span>}
+                                </span>
+                              ))}
                             </div>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={() => setSlipPreviewUrl(selectedOrder.payment_slip_url!)}
-                              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-kv-navy hover:bg-gray-50 transition-all"
-                            >
-                              <ZoomIn size={14} /> ดูสลิปเต็ม
-                            </button>
-                            <a
-                              href={selectedOrder.payment_slip_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-kv-navy hover:bg-gray-50 transition-all"
-                            >
-                              <ExternalLink size={14} /> เปิดในแท็บใหม่
-                            </a>
-
-                            {/* Confirm payment button */}
-                            {(selectedOrder.status === 'pending' || selectedOrder.status === 'processing') && (
-                              <button
-                                disabled={isUpdating}
-                                onClick={() => handleUpdateStatus(selectedOrder.id, 'processing')}
-                                className="ml-auto flex items-center gap-2 px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs font-black transition-all disabled:opacity-50 shadow-lg shadow-green-200"
-                              >
-                                {isUpdating ? <Loader2 size={14} className="animate-spin" /> : <BadgeCheck size={14} />}
-                                ยืนยันรับชำระเงินแล้ว
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 space-y-3">
-                          <div className="flex items-center gap-3">
-                            <Receipt size={18} className="text-yellow-500 shrink-0" />
-                            <div>
-                              <p className="text-xs font-black text-yellow-700">ยังไม่ได้รับสลิป</p>
-                              <p className="text-[11px] text-yellow-600 mt-0.5">ลูกค้ายังไม่ได้อัปโหลดสลิป — อาจส่งมาทาง LINE</p>
-                            </div>
-                          </div>
-                          {selectedOrder.status === 'pending' && (
-                            <button
-                              disabled={isUpdating}
-                              onClick={() => handleUpdateStatus(selectedOrder.id, 'processing')}
-                              className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-black transition-all disabled:opacity-50 shadow-lg shadow-green-200"
-                            >
-                              {isUpdating ? <Loader2 size={16} className="animate-spin" /> : <BadgeCheck size={16} />}
-                              ยืนยันรับชำระเงินแล้ว (ไม่มีสลิป)
-                            </button>
                           )}
+                          <p className="text-[10px] text-gray-400 mt-0.5">฿{item.price.toLocaleString()} × {item.quantity}</p>
                         </div>
-                      )}
-                    </div>
-                  )}
+                        <p className="text-sm font-black text-kv-navy shrink-0">฿{(item.price * item.quantity).toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-                  {/* Status Update Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-kv-navy/40 mb-2">
-                      <Edit size={14} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">จัดการสถานะและเลขพัสดุ</span>
-                    </div>
-                    
-                    <div className="bg-gray-50 p-6 rounded-3xl space-y-6">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                        {[
-                          { id: 'pending', label: 'รอชำระเงิน', color: 'hover:bg-yellow-50 hover:text-yellow-700 border-yellow-200' },
-                          { id: 'processing', label: 'กำลังจัดเตรียม', color: 'hover:bg-blue-50 hover:text-blue-700 border-blue-200' },
-                          { id: 'shipped', label: 'จัดส่งแล้ว', color: 'hover:bg-purple-50 hover:text-purple-700 border-purple-200' },
-                          { id: 'completed', label: 'เสร็จสิ้น', color: 'hover:bg-green-50 hover:text-green-700 border-green-200' },
-                          { id: 'cancelled', label: 'ยกเลิก', color: 'hover:bg-red-50 hover:text-red-700 border-red-200' },
-                        ].map((s) => (
+                {/* Payment Slip */}
+                {(selectedOrder.payment_slip_url || selectedOrder.status === 'pending') && (
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                      <Receipt size={11} /> สลิปการชำระเงิน
+                    </p>
+                    {selectedOrder.payment_slip_url ? (
+                      <div className="bg-gray-50 rounded-2xl p-3 space-y-3">
+                        <div className="relative group cursor-pointer" onClick={() => setSlipPreviewUrl(selectedOrder.payment_slip_url!)}>
+                          <img
+                            src={selectedOrder.payment_slip_url}
+                            alt="สลิปการโอนเงิน"
+                            className="w-full max-h-48 object-contain rounded-xl border border-gray-200 bg-white"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-xl transition-all flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 bg-white/90 rounded-full px-3 py-1.5 flex items-center gap-1.5 text-kv-navy font-bold text-xs shadow">
+                              <ZoomIn size={12} /> ดูรูปเต็ม
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
                           <button
-                            key={s.id}
-                            disabled={isUpdating || selectedOrder.status === s.id}
-                            onClick={() => handleUpdateStatus(selectedOrder.id, s.id)}
-                            className={`px-3 py-3 text-[10px] font-black uppercase tracking-tighter border rounded-xl transition-all disabled:opacity-50 shadow-sm ${
-                              selectedOrder.status === s.id 
-                                ? 'bg-kv-navy text-white border-kv-navy' 
-                                : `text-gray-600 bg-white ${s.color}`
-                            }`}
+                            onClick={() => setSlipPreviewUrl(selectedOrder.payment_slip_url!)}
+                            className="flex items-center justify-center gap-1.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-kv-navy hover:bg-gray-50 transition-all"
                           >
-                            {s.label}
+                            <ZoomIn size={13} /> ดูสลิปเต็ม
                           </button>
-                        ))}
+                          <a
+                            href={selectedOrder.payment_slip_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-1.5 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-kv-navy hover:bg-gray-50 transition-all"
+                          >
+                            <ExternalLink size={13} /> เปิดในแท็บใหม่
+                          </a>
+                        </div>
+                        {(selectedOrder.status === 'pending' || selectedOrder.status === 'processing') && (
+                          <button
+                            disabled={isUpdating}
+                            onClick={() => handleUpdateStatus(selectedOrder.id, 'processing')}
+                            className="w-full flex items-center justify-center gap-2 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-black transition-all disabled:opacity-50 shadow-lg shadow-green-200"
+                          >
+                            {isUpdating ? <Loader2 size={16} className="animate-spin" /> : <BadgeCheck size={16} />}
+                            ยืนยันรับชำระเงินแล้ว
+                          </button>
+                        )}
                       </div>
-
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">บริษัทขนส่ง</label>
-                            <select 
-                              value={shippingProvider || selectedOrder.shipping_provider || ''}
-                              onChange={(e) => setShippingProvider(e.target.value)}
-                              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
-                            >
-                              <option value="">เลือกบริษัทขนส่ง</option>
-                              <option value="Kerry Express">Kerry Express</option>
-                              <option value="Flash Express">Flash Express</option>
-                              <option value="J&T Express">J&T Express</option>
-                              <option value="Thailand Post">ไปรษณีย์ไทย (EMS)</option>
-                              <option value="Ninja Van">Ninja Van</option>
-                              <option value="Best Express">Best Express</option>
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">เลขพัสดุ (Tracking Number)</label>
-                            <input 
-                              type="text"
-                              placeholder="กรอกเลขพัสดุ เช่น TH123456789"
-                              value={trackingNumber || selectedOrder.tracking_number || ''}
-                              onChange={(e) => setTrackingNumber(e.target.value)}
-                              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
-                            />
+                    ) : (
+                      <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                          <Receipt size={16} className="text-yellow-500 shrink-0" />
+                          <div>
+                            <p className="text-xs font-black text-yellow-700">ยังไม่ได้รับสลิป</p>
+                            <p className="text-[11px] text-yellow-600 mt-0.5">ลูกค้ายังไม่ได้อัปโหลดสลิป — อาจส่งมาทาง LINE</p>
                           </div>
                         </div>
-                        <button 
-                          onClick={() => handleUpdateStatus(selectedOrder.id, selectedOrder.status)}
-                          disabled={isUpdating || (!trackingNumber && !shippingProvider)}
-                          className="w-full py-3 bg-kv-navy text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-kv-orange transition-all disabled:opacity-50"
-                        >
-                          อัปเดตข้อมูลการจัดส่ง
-                        </button>
-                        <p className="text-[10px] text-gray-400 italic ml-1 text-center">* ข้อมูลการจัดส่งจะถูกบันทึกเมื่อกด "อัปเดตข้อมูลการจัดส่ง" หรือเมื่อเปลี่ยนสถานะเป็น "จัดส่งแล้ว"</p>
+                        {selectedOrder.status === 'pending' && (
+                          <button
+                            disabled={isUpdating}
+                            onClick={() => handleUpdateStatus(selectedOrder.id, 'processing')}
+                            className="w-full flex items-center justify-center gap-2 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-black transition-all disabled:opacity-50 shadow-lg shadow-green-200"
+                          >
+                            {isUpdating ? <Loader2 size={16} className="animate-spin" /> : <BadgeCheck size={16} />}
+                            ยืนยันรับชำระเงินแล้ว (ไม่มีสลิป)
+                          </button>
+                        )}
                       </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Status Update */}
+                <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <Edit size={11} /> จัดการสถานะและเลขพัสดุ
+                  </p>
+                  <div className="bg-gray-50 p-4 rounded-2xl space-y-4">
+                    {/* Status pills — horizontal scroll on mobile */}
+                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+                      {[
+                        { id: 'pending',    label: 'รอชำระเงิน',    active: 'bg-yellow-400 border-yellow-400', hover: 'hover:bg-yellow-50 hover:text-yellow-700 border-yellow-200' },
+                        { id: 'processing', label: 'กำลังจัดเตรียม', active: 'bg-blue-500 border-blue-500',    hover: 'hover:bg-blue-50 hover:text-blue-700 border-blue-200' },
+                        { id: 'shipped',    label: 'จัดส่งแล้ว',    active: 'bg-purple-500 border-purple-500', hover: 'hover:bg-purple-50 hover:text-purple-700 border-purple-200' },
+                        { id: 'completed',  label: 'เสร็จสิ้น',     active: 'bg-green-500 border-green-500',  hover: 'hover:bg-green-50 hover:text-green-700 border-green-200' },
+                        { id: 'cancelled',  label: 'ยกเลิก',        active: 'bg-red-500 border-red-500',      hover: 'hover:bg-red-50 hover:text-red-700 border-red-200' },
+                      ].map((s) => (
+                        <button
+                          key={s.id}
+                          disabled={isUpdating || selectedOrder.status === s.id}
+                          onClick={() => handleUpdateStatus(selectedOrder.id, s.id)}
+                          className={`shrink-0 px-3 py-2 text-[11px] font-black border rounded-xl transition-all disabled:opacity-60 whitespace-nowrap ${
+                            selectedOrder.status === s.id
+                              ? `${s.active} text-white`
+                              : `text-gray-600 bg-white ${s.hover}`
+                          }`}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Shipping fields */}
+                    <div className="space-y-2.5">
+                      <select
+                        value={shippingProvider || selectedOrder.shipping_provider || ''}
+                        onChange={(e) => setShippingProvider(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-sm transition-all"
+                      >
+                        <option value="">บริษัทขนส่ง</option>
+                        <option value="Kerry Express">Kerry Express</option>
+                        <option value="Flash Express">Flash Express</option>
+                        <option value="J&T Express">J&T Express</option>
+                        <option value="Thailand Post">ไปรษณีย์ไทย (EMS)</option>
+                        <option value="Ninja Van">Ninja Van</option>
+                        <option value="Best Express">Best Express</option>
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="เลขพัสดุ เช่น TH123456789"
+                        value={trackingNumber || selectedOrder.tracking_number || ''}
+                        onChange={(e) => setTrackingNumber(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-sm transition-all"
+                      />
+                      <button
+                        onClick={() => handleUpdateStatus(selectedOrder.id, selectedOrder.status)}
+                        disabled={isUpdating || (!trackingNumber && !shippingProvider)}
+                        className="w-full py-3 bg-kv-navy text-white rounded-xl font-black text-xs uppercase tracking-wider hover:bg-kv-orange transition-all disabled:opacity-50"
+                      >
+                        อัปเดตข้อมูลการจัดส่ง
+                      </button>
                     </div>
                   </div>
                 </div>
 
-              <div className="p-6 border-t border-gray-100 shrink-0">
-                <button 
+              </div>
+
+              {/* Footer */}
+              <div className="px-4 py-3 sm:px-6 sm:py-4 border-t border-gray-100 shrink-0">
+                <button
                   onClick={() => setSelectedOrder(null)}
-                  className="w-full py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+                  className="w-full py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition-colors text-sm"
                 >
                   ปิดหน้าต่าง
                 </button>
