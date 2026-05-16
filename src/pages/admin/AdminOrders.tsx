@@ -116,6 +116,10 @@ export function AdminOrders() {
         .from('orders')
         .select(`
           *,
+          profiles (
+            full_name,
+            email
+          ),
           order_items (
             *,
             products (
