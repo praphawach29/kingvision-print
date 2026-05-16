@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { supabase } from '../lib/supabase';
 import nongKingAvatar from '../assets/nong-king.jpg';
 
@@ -91,6 +92,9 @@ export function ChatAgent() {
   const sessionId = useRef<string>(getSessionId());
   const { addToCart } = useCart();
   const { user }      = useAuth();
+  const { settings }  = useSettings();
+  const lineOaId      = settings?.line_oa_id || '';
+  const lineLink      = settings?.line_oa_link || (lineOaId ? `https://line.me/R/ti/p/${lineOaId.startsWith('@') ? lineOaId : '@' + lineOaId}` : 'https://line.me/ti/p/@kingvision');
 
   // Load agent config + chat history on first open
   useEffect(() => {
@@ -279,7 +283,7 @@ export function ChatAgent() {
                   </button>
                 )}
                 <a
-                  href="https://line.me/ti/p/@kingvision"
+                  href={lineLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-[#06C755] text-white px-3 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 hover:brightness-110 transition-all"
@@ -366,7 +370,7 @@ export function ChatAgent() {
                   </button>
                 ))}
                 <a
-                  href="https://line.me/ti/p/@kingvision"
+                  href={lineLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="whitespace-nowrap px-3 py-1.5 bg-[#06C755]/10 text-[10px] font-bold text-[#06C755] rounded-full hover:bg-[#06C755] hover:text-white transition-all flex items-center gap-1"
