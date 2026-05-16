@@ -64,6 +64,7 @@ export function CheckoutPage() {
   const [placedTotal, setPlacedTotal] = useState(0);
   const [paymentInfo, setPaymentInfo] = useState<{ promptpayId?: string; bankName?: string; bankAccount?: string; bankAccountName?: string }>({});
   const [showCoupons, setShowCoupons] = useState(false);
+  const [savedAddress, setSavedAddress] = useState<null | Record<string, string>>(null);
   const [formData, setFormData] = useState({
     email: '',
     phone: '',
@@ -90,12 +91,27 @@ export function CheckoutPage() {
   useEffect(() => {
     fetchSettings();
     if (user) {
-      setFormData(prev => ({
-        ...prev,
-        email: user.email || '',
-      }));
+      setFormData(prev => ({ ...prev, email: user.email || '' }));
+      fetchSavedAddress(user.id);
     }
   }, [user]);
+
+  async function fetchSavedAddress(userId: string) {
+    const { data } = await supabase
+      .from('orders')
+      .select('shipping_data')
+      .eq('user_id', userId)
+      .not('shipping_data', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    if (data?.shipping_data) setSavedAddress(data.shipping_data as Record<string, string>);
+  }
+
+  function applySavedAddress() {
+    if (!savedAddress) return;
+    setFormData(prev => ({ ...prev, ...savedAddress }));
+  }
 
   useEffect(() => {
     const isPromptPay = selectedMethodType === 'promptpay' || selectedMethodType === 'qr';
@@ -163,7 +179,19 @@ export function CheckoutPage() {
           status: 'pending',
           address: `${formData.firstName} ${formData.lastName}\n${formData.address} ${formData.address2}\n${formData.subDistrict} ${formData.district} ${formData.province} ${formData.zipCode}`,
           phone: formData.phone,
-          payment_method: selectedMethodType || paymentMethod
+          payment_method: selectedMethodType || paymentMethod,
+          shipping_data: {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            phone: formData.phone,
+            lineId: formData.lineId,
+            address: formData.address,
+            address2: formData.address2,
+            subDistrict: formData.subDistrict,
+            district: formData.district,
+            province: formData.province,
+            zipCode: formData.zipCode,
+          }
         }])
         .select()
         .single();
@@ -413,10 +441,30 @@ export function CheckoutPage() {
 
             {/* Step 2: Shipping Address */}
             <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-              <h2 className="text-lg font-black text-kv-navy mb-6 flex items-center gap-3 pb-3 border-b-2 border-kv-orange">
+              <h2 className="text-lg font-black text-kv-navy mb-4 flex items-center gap-3 pb-3 border-b-2 border-kv-orange">
                 <span className="w-7 h-7 bg-kv-orange text-white rounded-full flex items-center justify-center text-xs">2</span>
                 ที่อยู่จัดส่ง
               </h2>
+
+              {/* Saved address banner */}
+              {savedAddress && (
+                <div className="mb-4 flex items-center justify-between gap-3 bg-kv-orange/5 border border-kv-orange/20 rounded-xl px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-kv-navy">ใช้ที่อยู่จากการสั่งซื้อครั้งก่อน</p>
+                    <p className="text-[11px] text-gray-500 truncate">
+                      {savedAddress.firstName} {savedAddress.lastName} · {savedAddress.address} {savedAddress.subDistrict} {savedAddress.district} {savedAddress.province}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={applySavedAddress}
+                    className="shrink-0 bg-kv-orange text-white text-xs font-black px-4 py-2 rounded-lg hover:bg-kv-orange/90 transition-all"
+                  >
+                    ใช้ที่อยู่นี้
+                  </button>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
