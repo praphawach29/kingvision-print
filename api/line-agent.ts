@@ -274,6 +274,115 @@ function buildProductFlex(products: any[], altText = 'สินค้าแน�
   };
 }
 
+// ── Flex Message: quotation card ─────────────────────────────────────────────
+function buildQuotationFlex(q: {
+  quotation_number: string;
+  customer_name: string;
+  customer_phone?: string;
+  lineItems: { title: string; quantity: number; unit_price: number; subtotal: number }[];
+  subtotal: number;
+  vat_amount: number;
+  total: number;
+  valid_until: string;
+}): any {
+  const fmt = (n: number) => `฿${Number(n).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const itemRows = q.lineItems.slice(0, 8).flatMap(item => [
+    {
+      type: 'box', layout: 'horizontal',
+      contents: [
+        { type: 'text', text: item.title, size: 'xs', wrap: true, flex: 5, color: '#1f2937' },
+        { type: 'text', text: `x${item.quantity}`, size: 'xs', align: 'center', flex: 1, color: '#6b7280' },
+        { type: 'text', text: fmt(item.subtotal), size: 'xs', align: 'end', flex: 3, color: '#1f2937' },
+      ],
+    },
+    { type: 'separator', margin: 'xs' },
+  ]);
+
+  return {
+    type: 'flex',
+    altText: `ใบเสนอราคา ${q.quotation_number} — ยอดรวม ${fmt(q.total)}`,
+    contents: {
+      type: 'bubble',
+      size: 'kilo',
+      header: {
+        type: 'box', layout: 'vertical', backgroundColor: '#0f2a5e', paddingAll: 'lg',
+        contents: [
+          { type: 'text', text: '📄 ใบเสนอราคา', color: '#ffffff', size: 'sm', weight: 'bold' },
+          { type: 'text', text: 'KingVision Print', color: '#f97316', size: 'lg', weight: 'bold' },
+          { type: 'text', text: q.quotation_number, color: '#93c5fd', size: 'sm', margin: 'xs' },
+        ],
+      },
+      body: {
+        type: 'box', layout: 'vertical', paddingAll: 'lg', spacing: 'sm',
+        contents: [
+          // Customer info
+          {
+            type: 'box', layout: 'horizontal', margin: 'none',
+            contents: [
+              { type: 'text', text: 'ลูกค้า:', size: 'xs', color: '#6b7280', flex: 2 },
+              { type: 'text', text: q.customer_name, size: 'xs', weight: 'bold', flex: 5, color: '#1f2937' },
+            ],
+          },
+          ...(q.customer_phone ? [{
+            type: 'box', layout: 'horizontal',
+            contents: [
+              { type: 'text', text: 'โทร:', size: 'xs', color: '#6b7280', flex: 2 },
+              { type: 'text', text: q.customer_phone, size: 'xs', flex: 5, color: '#1f2937' },
+            ],
+          }] : []),
+          { type: 'separator', margin: 'md' },
+          // Items header
+          {
+            type: 'box', layout: 'horizontal', margin: 'sm',
+            contents: [
+              { type: 'text', text: 'รายการสินค้า', size: 'xs', weight: 'bold', flex: 5, color: '#374151' },
+              { type: 'text', text: 'จำนวน', size: 'xs', align: 'center', flex: 1, color: '#374151' },
+              { type: 'text', text: 'รวม', size: 'xs', align: 'end', flex: 3, color: '#374151' },
+            ],
+          },
+          { type: 'separator', margin: 'xs' },
+          ...itemRows,
+          // Totals
+          {
+            type: 'box', layout: 'horizontal', margin: 'md',
+            contents: [
+              { type: 'text', text: 'ยอดก่อน VAT', size: 'xs', color: '#6b7280', flex: 6 },
+              { type: 'text', text: fmt(q.subtotal), size: 'xs', align: 'end', flex: 3, color: '#1f2937' },
+            ],
+          },
+          {
+            type: 'box', layout: 'horizontal',
+            contents: [
+              { type: 'text', text: 'VAT 7%', size: 'xs', color: '#6b7280', flex: 6 },
+              { type: 'text', text: fmt(q.vat_amount), size: 'xs', align: 'end', flex: 3, color: '#1f2937' },
+            ],
+          },
+          { type: 'separator', margin: 'sm' },
+          {
+            type: 'box', layout: 'horizontal', margin: 'sm',
+            contents: [
+              { type: 'text', text: 'ยอดรวมทั้งสิ้น', size: 'sm', weight: 'bold', flex: 6, color: '#0f2a5e' },
+              { type: 'text', text: fmt(q.total), size: 'sm', weight: 'bold', align: 'end', flex: 3, color: '#f97316' },
+            ],
+          },
+          {
+            type: 'text', text: `ใบเสนอราคามีผลถึง ${q.valid_until}`,
+            size: 'xxs', color: '#9ca3af', margin: 'sm', align: 'center',
+          },
+        ],
+      },
+      footer: {
+        type: 'box', layout: 'vertical', paddingAll: 'md',
+        contents: [{
+          type: 'text',
+          text: '📞 ติดต่อร้านเพื่อยืนยันใบเสนอราคา',
+          size: 'xs', color: '#6b7280', align: 'center', wrap: true,
+        }],
+      },
+    },
+  };
+}
+
 // ── Session management ────────────────────────────────────────────────────────
 const MAX_HISTORY = 12;
 
@@ -428,7 +537,7 @@ ${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจาก
 }
 
 // ── Tool executor ─────────────────────────────────────────────────────────────
-function buildExecuteTool(db: any, userId: string, displayName: string, pendingProducts: any[]) {
+function buildExecuteTool(db: any, userId: string, displayName: string, pendingProducts: any[], pendingQuotation: any[]) {
   return async (name: string, args: any): Promise<string> => {
     try {
       switch (name) {
@@ -640,6 +749,18 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
 
           if (qErr) return `ไม่สามารถสร้างใบเสนอราคาได้: ${qErr.message}`;
 
+          // Queue quotation Flex Message to be sent alongside the AI text reply
+          pendingQuotation.push({
+            quotation_number: quotationNumber,
+            customer_name: args.customerName,
+            customer_phone: args.customerPhone || '',
+            lineItems,
+            subtotal,
+            vat_amount: vatAmount,
+            total,
+            valid_until: validUntil,
+          });
+
           const itemSummary = lineItems.map((i: any) =>
             `• ${i.title}${i.brand ? ` (${i.brand})` : ''} x${i.quantity} = ฿${Number(i.subtotal).toLocaleString()}`
           ).join('\n');
@@ -652,6 +773,7 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
             vat: `฿${Number(vatAmount).toLocaleString()} (VAT 7%)`,
             total: `฿${Number(total).toLocaleString()}`,
             valid_until: validUntil,
+            instruction: 'แจ้งลูกค้าว่าสร้างใบเสนอราคาสำเร็จและระบบจะส่งการ์ดใบเสนอราคาให้ดูด้านล่างนี้',
           });
         }
 
@@ -997,7 +1119,8 @@ export default async function handler(req: any, res: any) {
       const systemPrompt = await buildSystemPrompt(settings, db);
 
       const pendingProducts: any[] = [];
-      const executeTool = buildExecuteTool(db, userId, displayName, pendingProducts);
+      const pendingQuotation: any[] = [];
+      const executeTool = buildExecuteTool(db, userId, displayName, pendingProducts, pendingQuotation);
 
       const historyWithUser: MsgHistory = [...history, { role: 'user', parts: [{ text }] }];
 
@@ -1015,6 +1138,10 @@ export default async function handler(req: any, res: any) {
         const seen = new Set<string>();
         const unique = pendingProducts.filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
         lineMessages.push(buildProductFlex(unique));
+      }
+      // Send quotation Flex Message card immediately after AI text
+      if (pendingQuotation.length > 0) {
+        lineMessages.push(buildQuotationFlex(pendingQuotation[0]));
       }
 
       await lineReply(replyToken, lineMessages, channelToken);
