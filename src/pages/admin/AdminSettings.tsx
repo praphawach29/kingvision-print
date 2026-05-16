@@ -55,6 +55,7 @@ interface StoreSettings {
   // AI settings
   ai_provider?: 'gemini' | 'openai' | 'anthropic';
   ai_model?: string;
+  ai_api_key?: string;
   ai_enabled?: boolean;
   ai_persona_name?: string;
   ai_system_prompt?: string;
@@ -1078,14 +1079,36 @@ export function AdminSettings() {
               <p className="text-[10px] text-gray-400 font-bold px-1">คำสั่งนี้จะถูกเพิ่มต่อท้าย system prompt หลัก สามารถใส่โปรโมชั่น นโยบายพิเศษ หรือข้อมูลสำคัญได้</p>
             </div>
 
-            {/* API Keys note */}
-            <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
-              <p className="text-[11px] text-indigo-700 font-bold">
-                🔑 API Key ต้องตั้งค่าใน Environment Variables ของ Vercel (ไม่เก็บในฐานข้อมูล):<br />
-                <code className="bg-white px-1 py-0.5 rounded text-[10px]">GEMINI_API_KEY</code>{' '}
-                <code className="bg-white px-1 py-0.5 rounded text-[10px]">OPENAI_API_KEY</code>{' '}
-                <code className="bg-white px-1 py-0.5 rounded text-[10px]">ANTHROPIC_API_KEY</code>{' '}
-                <code className="bg-white px-1 py-0.5 rounded text-[10px]">SUPABASE_SERVICE_ROLE_KEY</code>
+            {/* AI API Key */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider">
+                AI API Key{' '}
+                <span className="normal-case font-bold text-gray-300">
+                  ({settings.ai_provider === 'openai' ? 'OpenAI' : settings.ai_provider === 'anthropic' ? 'Anthropic' : 'Google Gemini'})
+                </span>
+              </label>
+              <input
+                type="password"
+                value={settings.ai_api_key || ''}
+                onChange={e => setSettings({ ...settings, ai_api_key: e.target.value })}
+                placeholder={
+                  settings.ai_provider === 'openai' ? 'sk-...' :
+                  settings.ai_provider === 'anthropic' ? 'sk-ant-...' :
+                  'AIza...'
+                }
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all font-mono text-sm"
+              />
+              <p className="text-[10px] text-gray-400 font-bold px-1">เก็บในฐานข้อมูล (ปลอดภัย) — ไม่จำเป็นต้องตั้งค่าใน Vercel อีกต่อไป</p>
+            </div>
+
+            {/* Note: only infra keys remain in Vercel */}
+            <div className="p-3 bg-green-50 rounded-xl border border-green-100">
+              <p className="text-[11px] text-green-700 font-bold">
+                ✅ ตั้งค่าได้ที่นี่แล้ว — ไม่ต้องใส่ใน Vercel Environment Variables อีกต่อไป<br />
+                <span className="font-medium text-green-600">ยังต้องใส่ใน Vercel: </span>
+                <code className="bg-white px-1 py-0.5 rounded text-[10px]">SUPABASE_SERVICE_ROLE_KEY</code>{' '}
+                <code className="bg-white px-1 py-0.5 rounded text-[10px]">VITE_SUPABASE_URL</code>
+                <span className="block mt-1 text-green-600 font-medium">(2 ตัวนี้ใช้สำหรับเชื่อมต่อฐานข้อมูล ไม่สามารถย้ายมาได้)</span>
               </p>
             </div>
           </div>
@@ -1331,11 +1354,21 @@ export function AdminSettings() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider ml-1">Channel Access Token</label>
-                    <input 
-                      type="password" 
+                    <input
+                      type="password"
                       value={settings.line_oa_channel_token || ''}
                       onChange={(e) => setSettings({...settings, line_oa_channel_token: e.target.value})}
                       placeholder="ใส่ Long-lived Channel Access Token..."
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider ml-1">Channel Secret</label>
+                    <input
+                      type="password"
+                      value={settings.line_oa_channel_secret || ''}
+                      onChange={(e) => setSettings({...settings, line_oa_channel_secret: e.target.value})}
+                      placeholder="ใส่ Channel Secret (ใช้ยืนยัน Webhook)..."
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy text-xs"
                     />
                   </div>

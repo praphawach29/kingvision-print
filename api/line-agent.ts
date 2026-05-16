@@ -11,13 +11,15 @@ import { createClient } from '@supabase/supabase-js';
 export const maxDuration = 30;
 export const config = { api: { bodyParser: false } };
 
-const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || '';
-const CHANNEL_TOKEN  = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
-const SUPABASE_URL   = process.env.VITE_SUPABASE_URL || '';
-const SERVICE_KEY    = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const SITE_URL       = (process.env.VITE_SITE_URL || 'https://kingvision-print.vercel.app').replace(/\/$/, '');
-const ADMIN_IDS      = (process.env.LINE_ADMIN_USER_IDS || '')
-  .split(',').map(s => s.trim()).filter(Boolean);
+// These two are infrastructure-level — must stay as env vars
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || '';
+const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+// LINE / AI keys — read from store_settings (admin panel), fall back to env vars
+const ENV_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || '';
+const ENV_CHANNEL_TOKEN  = process.env.LINE_CHANNEL_ACCESS_TOKEN || '';
+const ENV_ADMIN_IDS      = (process.env.LINE_ADMIN_USER_IDS || '').split(',').map(s => s.trim()).filter(Boolean);
+const SITE_URL           = (process.env.VITE_SITE_URL || 'https://kingvision-print.vercel.app').replace(/\/$/, '');
 
 // ── Tool declarations (identical to web chatbot) ──────────────────────────────
 // In LINE context, add_to_cart sends a purchase link instead of mutating browser cart.
@@ -167,35 +169,35 @@ async function rawBody(req: any): Promise<Buffer> {
     req.on('error', reject);
   });
 }
-function verifySig(body: Buffer, sig: string) {
-  if (!CHANNEL_SECRET) return true;
-  return crypto.createHmac('SHA256', CHANNEL_SECRET).update(body).digest('base64') === sig;
+function verifySig(body: Buffer, sig: string, secret: string) {
+  if (!secret) return true;
+  return crypto.createHmac('SHA256', secret).update(body).digest('base64') === sig;
 }
-async function lineReply(replyToken: string, messages: any[]) {
+async function lineReply(replyToken: string, messages: any[], token: string) {
   await fetch('https://api.line.me/v2/bot/message/reply', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${CHANNEL_TOKEN}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ replyToken, messages }),
   });
 }
-async function linePush(to: string, messages: any[]) {
+async function linePush(to: string, messages: any[], token: string) {
   await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${CHANNEL_TOKEN}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ to, messages }),
   });
 }
-async function getLineProfile(userId: string) {
+async function getLineProfile(userId: string, token: string) {
   try {
     const r = await fetch(`https://api.line.me/v2/bot/profile/${userId}`, {
-      headers: { Authorization: `Bearer ${CHANNEL_TOKEN}` },
+      headers: { Authorization: `Bearer ${token}` },
     });
     return r.ok ? (r.json() as Promise<{ displayName: string }>) : null;
   } catch { return null; }
 }
-async function fetchLineImage(messageId: string) {
+async function fetchLineImage(messageId: string, token: string) {
   const r = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
-    headers: { Authorization: `Bearer ${CHANNEL_TOKEN}` },
+    headers: { Authorization: `Bearer ${token}` },
   });
   return { buffer: Buffer.from(await r.arrayBuffer()), contentType: r.headers.get('content-type') || 'image/jpeg' };
 }
@@ -493,10 +495,11 @@ type MsgHistory = { role: 'user' | 'model'; parts: [{ text: string }] }[];
 
 async function runGemini(
   model: string, systemPrompt: string, history: MsgHistory, temperature: number,
-  executeTool: (n: string, a: any) => Promise<string>
+  executeTool: (n: string, a: any) => Promise<string>,
+  overrideApiKey?: string
 ): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('Missing GEMINI_API_KEY');
+  const apiKey = overrideApiKey || process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('Missing GEMINI_API_KEY — กรุณาตั้งค่า API Key ในหน้า Admin Settings');
 
   const geminiTools = [{
     functionDeclarations: TOOL_DECLARATIONS.map(t => {
@@ -548,10 +551,11 @@ async function runGemini(
 
 async function runOpenAI(
   model: string, systemPrompt: string, history: MsgHistory, temperature: number,
-  executeTool: (n: string, a: any) => Promise<string>
+  executeTool: (n: string, a: any) => Promise<string>,
+  overrideApiKey?: string
 ): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('Missing OPENAI_API_KEY');
+  const apiKey = overrideApiKey || process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('Missing OPENAI_API_KEY — กรุณาตั้งค่า API Key ในหน้า Admin Settings');
 
   let msgs: any[] = [
     { role: 'system', content: systemPrompt },
@@ -586,10 +590,11 @@ async function runOpenAI(
 
 async function runAnthropic(
   model: string, systemPrompt: string, history: MsgHistory, temperature: number,
-  executeTool: (n: string, a: any) => Promise<string>
+  executeTool: (n: string, a: any) => Promise<string>,
+  overrideApiKey?: string
 ): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('Missing ANTHROPIC_API_KEY');
+  const apiKey = overrideApiKey || process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('Missing ANTHROPIC_API_KEY — กรุณาตั้งค่า API Key ในหน้า Admin Settings');
 
   let msgs: any[] = history.map(m => ({
     role: m.role === 'model' ? 'assistant' : 'user', content: m.parts[0].text,
@@ -635,75 +640,77 @@ const ADMIN_HELP = `🔧 Admin Mode — KingVision Bot
 🔍 ดูสินค้า [ชื่อ]
 📊 สรุปสต็อก`;
 
-async function handleAdmin(text: string, replyToken: string, db: any) {
+async function handleAdmin(text: string, replyToken: string, db: any, token: string) {
+  const reply = (msgs: any[]) => lineReply(replyToken, msgs, token);
+
   if (/^(admin|ช่วยเหลือ|help)$/i.test(text))
-    return lineReply(replyToken, [{ type: 'text', text: ADMIN_HELP }]);
+    return reply([{ type: 'text', text: ADMIN_HELP }]);
 
   const pm = text.match(/^แก้ราคา\s+(.+?)\s+(\d+(?:\.\d+)?)\s*$/);
   if (pm) {
     const price = parseFloat(pm[2]);
     const { data: f } = await db.from('products').select('id,title,price').ilike('title', `%${pm[1]}%`).limit(5);
-    if (!f?.length) return lineReply(replyToken, [{ type: 'text', text: `❌ ไม่พบ "${pm[1]}"` }]);
+    if (!f?.length) return reply([{ type: 'text', text: `❌ ไม่พบ "${pm[1]}"` }]);
     if (f.length === 1) {
       await db.from('products').update({ price }).eq('id', f[0].id);
-      return lineReply(replyToken, [{ type: 'text', text: `✅ ${f[0].title}\n฿${Number(f[0].price).toLocaleString()} → ฿${price.toLocaleString()}` }]);
+      return reply([{ type: 'text', text: `✅ ${f[0].title}\n฿${Number(f[0].price).toLocaleString()} → ฿${price.toLocaleString()}` }]);
     }
-    return lineReply(replyToken, [{ type: 'text', text: `พบ ${f.length} รายการ:\n${f.map((p: any, i: number) => `${i+1}. ${p.title}`).join('\n')}` }]);
+    return reply([{ type: 'text', text: `พบ ${f.length} รายการ:\n${f.map((p: any, i: number) => `${i+1}. ${p.title}`).join('\n')}` }]);
   }
 
   const sm = text.match(/^แก้สต็อก\s+(.+?)\s+(\d+)\s*$/);
   if (sm) {
     const stock = parseInt(sm[2]);
     const { data: f } = await db.from('products').select('id,title,stock').ilike('title', `%${sm[1]}%`).limit(5);
-    if (!f?.length) return lineReply(replyToken, [{ type: 'text', text: `❌ ไม่พบ "${sm[1]}"` }]);
+    if (!f?.length) return reply([{ type: 'text', text: `❌ ไม่พบ "${sm[1]}"` }]);
     if (f.length === 1) {
       await db.from('products').update({ stock }).eq('id', f[0].id);
-      return lineReply(replyToken, [{ type: 'text', text: `✅ ${f[0].title}\n${f[0].stock} → ${stock} ชิ้น` }]);
+      return reply([{ type: 'text', text: `✅ ${f[0].title}\n${f[0].stock} → ${stock} ชิ้น` }]);
     }
-    return lineReply(replyToken, [{ type: 'text', text: `พบ ${f.length} รายการ:\n${f.map((p: any, i: number) => `${i+1}. ${p.title}`).join('\n')}` }]);
+    return reply([{ type: 'text', text: `พบ ${f.length} รายการ:\n${f.map((p: any, i: number) => `${i+1}. ${p.title}`).join('\n')}` }]);
   }
 
   const stm = text.match(/^(เปิดขาย|ปิดขาย)\s+(.+)$/);
   if (stm) {
     const active = stm[1] === 'เปิดขาย';
     const { data: f } = await db.from('products').select('id,title').ilike('title', `%${stm[2]}%`).limit(5);
-    if (!f?.length) return lineReply(replyToken, [{ type: 'text', text: `❌ ไม่พบ "${stm[2]}"` }]);
+    if (!f?.length) return reply([{ type: 'text', text: `❌ ไม่พบ "${stm[2]}"` }]);
     if (f.length === 1) {
       await db.from('products').update({ is_active: active }).eq('id', f[0].id);
-      return lineReply(replyToken, [{ type: 'text', text: `✅ ${f[0].title}\n${active ? '🟢 เปิดขายแล้ว' : '⏸ ปิดขายแล้ว'}` }]);
+      return reply([{ type: 'text', text: `✅ ${f[0].title}\n${active ? '🟢 เปิดขายแล้ว' : '⏸ ปิดขายแล้ว'}` }]);
     }
-    return lineReply(replyToken, [{ type: 'text', text: `พบ ${f.length} รายการ:\n${f.map((p: any, i: number) => `${i+1}. ${p.title}`).join('\n')}` }]);
+    return reply([{ type: 'text', text: `พบ ${f.length} รายการ:\n${f.map((p: any, i: number) => `${i+1}. ${p.title}`).join('\n')}` }]);
   }
 
   const vm = text.match(/^ดูสินค้า\s+(.+)$/);
   if (vm) {
     const { data: f } = await db.from('products').select('title,price,stock,is_active').ilike('title', `%${vm[1]}%`).limit(5);
-    if (!f?.length) return lineReply(replyToken, [{ type: 'text', text: `❌ ไม่พบ "${vm[1]}"` }]);
+    if (!f?.length) return reply([{ type: 'text', text: `❌ ไม่พบ "${vm[1]}"` }]);
     const list = f.map((p: any) => `${p.is_active ? '🟢' : '⏸'} ${p.title}\n   ฿${Number(p.price).toLocaleString()} | ${p.stock} ชิ้น`).join('\n');
-    return lineReply(replyToken, [{ type: 'text', text: list }]);
+    return reply([{ type: 'text', text: list }]);
   }
 
   if (text === 'สรุปสต็อก') {
     const { data: f } = await db.from('products').select('title,stock').eq('is_active', true).lte('stock', 5).order('stock').limit(15);
-    if (!f?.length) return lineReply(replyToken, [{ type: 'text', text: '✅ ไม่มีสินค้าสต็อกต่ำ' }]);
+    if (!f?.length) return reply([{ type: 'text', text: '✅ ไม่มีสินค้าสต็อกต่ำ' }]);
     const list = f.map((p: any) => `${p.stock === 0 ? '🔴' : '🟡'} ${p.title}: ${p.stock} ชิ้น`).join('\n');
-    return lineReply(replyToken, [{ type: 'text', text: `📊 สต็อกต่ำ (≤5 ชิ้น)\n\n${list}` }]);
+    return reply([{ type: 'text', text: `📊 สต็อกต่ำ (≤5 ชิ้น)\n\n${list}` }]);
   }
 
-  return lineReply(replyToken, [{ type: 'text', text: 'พิมพ์ "admin" เพื่อดูคำสั่ง' }]);
+  return reply([{ type: 'text', text: 'พิมพ์ "admin" เพื่อดูคำสั่ง' }]);
 }
 
-async function handleAdminImage(messageId: string, userId: string, replyToken: string, db: any) {
-  await lineReply(replyToken, [{ type: 'text', text: '⏳ กำลังวิเคราะห์รูปสินค้า...' }]);
+async function handleAdminImage(messageId: string, userId: string, replyToken: string, db: any, token: string, geminiKey?: string) {
+  await lineReply(replyToken, [{ type: 'text', text: '⏳ กำลังวิเคราะห์รูปสินค้า...' }], token);
   try {
-    const { buffer, contentType } = await fetchLineImage(messageId);
+    const { buffer, contentType } = await fetchLineImage(messageId, token);
     const base64 = buffer.toString('base64');
     const filePath = `line-bot/${Date.now()}.${contentType.includes('png') ? 'png' : 'jpg'}`;
     await db.storage.from('products').upload(filePath, buffer, { contentType });
     const { data: { publicUrl } } = db.storage.from('products').getPublicUrl(filePath);
 
     const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey || process.env.GEMINI_API_KEY}`,
       {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -726,9 +733,9 @@ async function handleAdminImage(messageId: string, userId: string, replyToken: s
       condition: info.condition || 'new', image_url: publicUrl, is_active: false,
     }]).select().single();
 
-    await linePush(userId, [{ type: 'text', text: `✅ บันทึกสินค้า (ร่าง) แล้ว!\n\n📦 ${product.title}\n🏷️ ${product.brand || '-'} | ${product.category || '-'}\n💰 ฿${Number(product.price).toLocaleString()}\n📊 สต็อก: ${product.stock} ชิ้น\n\n⚠️ กรุณาตรวจสอบและเปิดขายในหน้าจัดการสินค้า` }]);
+    await linePush(userId, [{ type: 'text', text: `✅ บันทึกสินค้า (ร่าง) แล้ว!\n\n📦 ${product.title}\n🏷️ ${product.brand || '-'} | ${product.category || '-'}\n💰 ฿${Number(product.price).toLocaleString()}\n📊 สต็อก: ${product.stock} ชิ้น\n\n⚠️ กรุณาตรวจสอบและเปิดขายในหน้าจัดการสินค้า` }], token);
   } catch (err: any) {
-    await linePush(userId, [{ type: 'text', text: `❌ ${err.message}` }]);
+    await linePush(userId, [{ type: 'text', text: `❌ ${err.message}` }], token);
   }
 }
 
@@ -737,24 +744,38 @@ export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const raw = await rawBody(req);
-  if (!verifySig(raw, req.headers['x-line-signature'])) return res.status(401).end();
+  const db  = createClient(SUPABASE_URL, SERVICE_KEY);
+
+  // Load LINE + AI config from admin panel (env vars used as fallback only)
+  const { data: cfg } = await db.from('store_settings')
+    .select('line_oa_channel_secret,line_oa_channel_token,line_oa_admin_id,ai_api_key,ai_provider,ai_model,ai_enabled,ai_persona_name,ai_system_prompt,ai_speaking_style,ai_temperature,ai_gender')
+    .single();
+
+  const channelSecret = cfg?.line_oa_channel_secret || ENV_CHANNEL_SECRET;
+  const channelToken  = cfg?.line_oa_channel_token  || ENV_CHANNEL_TOKEN;
+  const adminIds      = (cfg?.line_oa_admin_id || '')
+    .split(',').map((s: string) => s.trim()).filter(Boolean)
+    .concat(ENV_ADMIN_IDS)
+    .filter((v: string, i: number, a: string[]) => a.indexOf(v) === i); // dedupe
+  const aiApiKey = cfg?.ai_api_key || undefined;
+
+  if (!verifySig(raw, req.headers['x-line-signature'], channelSecret)) return res.status(401).end();
 
   const body = JSON.parse(raw.toString());
-  const db   = createClient(SUPABASE_URL, SERVICE_KEY);
 
   for (const event of body.events || []) {
     // Handle postback events (admin confirm/reject payment buttons)
-    if (event.type === 'postback' && ADMIN_IDS.includes(event.source?.userId)) {
-      const params = new URLSearchParams(event.postback?.data || '');
-      const action  = params.get('action');
-      const orderId = params.get('orderId');
+    if (event.type === 'postback' && adminIds.includes(event.source?.userId)) {
+      const params   = new URLSearchParams(event.postback?.data || '');
+      const action   = params.get('action');
+      const orderId  = params.get('orderId');
       const orderRef = params.get('orderRef') || orderId?.slice(0, 8).toUpperCase() || '';
       if (orderId && action === 'confirm_payment') {
         await db.from('orders').update({ status: 'processing' }).eq('id', orderId);
-        await lineReply(event.replyToken, [{ type: 'text', text: `✅ ยืนยันการชำระเงินแล้วครับ\nออเดอร์ #${orderRef} เปลี่ยนเป็น "กำลังจัดเตรียมสินค้า"` }]);
+        await lineReply(event.replyToken, [{ type: 'text', text: `✅ ยืนยันการชำระเงินแล้วครับ\nออเดอร์ #${orderRef} เปลี่ยนเป็น "กำลังจัดเตรียมสินค้า"` }], channelToken);
       } else if (orderId && action === 'reject_payment') {
         await db.from('orders').update({ status: 'cancelled' }).eq('id', orderId);
-        await lineReply(event.replyToken, [{ type: 'text', text: `❌ ปฏิเสธการชำระเงินแล้วครับ\nออเดอร์ #${orderRef} ถูกยกเลิก` }]);
+        await lineReply(event.replyToken, [{ type: 'text', text: `❌ ปฏิเสธการชำระเงินแล้วครับ\nออเดอร์ #${orderRef} ถูกยกเลิก` }], channelToken);
       }
       continue;
     }
@@ -763,11 +784,11 @@ export default async function handler(req: any, res: any) {
 
     const userId: string     = event.source?.userId;
     const replyToken: string = event.replyToken;
-    const isAdmin            = ADMIN_IDS.includes(userId);
+    const isAdmin            = adminIds.includes(userId);
 
     // Admin: image
     if (isAdmin && event.message.type === 'image') {
-      await handleAdminImage(event.message.id, userId, replyToken, db);
+      await handleAdminImage(event.message.id, userId, replyToken, db, channelToken, aiApiKey);
       continue;
     }
 
@@ -775,23 +796,19 @@ export default async function handler(req: any, res: any) {
     const text = (event.message.text as string).trim();
 
     // Admin: text commands
-    if (isAdmin) { await handleAdmin(text, replyToken, db); continue; }
+    if (isAdmin) { await handleAdmin(text, replyToken, db, channelToken); continue; }
 
     // Customer: AI sales agent
     try {
-      // Load settings + history + profile in parallel
-      const [settingsRes, history, profile] = await Promise.all([
-        db.from('store_settings')
-          .select('ai_provider,ai_model,ai_enabled,ai_persona_name,ai_system_prompt,ai_speaking_style,ai_temperature,ai_gender')
-          .single(),
+      const [history, profile] = await Promise.all([
         loadHistory(userId, db),
-        getLineProfile(userId),
+        getLineProfile(userId, channelToken),
       ]);
-      const settings    = settingsRes.data;
+      const settings    = cfg;
       const displayName = profile?.displayName || 'ลูกค้า';
 
       if (settings?.ai_enabled === false) {
-        await lineReply(replyToken, [{ type: 'text', text: 'ขออภัยครับ ระบบแชตบอทปิดอยู่ชั่วคราว กรุณาติดต่อเจ้าหน้าที่ผ่าน LINE ครับ' }]);
+        await lineReply(replyToken, [{ type: 'text', text: 'ขออภัยครับ ระบบแชตบอทปิดอยู่ชั่วคราว กรุณาติดต่อเจ้าหน้าที่ผ่าน LINE ครับ' }], channelToken);
         continue;
       }
 
@@ -801,41 +818,29 @@ export default async function handler(req: any, res: any) {
 
       const systemPrompt = await buildSystemPrompt(settings, db);
 
-      // Build history in Gemini format (used by all providers internally here)
-      const msgHistory: MsgHistory = [
-        ...history,
-        { role: 'user', parts: [{ text }] },
-      ];
-
-      // pendingProducts collected during tool execution → becomes Flex cards
       const pendingProducts: any[] = [];
       const executeTool = buildExecuteTool(db, userId, displayName, pendingProducts);
 
-      // Run AI
-      const historyForAI: MsgHistory = history;
-      const historyWithUser: MsgHistory = [...historyForAI, { role: 'user', parts: [{ text }] }];
+      const historyWithUser: MsgHistory = [...history, { role: 'user', parts: [{ text }] }];
 
       let aiText = '';
       if (provider === 'openai') {
-        aiText = await runOpenAI(model, systemPrompt, historyWithUser, temperature, executeTool);
+        aiText = await runOpenAI(model, systemPrompt, historyWithUser, temperature, executeTool, aiApiKey);
       } else if (provider === 'anthropic') {
-        aiText = await runAnthropic(model, systemPrompt, historyWithUser, temperature, executeTool);
+        aiText = await runAnthropic(model, systemPrompt, historyWithUser, temperature, executeTool, aiApiKey);
       } else {
-        aiText = await runGemini(model, systemPrompt, historyWithUser, temperature, executeTool);
+        aiText = await runGemini(model, systemPrompt, historyWithUser, temperature, executeTool, aiApiKey);
       }
 
-      // Build reply messages
       const lineMessages: any[] = [{ type: 'text', text: aiText }];
       if (pendingProducts.length > 0) {
-        // Deduplicate by id
         const seen = new Set<string>();
         const unique = pendingProducts.filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
         lineMessages.push(buildProductFlex(unique));
       }
 
-      await lineReply(replyToken, lineMessages);
+      await lineReply(replyToken, lineMessages, channelToken);
 
-      // Save session (text turns only, no tool internals)
       await saveHistory(userId, displayName, [
         ...history,
         { role: 'user',  parts: [{ text }] },
@@ -843,7 +848,7 @@ export default async function handler(req: any, res: any) {
       ], db);
     } catch (err: any) {
       console.error('[line-agent] error:', err);
-      await lineReply(replyToken, [{ type: 'text', text: 'ขออภัยครับ เกิดข้อผิดพลาดชั่วคราว กรุณาลองใหม่อีกครั้งนะครับ 🙏' }]);
+      await lineReply(replyToken, [{ type: 'text', text: 'ขออภัยครับ เกิดข้อผิดพลาดชั่วคราว กรุณาลองใหม่อีกครั้งนะครับ 🙏' }], channelToken);
     }
   }
 
