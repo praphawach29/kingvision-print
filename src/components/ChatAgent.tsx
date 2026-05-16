@@ -186,10 +186,15 @@ export function ChatAgent() {
         localStorage.setItem(localKey, JSON.stringify(next));
         // Save to Supabase if logged in (background, no await)
         if (user?.id) {
-          supabase.from('chat_history').upsert(
-            { user_id: user.id, session_id: sessionId.current, messages: next, updated_at: new Date().toISOString() },
-            { onConflict: 'user_id' }
-          ).catch(() => { /* ignore */ });
+          void (async () => {
+            const { error } = await supabase
+              .from('chat_history')
+              .upsert(
+                { user_id: user.id, session_id: sessionId.current, messages: next, updated_at: new Date().toISOString() },
+                { onConflict: 'user_id' }
+              );
+            if (error) throw error;
+          })().catch(() => { /* ignore */ });
         }
         return next;
       });
