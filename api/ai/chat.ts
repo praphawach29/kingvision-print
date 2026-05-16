@@ -277,16 +277,15 @@ export default async function handler(req: any, res: any) {
     // Load knowledge base + store info in parallel
     const [{ data: kb }, { data: storeInfo }] = await Promise.all([
       db.from('ai_knowledge_base').select('question, answer').eq('is_active', true).order('sort_order').limit(20),
-      db.from('store_settings').select('store_name,contact_email,address,phone_main,business_hours,line_oa_id,line_oa_link,line_oa_admin_id,map_embed_url').single(),
+      db.from('store_settings').select('store_name,contact_email,address,phone_main,business_hours,line_oa_id,line_oa_link,line_oa_admin_id,map_embed_url,map_share_url').single(),
     ]);
     const knowledgeContext = kb?.length
       ? '\n### คลังความรู้ร้าน (ตรวจสอบก่อนตอบทุกคำถาม):\n' +
         (kb as { question: string; answer: string }[]).map(k => `Q: ${k.question}\nA: ${k.answer}`).join('\n---\n')
       : '';
     const storeAddr = (storeInfo as any)?.address || '';
-    const mapUrl = storeAddr
-      ? `https://maps.google.com/?q=${encodeURIComponent(storeAddr)}`
-      : ((storeInfo as any)?.map_embed_url || '');
+    const mapUrl = (storeInfo as any)?.map_share_url ||
+      (storeAddr ? `https://maps.google.com/?q=${encodeURIComponent(storeAddr)}` : '');
     const lineRawId = (storeInfo as any)?.line_oa_id || (storeInfo as any)?.line_oa_admin_id || '';
     const lineHandle = lineRawId ? (lineRawId.startsWith('@') ? lineRawId : `@${lineRawId}`) : (settings?.line_oa_id || '@kingvision');
 
@@ -405,16 +404,15 @@ ${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจาก
           case 'get_store_info': {
             const { data } = await db
               .from('store_settings')
-              .select('store_name, contact_email, address, phone_main, business_hours, line_oa_id, line_oa_link, line_oa_admin_id, map_embed_url')
+              .select('store_name, contact_email, address, phone_main, business_hours, line_oa_id, line_oa_link, line_oa_admin_id, map_embed_url, map_share_url')
               .single();
             if (!data) return '{}';
             const lineId = (data as any).line_oa_id || (data as any).line_oa_admin_id || '';
             const lineHandle2 = lineId ? (lineId.startsWith('@') ? lineId : `@${lineId}`) : '';
             const lineLink = (data as any).line_oa_link || (lineHandle2 ? `https://line.me/R/ti/p/${lineHandle2}` : '');
             const addr2 = (data as any).address || '';
-            const mapUrl2 = addr2
-              ? `https://maps.google.com/?q=${encodeURIComponent(addr2)}`
-              : ((data as any).map_embed_url || '');
+            const mapUrl2 = (data as any).map_share_url ||
+              (addr2 ? `https://maps.google.com/?q=${encodeURIComponent(addr2)}` : '');
             return JSON.stringify({
               ...data,
               line_oa_id: lineHandle2,

@@ -52,6 +52,7 @@ interface StoreSettings {
   email_sales?: string;
   business_hours?: string;
   map_embed_url?: string;
+  map_share_url?: string;
   // AI settings
   ai_provider?: 'gemini' | 'openai' | 'anthropic';
   ai_model?: string;
@@ -109,6 +110,7 @@ export function AdminSettings() {
     email_sales: '',
     business_hours: 'จันทร์ - เสาร์: 09:00 - 18:00 น.\nหยุดวันอาทิตย์และวันหยุดนักขัตฤกษ์',
     map_embed_url: '',
+    map_share_url: '',
     payment_methods: [
       { id: '1', name: 'PromptPay', description: 'ชำระผ่าน QR Code', enabled: true, type: 'promptpay', details: '081-234-5678' },
       { id: '2', name: 'Bank Transfer', description: 'โอนเงินผ่านธนาคาร', enabled: true, type: 'bank', details: 'ธนาคารกสิกรไทย\nเลขที่บัญชี: 123-4-56789-0\nชื่อบัญชี: บจก. คิงวิชั่น' }
@@ -621,7 +623,20 @@ export function AdminSettings() {
             </div>
             <div className="md:col-span-2 space-y-1.5">
               <label className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
-                <MapPin size={12} /> Google Maps Embed URL
+                <MapPin size={12} /> Google Maps Share URL (สำหรับ Chatbot)
+              </label>
+              <input
+                type="url"
+                value={settings.map_share_url || ''}
+                onChange={(e) => setSettings({ ...settings, map_share_url: e.target.value })}
+                placeholder="https://maps.app.goo.gl/xxxxxxx"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
+              />
+              <p className="text-[11px] text-gray-400">ลิงก์สั้นสำหรับบอทแนบในการสนทนา: Google Maps → <strong>Share</strong> → คัดลอกลิงก์ (จะได้ maps.app.goo.gl/...)</p>
+            </div>
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                <MapPin size={12} /> Google Maps Embed URL (สำหรับแสดงแผนที่บนเว็บ)
               </label>
               <input
                 type="url"
@@ -630,8 +645,7 @@ export function AdminSettings() {
                 placeholder="https://www.google.com/maps/embed?pb=..."
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-kv-orange outline-none font-bold text-kv-navy transition-all"
               />
-              <p className="text-[11px] text-gray-400">⚠️ ต้องใช้ <strong>Embed URL</strong> เท่านั้น: Google Maps → Share → <strong>Embed a map</strong> → คัดลอก URL จาก src="..." (ไม่ใช่ลิงก์แชร์ทั่วไป)</p>
-              <p className="text-[11px] text-blue-500 font-bold">หากใส่ลิงก์แชร์ธรรมดา (maps.app.goo.gl หรือ goo.gl) จะแสดงเป็นปุ่ม "เปิดใน Google Maps" แทน</p>
+              <p className="text-[11px] text-gray-400">Google Maps → Share → <strong>Embed a map</strong> → คัดลอก URL จาก src="..."</p>
             </div>
           </div>
         </div>

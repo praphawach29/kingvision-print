@@ -289,7 +289,7 @@ async function buildSystemPrompt(settings: any, db: any): Promise<string> {
   // Load knowledge base + store contact info in parallel
   const [{ data: kb }, { data: storeInfo }] = await Promise.all([
     db.from('ai_knowledge_base').select('question, answer').eq('is_active', true).order('sort_order').limit(25),
-    db.from('store_settings').select('store_name,phone_main,business_hours,line_oa_id,line_oa_link,line_oa_admin_id,address,contact_email,map_embed_url').single(),
+    db.from('store_settings').select('store_name,phone_main,business_hours,line_oa_id,line_oa_link,line_oa_admin_id,address,contact_email,map_embed_url,map_share_url').single(),
   ]);
   const knowledgeContext = kb?.length
     ? '\n### คลังความรู้ร้าน (ตอบตามนี้ก่อน):\n' +
@@ -300,9 +300,8 @@ async function buildSystemPrompt(settings: any, db: any): Promise<string> {
   const lineOaLink = storeInfo?.line_oa_link || `https://line.me/R/ti/p/${lineOaId}`;
   const storePhone = storeInfo?.phone_main || '';
   const storeAddress = storeInfo?.address || '';
-  const mapUrl = storeAddress
-    ? `https://maps.google.com/?q=${encodeURIComponent(storeAddress)}`
-    : (storeInfo?.map_embed_url || '');
+  const mapUrl = storeInfo?.map_share_url ||
+    (storeAddress ? `https://maps.google.com/?q=${encodeURIComponent(storeAddress)}` : '');
 
   return `คุณคือ "${personaName}" พนักงานขายมืออาชีพของร้าน KingVision Print (คิงวิชั่น พริ้นท์)
 คุณเชี่ยวชาญด้านเครื่องพิมพ์และอุปกรณ์สำนักงานมากกว่า 10 ปี มีความรู้ด้านเทคนิคอย่างลึกซึ้ง
@@ -432,16 +431,15 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
 
         case 'get_store_info': {
           const { data } = await db.from('store_settings')
-            .select('store_name,contact_email,address,phone_main,business_hours,line_oa_id,line_oa_link,line_oa_admin_id,map_embed_url')
+            .select('store_name,contact_email,address,phone_main,business_hours,line_oa_id,line_oa_link,line_oa_admin_id,map_embed_url,map_share_url')
             .single();
           if (!data) return '{}';
           const lineRawId = (data as any).line_oa_id || (data as any).line_oa_admin_id || '';
           const lineOaId = lineRawId ? (String(lineRawId).startsWith('@') ? String(lineRawId) : `@${lineRawId}`) : '';
           const lineOaLink = (data as any).line_oa_link || (lineOaId ? `https://line.me/R/ti/p/${lineOaId}` : '');
           const addr = (data as any).address || '';
-          const mapUrl = addr
-            ? `https://maps.google.com/?q=${encodeURIComponent(addr)}`
-            : ((data as any).map_embed_url || '');
+          const mapUrl = (data as any).map_share_url ||
+            (addr ? `https://maps.google.com/?q=${encodeURIComponent(addr)}` : '');
           return JSON.stringify({
             ...data,
             line_oa_id: lineOaId,
