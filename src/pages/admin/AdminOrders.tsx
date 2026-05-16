@@ -648,7 +648,7 @@ export function AdminOrders() {
                             </a>
 
                             {/* Confirm payment button */}
-                            {selectedOrder.status === 'pending' && (
+                            {(selectedOrder.status === 'pending' || selectedOrder.status === 'processing') && (
                               <button
                                 disabled={isUpdating}
                                 onClick={() => handleUpdateStatus(selectedOrder.id, 'processing')}
