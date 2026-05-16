@@ -293,6 +293,63 @@ export const lineFlexTemplates = {
   },
 
   /**
+   * Shipped / Tracking Number notification — sent to customer via LINE push
+   */
+  shippedCustomer: (orderRef: string, trackingNumber: string, shippingProvider: string, customerName: string, siteUrl: string = 'https://kingvision-print.vercel.app') => {
+    const providerLabel = shippingProvider || 'ผู้ให้บริการขนส่ง';
+    return {
+      type: 'bubble',
+      header: {
+        type: 'box', layout: 'vertical',
+        backgroundColor: '#7c3aed', paddingAll: 'md',
+        contents: [
+          { type: 'text', text: '📦 สินค้าถูกจัดส่งแล้ว!', color: '#ffffff', weight: 'bold', size: 'lg' },
+          { type: 'text', text: `ออเดอร์ #${orderRef}`, color: '#ede9fe', size: 'xs' },
+        ],
+      },
+      body: {
+        type: 'box', layout: 'vertical', spacing: 'md', paddingAll: 'lg',
+        contents: [
+          {
+            type: 'text',
+            text: `สวัสดีคุณ${customerName} ครับ/ค่ะ`,
+            color: '#0f1d33', size: 'sm', wrap: true,
+          },
+          {
+            type: 'text',
+            text: 'สินค้าของคุณได้ถูกจัดส่งเรียบร้อยแล้ว ✨',
+            color: '#555555', size: 'sm', wrap: true,
+          },
+          { type: 'separator', margin: 'md' },
+          {
+            type: 'box', layout: 'baseline', spacing: 'sm', margin: 'md',
+            contents: [
+              { type: 'text', text: 'ขนส่ง', color: '#aaaaaa', size: 'sm', flex: 3 },
+              { type: 'text', text: providerLabel, color: '#0f1d33', size: 'sm', flex: 7, weight: 'bold' },
+            ],
+          },
+          {
+            type: 'box', layout: 'baseline', spacing: 'sm',
+            contents: [
+              { type: 'text', text: 'เลขพัสดุ', color: '#aaaaaa', size: 'sm', flex: 3 },
+              { type: 'text', text: trackingNumber, color: '#7c3aed', size: 'sm', flex: 7, weight: 'bold' },
+            ],
+          },
+        ],
+      },
+      footer: {
+        type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: 'md',
+        contents: [
+          {
+            type: 'button', style: 'primary', color: '#7c3aed',
+            action: { type: 'uri', label: '🔍 ตรวจสอบสถานะ', uri: `${siteUrl}/account?tab=orders` },
+          },
+        ],
+      },
+    };
+  },
+
+  /**
    * Status Update Flex Message Template (Can be used for customers)
    */
   statusUpdate: (orderId: string, statusLabel: string, color: string = "#eb6c00") => {

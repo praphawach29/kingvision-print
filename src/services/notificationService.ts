@@ -12,17 +12,15 @@ export const notificationService = {
       if (error || !settings?.line_oa_channel_token || !settings?.line_oa_admin_id) return;
 
       console.log('Sending LINE OA Flex Messages');
-      
+
       // Call our backend proxy
       const response = await fetch('/api/line-notify', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: settings.line_oa_admin_id,
           channelAccessToken: settings.line_oa_channel_token,
-          messages: messages
+          messages,
         })
       });
 
@@ -32,6 +30,50 @@ export const notificationService = {
       }
     } catch (err) {
       console.error('Error sending LINE OA notification:', err);
+    }
+  },
+
+  async sendLineMessageTo(lineUserId: string, messages: any[]) {
+    try {
+      const { data: settings } = await supabase
+        .from('store_settings')
+        .select('line_oa_channel_token')
+        .single();
+      if (!settings?.line_oa_channel_token) return;
+      await fetch('/api/line-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: lineUserId, channelAccessToken: settings.line_oa_channel_token, messages }),
+      });
+    } catch (err) {
+      console.error('Error sending LINE message to customer:', err);
+    }
+  },
+
+  async notifyShipped(orderId: string, orderRef: string, trackingNumber: string, shippingProvider: string, customerPhone: string, customerName: string) {
+    try {
+      const { lineFlexTemplates } = await import('./lineFlexTemplates');
+      const siteUrl = (import.meta as any).env?.VITE_SITE_URL || 'https://kingvision-print.vercel.app';
+
+      // Look up customer's LINE userId by phone number from line_leads
+      const { data: lead } = await supabase
+        .from('line_leads')
+        .select('user_id')
+        .eq('phone', customerPhone)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (lead?.user_id) {
+        const flexData = lineFlexTemplates.shippedCustomer(orderRef, trackingNumber, shippingProvider, customerName, siteUrl);
+        await this.sendLineMessageTo(lead.user_id, [{
+          type: 'flex',
+          altText: `📦 สินค้าของคุณถูกจัดส่งแล้ว! เลขพัสดุ: ${trackingNumber}`,
+          contents: flexData,
+        }]);
+      }
+    } catch (err) {
+      console.error('Error in notifyShipped:', err);
     }
   },
 

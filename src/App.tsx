@@ -59,6 +59,7 @@ const AdminQuotation  = lazyWithRetry(() => import('./pages/admin/AdminQuotation
 const AdminInvoice    = lazyWithRetry(() => import('./pages/admin/AdminInvoice').then(m => ({ default: m.AdminInvoice })));
 const AdminDeliveryOrder = lazyWithRetry(() => import('./pages/admin/AdminDeliveryOrder').then(m => ({ default: m.AdminDeliveryOrder })));
 const AdminJobCard    = lazyWithRetry(() => import('./pages/admin/AdminJobCard').then(m => ({ default: m.AdminJobCard })));
+const AdminLeads      = lazyWithRetry(() => import('./pages/admin/AdminLeads').then(m => ({ default: m.AdminLeads })));
 
 function PageLoader() {
   return (
@@ -162,6 +163,7 @@ export default function App() {
                       <Route path="invoice" element={<AdminInvoice />} />
                       <Route path="delivery" element={<AdminDeliveryOrder />} />
                       <Route path="jobcard" element={<AdminJobCard />} />
+                      <Route path="leads" element={<AdminLeads />} />
                       <Route path="settings" element={<AdminSettings />} />
                       <Route path="*" element={<AdminDashboard />} />
                     </Route>

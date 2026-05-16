@@ -217,7 +217,18 @@ export function AdminOrders() {
       // Send notification
       const orderToNotify = orders.find(o => o.id === orderId);
       await notificationService.notifyStatusUpdate(orderId, newStatus, orderToNotify?.user_id);
-      
+
+      // Notify customer on LINE when tracking number is saved
+      const savedTracking = trackingNumber || orderToNotify?.tracking_number;
+      if (savedTracking && orderToNotify) {
+        const phone = orderToNotify.shipping_data?.phone || orderToNotify.phone || '';
+        const firstName = orderToNotify.shipping_data?.firstName || '';
+        const lastName = orderToNotify.shipping_data?.lastName || '';
+        const name = [firstName, lastName].filter(Boolean).join(' ') || orderToNotify.profiles?.full_name || 'ลูกค้า';
+        const ref = orderId.slice(0, 8).toUpperCase();
+        notificationService.notifyShipped(orderId, ref, savedTracking, shippingProvider || orderToNotify.shipping_provider || '', phone, name);
+      }
+
       if (newStatus !== 'shipped') {
         setTrackingNumber('');
       }
