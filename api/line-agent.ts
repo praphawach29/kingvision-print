@@ -289,7 +289,7 @@ async function buildSystemPrompt(settings: any, db: any): Promise<string> {
   // Load knowledge base + store contact info in parallel
   const [{ data: kb }, { data: storeInfo }] = await Promise.all([
     db.from('ai_knowledge_base').select('question, answer').eq('is_active', true).order('sort_order').limit(25),
-    db.from('store_settings').select('store_name,phone_main,business_hours,line_oa_id,line_oa_link,line_oa_admin_id,address,contact_email').single(),
+    db.from('store_settings').select('store_name,phone_main,business_hours,line_oa_id,line_oa_link,line_oa_admin_id,address,contact_email,map_embed_url').single(),
   ]);
   const knowledgeContext = kb?.length
     ? '\n### คลังความรู้ร้าน (ตอบตามนี้ก่อน):\n' +
@@ -299,6 +299,10 @@ async function buildSystemPrompt(settings: any, db: any): Promise<string> {
   const lineOaId   = String(lineRawId).startsWith('@') ? String(lineRawId) : `@${lineRawId}`;
   const lineOaLink = storeInfo?.line_oa_link || `https://line.me/R/ti/p/${lineOaId}`;
   const storePhone = storeInfo?.phone_main || '';
+  const storeAddress = storeInfo?.address || '';
+  const mapUrl = storeAddress
+    ? `https://maps.google.com/?q=${encodeURIComponent(storeAddress)}`
+    : (storeInfo?.map_embed_url || '');
 
   return `คุณคือ "${personaName}" พนักงานขายมืออาชีพของร้าน KingVision Print (คิงวิชั่น พริ้นท์)
 คุณเชี่ยวชาญด้านเครื่องพิมพ์และอุปกรณ์สำนักงานมากกว่า 10 ปี มีความรู้ด้านเทคนิคอย่างลึกซึ้ง
@@ -346,6 +350,10 @@ ${styleGuide}
 - เครื่องปริ้นเตอร์ → แนะนำหมึกพิมพ์ที่ใช้ร่วมกันได้ (แบรนด์เดียวกันก่อน)
 - พูดแบบเป็นธรรมชาติ เช่น "อ้อ แล้วก็อย่าลืมหมึกด้วยนะครับ เผื่อหมดเร็ว 🖨️"
 
+### คลังความรู้ร้าน (ตรวจสอบก่อนตอบทุกคำถาม):
+${knowledgeContext ? knowledgeContext.trim() : 'ยังไม่มีข้อมูลในคลังความรู้'}
+- **ก่อนตอบทุกคำถาม ให้ตรวจสอบคลังความรู้ด้านบนก่อนเสมอ ถ้าพบคำตอบที่ตรงกัน ให้ตอบตามนั้นทันที**
+
 ### กฎสำคัญ:
 - **เมื่อลูกค้าถามราคา หรือถามสินค้ารุ่นใดก็ตาม ให้เรียก search_products ทันที** อย่าตอบหรืออ้างว่าไม่มีข้อมูลโดยไม่ค้นหาก่อน
 - เมื่อแนะนำสินค้า ให้ใช้ product_url จาก tool เสมอ รูปแบบ: [ชื่อสินค้า](product_url)
@@ -353,17 +361,20 @@ ${styleGuide}
 - ถ้าลูกค้าอยากสั่งซื้อ ให้เรียก add_to_cart เพื่อส่งลิงก์สั่งซื้อให้
 - ถ้าลูกค้าอยากได้ใบเสนอราคาหรือให้โทรกลับ ให้เรียก save_lead
 - **ห้ามเดา LINE ID, เบอร์โทร หรือข้อมูลติดต่อร้าน** ให้ใช้ข้อมูลด้านล่างเท่านั้น
+- **เมื่อลูกค้าถามที่อยู่หรือเส้นทางมาร้าน ให้แนบลิงก์ Google Maps เสมอ**
 
 ### ข้อมูลติดต่อร้าน (ใช้ข้อมูลนี้เสมอ ห้ามเดา):
 - LINE OA: ${lineOaId}${lineOaLink ? ` (${lineOaLink})` : ''}
 ${storePhone ? `- โทร: ${storePhone}` : ''}
+${storeAddress ? `- ที่อยู่: ${storeAddress}` : ''}
+${mapUrl ? `- Google Maps: ${mapUrl}` : ''}
 
 ### เกี่ยวกับร้าน KingVision Print:
 - เชี่ยวชาญ Dot Matrix (Epson LQ series) และ Laser Printer ทุกแบรนด์
 - แบรนด์หลัก: HP, Epson, Canon, Brother, Samsung
 - มีทั้งมือหนึ่งและมือสอง (มือสองผ่านการ QC แล้ว มีประกัน)
 - ออกใบกำกับภาษีได้ จัดส่งทั่วประเทศ Kerry/Flash Express
-${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจากเจ้าของร้าน:\n${settings.ai_system_prompt}` : ''}${knowledgeContext}`;
+${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจากเจ้าของร้าน:\n${settings.ai_system_prompt}` : ''}`;
 }
 
 // ── Tool executor ─────────────────────────────────────────────────────────────
@@ -419,16 +430,21 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
 
         case 'get_store_info': {
           const { data } = await db.from('store_settings')
-            .select('store_name,contact_email,address,phone_main,business_hours,line_oa_id,line_oa_link,line_oa_admin_id')
+            .select('store_name,contact_email,address,phone_main,business_hours,line_oa_id,line_oa_link,line_oa_admin_id,map_embed_url')
             .single();
           if (!data) return '{}';
           const lineRawId = (data as any).line_oa_id || (data as any).line_oa_admin_id || '';
           const lineOaId = lineRawId ? (String(lineRawId).startsWith('@') ? String(lineRawId) : `@${lineRawId}`) : '';
           const lineOaLink = (data as any).line_oa_link || (lineOaId ? `https://line.me/R/ti/p/${lineOaId}` : '');
+          const addr = (data as any).address || '';
+          const mapUrl = addr
+            ? `https://maps.google.com/?q=${encodeURIComponent(addr)}`
+            : ((data as any).map_embed_url || '');
           return JSON.stringify({
             ...data,
             line_oa_id: lineOaId,
             line_oa_link: lineOaLink,
+            map_url: mapUrl,
           });
         }
 
