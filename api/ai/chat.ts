@@ -218,32 +218,6 @@ export default async function handler(req: any, res: any) {
       return res.json({ text: 'ขออภัยครับ ระบบแชตบอทปิดอยู่ชั่วคราว กรุณาติดต่อเจ้าหน้าที่ผ่าน LINE ครับ', cartActions: [] });
     }
 
-    // Always answer contact/address questions from store_settings directly.
-    const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
-    const normalized = String(lastUserMessage).toLowerCase();
-    const asksStoreInfo =
-      /ที่อยู่|ที่ตั้ง|ที่ตั้งร้าน|address|location|map|แผนที่|เปิด|ปิด|เวลาทำการ|เวลาเปิด|เวลาปิด|hours|ติดต่อ|contact|line|โทร|phone|email/.test(normalized);
-    if (asksStoreInfo) {
-      const storeName = (settings as any)?.store_name || 'KingVision Print';
-      const address = (settings as any)?.address || '-';
-      const email = (settings as any)?.contact_email || '-';
-      const phone = (settings as any)?.phone_main || '-';
-      const hours = (settings as any)?.business_hours || '-';
-      const lineId = (settings as any)?.line_oa_id || (settings as any)?.line_oa_admin_id || '';
-      const lineHandle = lineId ? (lineId.startsWith('@') ? lineId : `@${lineId}`) : '';
-      const lineLink = (settings as any)?.line_oa_link || (lineHandle ? `https://line.me/R/ti/p/${lineHandle}` : '-');
-      const lines = [
-        `ชื่อร้าน: ${storeName}`,
-        `ที่อยู่: ${address}`,
-        `เบอร์โทร: ${phone}`,
-        `อีเมล: ${email}`,
-        `เวลาทำการ: ${hours}`,
-        `LINE OA: ${lineHandle || '-'}`,
-        `ลิงก์ LINE: ${lineLink}`,
-      ];
-      return res.json({ text: lines.join('\n'), cartActions: [] });
-    }
-
     const provider    = ((settings?.ai_provider as string) || 'gemini').toLowerCase() as 'gemini' | 'openai' | 'anthropic';
     // Remap deprecated / unavailable Gemini model names automatically
     const rawModel    = (settings?.ai_model as string) || 'gemini-2.5-flash';
@@ -385,7 +359,7 @@ ${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจาก
           case 'search_products': {
             let q = db.from('products')
               .select('id, title, price, brand, category, stock, image_url, condition')
-              .eq('is_active', true);
+              .neq('is_active', false);
             if (args.query) {
               const terms = String(args.query).trim().split(/\s+/).filter(Boolean);
               const orParts = terms.flatMap((t: string) => [

@@ -435,7 +435,7 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
         case 'search_products': {
           let q = db.from('products')
             .select('id,title,price,brand,category,stock,image_url,condition')
-            .eq('is_active', true);
+            .neq('is_active', false);
           if (args.query) {
             const terms = String(args.query).trim().split(/\s+/).filter(Boolean);
             const orParts = terms.flatMap((t: string) => [
@@ -505,8 +505,8 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
 
         case 'get_categories_and_brands': {
           const [{ data: cats }, { data: brands }] = await Promise.all([
-            db.from('products').select('category').eq('is_active', true),
-            db.from('products').select('brand').eq('is_active', true),
+            db.from('products').select('category').neq('is_active', false),
+            db.from('products').select('brand').neq('is_active', false),
           ]);
           return JSON.stringify({
             categories: [...new Set((cats ?? []).map((c: any) => c.category).filter(Boolean))],
