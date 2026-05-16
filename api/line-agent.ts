@@ -109,7 +109,7 @@ const TOOL_DECLARATIONS = [
   },
   {
     name: 'save_lead',
-    description: 'บันทึกข้อมูลลูกค้าที่ต้องการให้แอดมินติดต่อกลับ หรืออยากได้ใบเสนอราคา',
+    description: 'บันทึกข้อมูลลูกค้าที่ต้องการให้แอดมินติดต่อกลับ',
     parameters: {
       type: 'object',
       properties: {
@@ -117,6 +117,32 @@ const TOOL_DECLARATIONS = [
         interest: { type: 'string', description: 'สินค้าหรือบริการที่สนใจ' },
         message:  { type: 'string', description: 'รายละเอียดเพิ่มเติม' },
       },
+    },
+  },
+  {
+    name: 'create_quotation',
+    description: 'สร้างใบเสนอราคาให้ลูกค้าทันที ใช้เมื่อลูกค้าตกลงสินค้าที่ต้องการแล้วและให้ชื่อ+เบอร์โทรแล้ว — ต้องมี productId จาก search_products ก่อนเสมอ',
+    parameters: {
+      type: 'object',
+      properties: {
+        customerName:    { type: 'string', description: 'ชื่อลูกค้าหรือชื่อบริษัท' },
+        customerPhone:   { type: 'string', description: 'เบอร์โทรลูกค้า' },
+        customerCompany: { type: 'string', description: 'ชื่อบริษัท (ถ้ามี)' },
+        items: {
+          type: 'array',
+          description: 'รายการสินค้าที่ต้องการ',
+          items: {
+            type: 'object',
+            properties: {
+              productId: { type: 'string', description: 'id สินค้าจาก search_products' },
+              quantity:  { type: 'number', description: 'จำนวนที่ต้องการ' },
+            },
+            required: ['productId', 'quantity'],
+          },
+        },
+        notes: { type: 'string', description: 'หมายเหตุ เช่น ต้องการใบกำกับภาษี' },
+      },
+      required: ['customerName', 'customerPhone', 'items'],
     },
   },
 ];
@@ -254,7 +280,13 @@ const MAX_HISTORY = 12;
 async function loadHistory(userId: string, db: any) {
   try {
     const { data } = await db.from('line_sessions').select('messages').eq('user_id', userId).single();
-    return (data?.messages as any[]) || [];
+    const messages = (data?.messages as any[]) || [];
+    // Strip stale model turns that contain hallucinated error phrases — prevents repeat errors
+    return messages.filter((m: any) => {
+      if (m.role !== 'model') return true;
+      const t = (m.parts?.[0]?.text || '').toLowerCase();
+      return !/ระบบค้นหา.*ไม่|ระบบขัดข้อง|ไม่สามารถเข้าถึงฐานข้อมูล|โทรถามเจ้าหน้าที่/.test(t);
+    });
   } catch { return []; }
 }
 
@@ -333,12 +365,25 @@ ${styleGuide}
 - ใช้ emoji พอดี ไม่มากเกินไป เช่น 🖨️ ✅ 💡 📦
 - ถ้าไม่รู้ข้อมูลสินค้า ให้ค้นหาก่อนตอบเสมอ อย่าเดา
 
+### กฎเหล็ก — ห้ามละเมิดเด็ดขาด:
+- **ห้ามพูดว่า "ระบบค้นหาไม่ได้", "ระบบขัดข้อง", "ไม่สามารถเข้าถึงฐานข้อมูล", "โทรถามเจ้าหน้าที่"** เมื่อลูกค้าถามสินค้า/ราคา
+- **ทุกคำถามเกี่ยวกับสินค้าหรือราคา = ต้องเรียก search_products ก่อนเสมอ ไม่มีข้อยกเว้น**
+- ถ้า search_products ไม่พบผล ให้พูดตรงๆ ว่า "ขณะนี้ยังไม่มีสินค้านี้ในร้านครับ" แล้วถามว่าสนใจอะไรเพิ่มเติม
+- ห้ามเดาราคา ห้ามอ้างว่าไม่มีข้อมูล — ให้ค้นหาเสมอ
+
 ### ความสามารถ:
-- ค้นหาและแนะนำสินค้าที่เหมาะกับความต้องการลูกค้า
-- เช็คสต็อกและราคาแบบ real-time
+- ค้นหาและแนะนำสินค้าพร้อมราคา real-time (search_products)
+- เช็คสต็อกและดูรายละเอียดสินค้า
 - ดูประวัติออเดอร์และสถานะการจัดส่ง (ใช้เบอร์โทรที่สั่งซื้อ)
-- ส่งลิงก์สั่งซื้อสินค้าให้ลูกค้า
+- ส่งลิงก์สั่งซื้อสินค้าให้ลูกค้า (add_to_cart)
+- **สร้างใบเสนอราคาให้ลูกค้าได้ทันที (create_quotation)**
 - ให้คำแนะนำเชิงเทคนิคเกี่ยวกับเครื่องพิมพ์
+
+### ขั้นตอนสร้างใบเสนอราคา (ทำตามลำดับ):
+1. ลูกค้าถามสินค้า → เรียก search_products หาสินค้าที่เหมาะสม
+2. ลูกค้าสนใจสินค้า → นำเสนอ upsell/cross-sell สั้นๆ
+3. ลูกค้าตกลงหรือขอใบเสนอราคา → ถามชื่อและเบอร์โทร (ถ้ายังไม่ได้)
+4. ได้ข้อมูลครบ → เรียก create_quotation ทันที แจ้งเลขที่และยอดรวม
 
 ### กลยุทธ์การขาย (สำคัญมาก — ทำทุกครั้ง):
 **Upsell** — เมื่อลูกค้าสนใจสินค้าใด ให้เรียก get_upsell_products เสมอ
@@ -354,11 +399,12 @@ ${knowledgeContext ? knowledgeContext.trim() : 'ยังไม่มีข้�
 - **ก่อนตอบทุกคำถาม ให้ตรวจสอบคลังความรู้ด้านบนก่อนเสมอ ถ้าพบคำตอบที่ตรงกัน ให้ตอบตามนั้นทันที**
 
 ### กฎสำคัญ:
-- **เมื่อลูกค้าถามราคา หรือถามสินค้ารุ่นใดก็ตาม ให้เรียก search_products ทันที** อย่าตอบหรืออ้างว่าไม่มีข้อมูลโดยไม่ค้นหาก่อน
+- **เมื่อลูกค้าถามราคา หรือถามสินค้ารุ่นใดก็ตาม ให้เรียก search_products ทันทีเสมอ** — ไม่มีข้อยกเว้น
 - เมื่อแนะนำสินค้า ให้ใช้ product_url จาก tool เสมอ รูปแบบ: [ชื่อสินค้า](product_url)
 - ห้ามใส่ลิงก์ Shopee, Lazada หรือเว็บภายนอก
-- ถ้าลูกค้าอยากสั่งซื้อ ให้เรียก add_to_cart เพื่อส่งลิงก์สั่งซื้อให้
-- ถ้าลูกค้าอยากได้ใบเสนอราคาหรือให้โทรกลับ ให้เรียก save_lead
+- ถ้าลูกค้าอยากสั่งซื้อ ให้เรียก add_to_cart เพื่อส่งลิงก์สั่งซื้อ
+- ถ้าลูกค้าขอใบเสนอราคา ให้เรียก create_quotation (ถามชื่อ+เบอร์ก่อนถ้ายังไม่มี)
+- ถ้าลูกค้าขอให้โทรกลับโดยไม่ขอใบเสนอราคา ให้เรียก save_lead
 - **ห้ามเดา LINE ID, เบอร์โทร หรือข้อมูลติดต่อร้าน** ให้ใช้ข้อมูลด้านล่างเท่านั้น
 - **เมื่อลูกค้าถามที่อยู่หรือเส้นทางมาร้าน ให้แนบลิงก์ Google Maps เสมอ**
 
@@ -538,6 +584,68 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
             message: args.message || null,
           }]);
           return JSON.stringify({ success: true, message: 'บันทึกข้อมูลแล้ว แอดมินจะติดต่อกลับเร็วๆ นี้ครับ' });
+        }
+
+        case 'create_quotation': {
+          const items: any[] = args.items || [];
+          if (!items.length) return 'กรุณาระบุสินค้าอย่างน้อย 1 รายการครับ';
+
+          const productIds = [...new Set(items.map((i: any) => i.productId))];
+          const { data: products, error: prodErr } = await db.from('products')
+            .select('id,title,price,brand,stock').in('id', productIds);
+
+          if (prodErr || !products?.length)
+            return 'ไม่พบสินค้าที่ระบุในระบบครับ — กรุณาค้นหาสินค้าก่อน แล้วใช้ id จากผลค้นหาเพื่อสร้างใบเสนอราคา';
+
+          const lineItems = items.map((item: any) => {
+            const prod = products.find((p: any) => p.id === item.productId);
+            if (!prod) return null;
+            const qty = Math.max(1, Number(item.quantity) || 1);
+            const unitPrice = Number(prod.price);
+            return { product_id: prod.id, title: prod.title, brand: prod.brand || '', quantity: qty, unit_price: unitPrice, subtotal: unitPrice * qty };
+          }).filter(Boolean);
+
+          const subtotal = lineItems.reduce((s: number, i: any) => s + i.subtotal, 0);
+          const vatRate = 7;
+          const vatAmount = Math.round(subtotal * vatRate / 100);
+          const total = subtotal + vatAmount;
+
+          const today = new Date();
+          const dateStr = today.toISOString().slice(0, 10);
+          const rand = Math.floor(Math.random() * 9000 + 1000);
+          const quotationNumber = `QT-${dateStr.replace(/-/g, '')}-${rand}`;
+          const validUntil = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+          const { error: qErr } = await db.from('quotations').insert([{
+            quotation_number: quotationNumber,
+            customer_name: args.customerName,
+            customer_phone: args.customerPhone || '',
+            customer_company: args.customerCompany || '',
+            items: lineItems,
+            subtotal, vat_enabled: true, vat_rate: vatRate, vat_amount: vatAmount, total,
+            notes: args.notes
+              ? `${args.notes}\n[สร้างจาก LINE โดย ${displayName}]`
+              : `สร้างจาก LINE OA โดย ${displayName}`,
+            quotation_date: dateStr,
+            valid_until: validUntil,
+            status: 'draft',
+          }]);
+
+          if (qErr) return `ไม่สามารถสร้างใบเสนอราคาได้: ${qErr.message}`;
+
+          const itemSummary = lineItems.map((i: any) =>
+            `• ${i.title}${i.brand ? ` (${i.brand})` : ''} x${i.quantity} = ฿${Number(i.subtotal).toLocaleString()}`
+          ).join('\n');
+
+          return JSON.stringify({
+            success: true,
+            quotation_number: quotationNumber,
+            items_summary: itemSummary,
+            subtotal: `฿${Number(subtotal).toLocaleString()}`,
+            vat: `฿${Number(vatAmount).toLocaleString()} (VAT 7%)`,
+            total: `฿${Number(total).toLocaleString()}`,
+            valid_until: validUntil,
+          });
         }
 
         default:
