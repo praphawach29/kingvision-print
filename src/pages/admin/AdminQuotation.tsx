@@ -279,38 +279,45 @@ export function AdminQuotation() {
     if (!q.trim()) { setSearchResults([]); return; }
     setSearching(true);
     try {
-      const words = q.trim().split(/\s+/).filter(Boolean);
+      // Normalize: strip special chars (+, -, (, ), etc.) → split into plain words
+      const words = q
+        .replace(/[+\-_()\[\]{}.,:;/\\*"']/g, ' ')
+        .split(/\s+/)
+        .map(w => w.trim())
+        .filter(w => w.length >= 2);
 
-      if (words.length === 1) {
-        // Single word — search across name, sku, category, brand
-        const w = words[0];
-        const { data } = await supabase
-          .from('products')
-          .select('id, name, price, sku, category, brand')
-          .or(`name.ilike.%${w}%,sku.ilike.%${w}%,category.ilike.%${w}%,brand.ilike.%${w}%`)
-          .limit(15);
-        setSearchResults(data || []);
-      } else {
-        // Multi-word — each word must appear somewhere in name (AND logic)
-        let query = supabase
-          .from('products')
-          .select('id, name, price, sku, category, brand');
-        for (const w of words) {
-          query = query.ilike('name', `%${w}%`);
-        }
-        const { data } = await query.limit(15);
-        // If AND gives no results, fallback to first word only
-        if (data && data.length > 0) {
-          setSearchResults(data);
-        } else {
-          const { data: fallback } = await supabase
-            .from('products')
-            .select('id, name, price, sku, category, brand')
-            .or(`name.ilike.%${words[0]}%,brand.ilike.%${words[0]}%`)
-            .limit(15);
-          setSearchResults(fallback || []);
-        }
+      if (words.length === 0) { setSearchResults([]); return; }
+
+      // Try each word as an AND condition on name (most precise)
+      let query = supabase
+        .from('products')
+        .select('id, name, price, sku, category, brand');
+      for (const w of words) {
+        query = query.ilike('name', `%${w}%`);
       }
+      const { data } = await query.limit(15);
+
+      if (data && data.length > 0) {
+        setSearchResults(data);
+        return;
+      }
+
+      // Fallback 1: first 2 words in name
+      if (words.length > 1) {
+        let q2 = supabase.from('products').select('id, name, price, sku, category, brand');
+        for (const w of words.slice(0, 2)) q2 = q2.ilike('name', `%${w}%`);
+        const { data: d2 } = await q2.limit(15);
+        if (d2 && d2.length > 0) { setSearchResults(d2); return; }
+      }
+
+      // Fallback 2: first word across name + brand + category
+      const w0 = words[0];
+      const { data: d3 } = await supabase
+        .from('products')
+        .select('id, name, price, sku, category, brand')
+        .or(`name.ilike.%${w0}%,sku.ilike.%${w0}%,brand.ilike.%${w0}%,category.ilike.%${w0}%`)
+        .limit(15);
+      setSearchResults(d3 || []);
     } catch { setSearchResults([]); }
     finally { setSearching(false); }
   }, []);
