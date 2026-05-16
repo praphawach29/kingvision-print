@@ -90,11 +90,15 @@ export function AccountPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [paymentSettings, setPaymentSettings] = useState<{
+    promptpayId?: string; bankName?: string; bankAccount?: string; bankAccountName?: string;
+  }>({});
 
   useEffect(() => {
     if (user) {
       fetchProfile();
       fetchOrders();
+      fetchPaymentSettings();
     }
   }, [user]);
 
@@ -132,6 +136,21 @@ export function AccountPage() {
       setOrders(data || []);
     } catch (error) {
       console.error('Error fetching orders:', error);
+    }
+  }
+
+  async function fetchPaymentSettings() {
+    const { data } = await supabase
+      .from('store_settings')
+      .select('promptpay_id, bank_name, bank_account, bank_account_name')
+      .single();
+    if (data) {
+      setPaymentSettings({
+        promptpayId: data.promptpay_id || undefined,
+        bankName: data.bank_name || undefined,
+        bankAccount: data.bank_account || undefined,
+        bankAccountName: data.bank_account_name || undefined,
+      });
     }
   }
 
@@ -475,14 +494,47 @@ export function AccountPage() {
                                       })()}
 
                                       {isPending && (
-                                        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 flex items-center justify-between gap-3">
-                                          <div className="flex items-center gap-2">
-                                            <CreditCard size={16} className="text-yellow-600 shrink-0" />
-                                            <span className="text-xs font-bold text-yellow-700">รอการชำระเงิน — กรุณาโอนเงินและแนบสลิปครับ</span>
+                                        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 space-y-3">
+                                          <div className="flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-2">
+                                              <CreditCard size={16} className="text-yellow-600 shrink-0" />
+                                              <span className="text-xs font-bold text-yellow-700">รอการชำระเงิน — กรุณาโอนเงินตามข้อมูลด้านล่าง</span>
+                                            </div>
+                                            <Link to="/contact" className="text-xs font-black text-yellow-700 bg-yellow-100 px-3 py-1.5 rounded-lg hover:bg-yellow-200 transition-all whitespace-nowrap">
+                                              ติดต่อร้าน
+                                            </Link>
                                           </div>
-                                          <Link to="/contact" className="text-xs font-black text-yellow-700 bg-yellow-100 px-3 py-1.5 rounded-lg hover:bg-yellow-200 transition-all whitespace-nowrap">
-                                            ติดต่อร้าน
-                                          </Link>
+                                          {(order.payment_method === 'promptpay' || order.payment_method === 'qr') && paymentSettings.promptpayId && (
+                                            <div className="bg-white rounded-xl p-3 border border-yellow-100 space-y-1">
+                                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">ข้อมูล PromptPay</p>
+                                              <div className="flex items-center justify-between gap-2">
+                                                <div>
+                                                  <p className="text-sm font-black text-kv-navy">{paymentSettings.promptpayId}</p>
+                                                  {paymentSettings.bankAccountName && <p className="text-xs text-gray-500">ชื่อบัญชี: {paymentSettings.bankAccountName}</p>}
+                                                </div>
+                                                <button onClick={() => navigator.clipboard.writeText(paymentSettings.promptpayId!)} className="text-[10px] bg-kv-navy text-white px-3 py-1.5 rounded-lg font-bold hover:bg-kv-orange transition-colors">คัดลอก</button>
+                                              </div>
+                                            </div>
+                                          )}
+                                          {(order.payment_method === 'bank_transfer' || order.payment_method === 'transfer' || order.payment_method === 'bank') && paymentSettings.bankAccount && (
+                                            <div className="bg-white rounded-xl p-3 border border-yellow-100 space-y-1">
+                                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">ข้อมูลธนาคาร</p>
+                                              {paymentSettings.bankName && <p className="text-xs font-bold text-gray-600">{paymentSettings.bankName}</p>}
+                                              <div className="flex items-center justify-between gap-2">
+                                                <div>
+                                                  <p className="text-sm font-black text-kv-navy">{paymentSettings.bankAccount}</p>
+                                                  {paymentSettings.bankAccountName && <p className="text-xs text-gray-500">ชื่อบัญชี: {paymentSettings.bankAccountName}</p>}
+                                                </div>
+                                                <button onClick={() => navigator.clipboard.writeText(paymentSettings.bankAccount!)} className="text-[10px] bg-kv-navy text-white px-3 py-1.5 rounded-lg font-bold hover:bg-kv-orange transition-colors">คัดลอก</button>
+                                              </div>
+                                            </div>
+                                          )}
+                                          {order.payment_method === 'cod' && (
+                                            <div className="bg-white rounded-xl p-3 border border-yellow-100">
+                                              <p className="text-xs font-bold text-green-700">ชำระเงินปลายทาง — ไม่ต้องโอนเงินล่วงหน้า</p>
+                                            </div>
+                                          )}
+                                          <p className="text-[10px] text-yellow-600">ยอดที่ต้องชำระ: <span className="font-black text-kv-navy">฿{order.total_amount?.toLocaleString()}</span></p>
                                         </div>
                                       )}
 

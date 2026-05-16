@@ -18,6 +18,23 @@ function paymentLabel(method: string | undefined | null) {
   return PAYMENT_LABELS[method.toLowerCase()] || method;
 }
 
+function playNotificationSound() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const gain = ctx.createGain();
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    [0, 0.15, 0.3].forEach((offset, i) => {
+      const osc = ctx.createOscillator();
+      osc.connect(gain);
+      osc.frequency.value = [880, 1100, 1320][i];
+      osc.start(ctx.currentTime + offset);
+      osc.stop(ctx.currentTime + offset + 0.13);
+    });
+  } catch { /* audio blocked */ }
+}
+
 interface OrderItem {
   id: string;
   product_id: string;
@@ -60,6 +77,7 @@ export function AdminOrders() {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [shippingProvider, setShippingProvider] = useState('');
   const [slipPreviewUrl, setSlipPreviewUrl] = useState<string | null>(null);
+  const [newOrderAlert, setNewOrderAlert] = useState<Order | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -69,6 +87,26 @@ export function AdminOrders() {
   useEffect(() => {
     fetchOrders();
   }, [currentPage, searchTerm, statusFilter]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-orders-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
+        playNotificationSound();
+        const incoming = payload.new as Order;
+        setOrders(prev => [incoming, ...prev]);
+        setTotalCount(prev => prev + 1);
+        setNewOrderAlert(incoming);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  useEffect(() => {
+    if (!newOrderAlert) return;
+    const t = setTimeout(() => setNewOrderAlert(null), 8000);
+    return () => clearTimeout(t);
+  }, [newOrderAlert]);
 
   async function fetchOrders() {
     try {
@@ -383,6 +421,29 @@ export function AdminOrders() {
         </div>
       )}
 
+      {/* New order alert toast */}
+      <AnimatePresence>
+        {newOrderAlert && (
+          <motion.div
+            initial={{ opacity: 0, y: -60 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -60 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[300] bg-kv-navy text-white rounded-2xl shadow-2xl px-6 py-4 flex items-center gap-4 min-w-[280px] max-w-sm"
+          >
+            <div className="w-10 h-10 rounded-full bg-kv-orange flex items-center justify-center shrink-0 animate-bounce">
+              <PackageCheck size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black text-kv-orange uppercase tracking-widest">ออเดอร์ใหม่!</p>
+              <p className="text-sm font-bold truncate">#{newOrderAlert.id.slice(0, 8).toUpperCase()} · ฿{newOrderAlert.total_amount?.toLocaleString()}</p>
+            </div>
+            <button onClick={() => setNewOrderAlert(null)} className="text-white/60 hover:text-white transition-colors shrink-0">
+              <XCircle size={20} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Slip Lightbox */}
       <AnimatePresence>
         {slipPreviewUrl && (
@@ -600,12 +661,24 @@ export function AdminOrders() {
                           </div>
                         </div>
                       ) : (
-                        <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 flex items-center gap-3">
-                          <Receipt size={18} className="text-yellow-500 shrink-0" />
-                          <div>
-                            <p className="text-xs font-black text-yellow-700">ยังไม่ได้รับสลิป</p>
-                            <p className="text-[11px] text-yellow-600 mt-0.5">ลูกค้ายังไม่ได้อัปโหลดสลิปการโอนเงิน</p>
+                        <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 space-y-3">
+                          <div className="flex items-center gap-3">
+                            <Receipt size={18} className="text-yellow-500 shrink-0" />
+                            <div>
+                              <p className="text-xs font-black text-yellow-700">ยังไม่ได้รับสลิป</p>
+                              <p className="text-[11px] text-yellow-600 mt-0.5">ลูกค้ายังไม่ได้อัปโหลดสลิป — อาจส่งมาทาง LINE</p>
+                            </div>
                           </div>
+                          {selectedOrder.status === 'pending' && (
+                            <button
+                              disabled={isUpdating}
+                              onClick={() => handleUpdateStatus(selectedOrder.id, 'processing')}
+                              className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-black transition-all disabled:opacity-50 shadow-lg shadow-green-200"
+                            >
+                              {isUpdating ? <Loader2 size={16} className="animate-spin" /> : <BadgeCheck size={16} />}
+                              ยืนยันรับชำระเงินแล้ว (ไม่มีสลิป)
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
