@@ -56,6 +56,9 @@ const AdminBrands     = lazyWithRetry(() => import('./pages/admin/AdminBrands').
 const AdminInventory  = lazyWithRetry(() => import('./pages/admin/AdminInventory').then(m => ({ default: m.AdminInventory })));
 const AdminBackup     = lazyWithRetry(() => import('./pages/admin/AdminBackup').then(m => ({ default: m.AdminBackup })));
 const AdminQuotation  = lazyWithRetry(() => import('./pages/admin/AdminQuotation').then(m => ({ default: m.AdminQuotation })));
+const AdminInvoice    = lazyWithRetry(() => import('./pages/admin/AdminInvoice').then(m => ({ default: m.AdminInvoice })));
+const AdminDeliveryOrder = lazyWithRetry(() => import('./pages/admin/AdminDeliveryOrder').then(m => ({ default: m.AdminDeliveryOrder })));
+const AdminJobCard    = lazyWithRetry(() => import('./pages/admin/AdminJobCard').then(m => ({ default: m.AdminJobCard })));
 
 function PageLoader() {
   return (
@@ -156,6 +159,9 @@ export default function App() {
                       <Route path="analytics" element={<AdminAnalytics />} />
                       <Route path="backup" element={<AdminBackup />} />
                       <Route path="quotation" element={<AdminQuotation />} />
+                      <Route path="invoice" element={<AdminInvoice />} />
+                      <Route path="delivery" element={<AdminDeliveryOrder />} />
+                      <Route path="jobcard" element={<AdminJobCard />} />
                       <Route path="settings" element={<AdminSettings />} />
                       <Route path="*" element={<AdminDashboard />} />
                     </Route>
