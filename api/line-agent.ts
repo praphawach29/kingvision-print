@@ -512,6 +512,7 @@ ${knowledgeContext ? '- **ถ้าพบคำตอบที่ตรงกั
 - **เมื่อลูกค้าถามที่อยู่หรือเส้นทางมาร้าน ให้แนบลิงก์ Google Maps เสมอ**
 
 ### ข้อมูลติดต่อร้าน (ใช้ข้อมูลนี้เสมอ ห้ามเดา ห้ามแต่งเอง):
+- เว็บไซต์ร้าน: ${SITE_URL}
 ${storePhone ? `- โทร: ${storePhone}` : ''}
 ${storeInfo?.contact_email ? `- อีเมล: ${storeInfo.contact_email}` : ''}
 ${storeInfo?.business_hours ? `- เวลาทำการ: ${storeInfo.business_hours}` : ''}
@@ -602,6 +603,7 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
             line_oa_id: lineOaId,
             line_oa_link: lineOaLink,
             map_url: mapUrl,
+            website_url: SITE_URL,
           });
         }
 
