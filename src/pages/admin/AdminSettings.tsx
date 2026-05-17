@@ -162,6 +162,21 @@ export function AdminSettings() {
           payment_methods: data.payment_methods || [],
           shipping_methods: data.shipping_methods || []
         });
+        // Auto-test AI connection so status shows immediately after refresh
+        if (data.ai_enabled !== false && data.ai_provider) {
+          setAiStatus({ state: 'testing' });
+          fetch('/api/ai/health', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ provider: data.ai_provider, model: data.ai_model }),
+          })
+            .then(r => r.json())
+            .then(d => setAiStatus(d.connected
+              ? { state: 'ok', provider: d.provider, model: d.model, latency: d.latency }
+              : { state: 'error', error: d.error || 'Connection failed' }
+            ))
+            .catch(err => setAiStatus({ state: 'error', error: err.message || 'Network error' }));
+        }
       }
     } catch (err: any) {
       console.error('Error fetching settings:', err);

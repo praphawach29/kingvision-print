@@ -18,11 +18,12 @@ function getSessionId(): string {
   return id;
 }
 
-// Render assistant text: handle [label](url) links, **bold**, and bare URLs
+// Render assistant text: handle **[label](url)**, [label](url), **bold**, bare URLs
 function renderMessage(text: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
-  // Priority: markdown link > bold > bare URL
-  const tokenRegex = /\[([^\]]+)\]\(((?:\/|https?:\/\/)[^)]*)\)|\*\*([^*]+)\*\*|(https?:\/\/[^\s<>"[\]()]+)/g;
+  // Priority: bold+link > plain link > bold > bare URL
+  // This prevents **[label](url)** from being swallowed by the bold pattern
+  const tokenRegex = /\*\*\[([^\]]+)\]\(((?:\/|https?:\/\/)[^)]*)\)\*\*|\[([^\]]+)\]\(((?:\/|https?:\/\/)[^)]*)\)|\*\*([^*\[]+)\*\*|(https?:\/\/[^\s<>"[\]()]+)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
   const linkCls = "text-kv-orange underline font-bold hover:text-kv-navy transition-colors";
@@ -32,19 +33,26 @@ function renderMessage(text: string): React.ReactNode[] {
       parts.push(text.slice(lastIndex, match.index));
     }
     if (match[1] !== undefined) {
-      // Markdown link [label](href)
+      // **[label](href)** — bold markdown link (Claude wraps product links in **)
       const href = match[2];
-      if (href.startsWith('/')) {
-        parts.push(<Link key={match.index} to={href} className={linkCls}>{match[1]}</Link>);
-      } else {
-        parts.push(<a key={match.index} href={href} target="_blank" rel="noopener noreferrer" className={linkCls}>{match[1]}</a>);
-      }
+      const el = href.startsWith('/')
+        ? <Link key={match.index} to={href} className={linkCls}>{match[1]}</Link>
+        : <a key={match.index} href={href} target="_blank" rel="noopener noreferrer" className={linkCls}>{match[1]}</a>;
+      parts.push(el);
     } else if (match[3] !== undefined) {
-      // Bold **text**
-      parts.push(<strong key={match.index} className="font-semibold">{match[3]}</strong>);
-    } else if (match[4] !== undefined) {
+      // [label](href) — plain markdown link
+      const href = match[4];
+      if (href.startsWith('/')) {
+        parts.push(<Link key={match.index} to={href} className={linkCls}>{match[3]}</Link>);
+      } else {
+        parts.push(<a key={match.index} href={href} target="_blank" rel="noopener noreferrer" className={linkCls}>{match[3]}</a>);
+      }
+    } else if (match[5] !== undefined) {
+      // **text** — bold (only when content has no [ to avoid capturing partial bold+links)
+      parts.push(<strong key={match.index} className="font-semibold">{match[5]}</strong>);
+    } else if (match[6] !== undefined) {
       // Bare URL
-      parts.push(<a key={match.index} href={match[4]} target="_blank" rel="noopener noreferrer" className={`${linkCls} break-all`}>{match[4]}</a>);
+      parts.push(<a key={match.index} href={match[6]} target="_blank" rel="noopener noreferrer" className={`${linkCls} break-all`}>{match[6]}</a>);
     }
     lastIndex = match.index + match[0].length;
   }
