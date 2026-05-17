@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -279,6 +279,7 @@ export function ChatAgent() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (!window.confirm('ล้างประวัติการสนทนาทั้งหมด?')) return;
                       setMessages([]);
                       setHistoryLoaded(false);
                       const localKey = LOCAL_HISTORY_KEY(user?.id ?? sessionId.current);
@@ -287,10 +288,10 @@ export function ChatAgent() {
                         supabase.from('chat_history').delete().eq('user_id', user.id).catch(() => {});
                       }
                     }}
-                    className="text-white/50 hover:text-white/80 text-[10px] font-bold transition-all"
+                    className="w-7 h-7 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all"
                     title="ล้างประวัติแชท"
                   >
-                    ล้าง
+                    <RotateCcw size={14} />
                   </button>
                 )}
                 <a
