@@ -328,12 +328,15 @@ export function ChatAgent() {
                   }`}>
                     {msg.role === 'user'
                       ? msg.content
-                      : msg.content.split('\n').map((line, i) => (
-                          <React.Fragment key={i}>
-                            {i > 0 && <br />}
-                            {renderMessage(line)}
-                          </React.Fragment>
-                        ))
+                      : msg.content
+                          // Re-join markdown links that Gemini split across lines: ]\n( → ](
+                          .replace(/\]\s*\n\s*\(/g, '](')
+                          .split('\n').map((line, i) => (
+                            <React.Fragment key={i}>
+                              {i > 0 && <br />}
+                              {renderMessage(line)}
+                            </React.Fragment>
+                          ))
                     }
                   </div>
                 </motion.div>
