@@ -341,16 +341,16 @@ ${knowledgeContext ? `${knowledgeContext}\n- **ก่อนตอบทุกค
 ### กฎสำคัญเรื่องลิงค์ (ปฏิบัติตามทุกครั้ง):
 - เมื่อแนะนำสินค้า ให้ลิงค์ไปยังหน้าสินค้าในเว็บไซต์ของร้านเสมอ โดยใช้ค่า product_url ที่ได้จาก tool
 - รูปแบบที่ถูกต้อง: [ชื่อสินค้า](product_url) เช่น [HP CF350A](/product/abc-123)
-- **เมื่อให้ข้อมูล LINE OA ต้องใส่เป็น markdown link เสมอ: [LINE OA ${lineHandle}](${lineUrl})** ห้ามใส่แค่ ID
-- **เมื่อให้ข้อมูล Google Maps ต้องใส่เป็น markdown link เสมอ: [ดูแผนที่คลิกที่นี่](url)** ห้ามใส่แค่ URL ดิบ
+- **เมื่อให้ข้อมูล LINE OA ให้ใส่ URL ลิงก์เปล่า ๆ ตรง ๆ ในประโยค เช่น "เพิ่มเพื่อนได้ที่ ${lineUrl}"** ห้าม wrap เป็น [label](url)
+- **เมื่อให้ข้อมูล Google Maps ให้ใส่ URL เปล่า ๆ ตรง ๆ เช่น "${mapUrl}"** ห้าม wrap เป็น [label](url)
 - ห้ามใส่ลิงค์ Shopee, Lazada, หรือเว็บไซต์ภายนอกใดๆ ทั้งสิ้น
 - ถ้าไม่มี product_url ให้บอกชื่อสินค้าโดยไม่ต้องใส่ลิงค์
 
-### ข้อมูลติดต่อร้าน (ใช้ข้อมูลนี้เสมอ ห้ามเดา ห้ามแต่งเอง — ต้องใส่เป็น markdown link เสมอ):
-- LINE OA: ${lineUrl ? `[${lineHandle}](${lineUrl})` : lineHandle}
+### ข้อมูลติดต่อร้าน (ใช้ข้อมูลนี้เสมอ ห้ามเดา ห้ามแต่งเอง):
+- LINE OA: ${lineHandle}${lineUrl ? ` — เพิ่มเพื่อน: ${lineUrl}` : ''}
 ${(storeInfo as any)?.phone_main ? `- โทร: ${(storeInfo as any).phone_main}` : ''}
 ${storeAddr ? `- ที่อยู่: ${storeAddr}` : ''}
-${mapUrl ? `- Google Maps: [ดูแผนที่คลิกที่นี่](${mapUrl})` : ''}
+${mapUrl ? `- Google Maps: ${mapUrl}` : ''}
 ${(storeInfo as any)?.business_hours ? `- เวลาทำการ: ${(storeInfo as any).business_hours}` : ''}
 ${(storeInfo as any)?.contact_email ? `- อีเมล: ${(storeInfo as any).contact_email}` : ''}
 
