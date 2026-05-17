@@ -121,7 +121,7 @@ const TOOL_DECLARATIONS = [
   },
   {
     name: 'create_quotation',
-    description: 'สร้างใบเสนอราคาให้ลูกค้าทันที ใช้เมื่อลูกค้าตกลงสินค้าที่ต้องการแล้วและให้ชื่อ+เบอร์โทรแล้ว — ต้องมี productId จาก search_products ก่อนเสมอ',
+    description: 'สร้างใบเสนอราคาให้ลูกค้าทันที ใช้เมื่อลูกค้าตกลงสินค้าที่ต้องการแล้วและให้ชื่อ+เบอร์โทรแล้ว ใส่ทั้ง productId และ productName เพื่อค้นหาสินค้าได้แม่นยำ',
     parameters: {
       type: 'object',
       properties: {
@@ -134,10 +134,11 @@ const TOOL_DECLARATIONS = [
           items: {
             type: 'object',
             properties: {
-              productId: { type: 'string', description: 'id สินค้าจาก search_products' },
-              quantity:  { type: 'number', description: 'จำนวนที่ต้องการ' },
+              productId:   { type: 'string', description: 'id สินค้าจาก search_products (ถ้ามี)' },
+              productName: { type: 'string', description: 'ชื่อสินค้า เช่น EPSON TM-T82ll (ใส่เสมอ เพื่อใช้ค้นหาถ้า id ไม่ตรง)' },
+              quantity:    { type: 'number', description: 'จำนวนที่ต้องการ' },
             },
-            required: ['productId', 'quantity'],
+            required: ['productName', 'quantity'],
           },
         },
         notes: { type: 'string', description: 'หมายเหตุ เช่น ต้องการใบกำกับภาษี' },
@@ -698,20 +699,50 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
           const items: any[] = args.items || [];
           if (!items.length) return 'กรุณาระบุสินค้าอย่างน้อย 1 รายการครับ';
 
-          const productIds = [...new Set(items.map((i: any) => i.productId))];
-          const { data: products, error: prodErr } = await db.from('products')
-            .select('id,title,price,brand,stock').in('id', productIds);
-
-          if (prodErr || !products?.length)
-            return 'ไม่พบสินค้าที่ระบุในระบบครับ — กรุณาค้นหาสินค้าก่อน แล้วใช้ id จากผลค้นหาเพื่อสร้างใบเสนอราคา';
-
-          const lineItems = items.map((item: any) => {
-            const prod = products.find((p: any) => p.id === item.productId);
-            if (!prod) return null;
+          // Resolve each item: try productId first, then fall back to title search
+          const resolvedItems: any[] = [];
+          for (const item of items) {
+            let prod: any = null;
             const qty = Math.max(1, Number(item.quantity) || 1);
-            const unitPrice = Number(prod.price);
-            return { product_id: prod.id, title: prod.title, brand: prod.brand || '', quantity: qty, unit_price: unitPrice, subtotal: unitPrice * qty };
-          }).filter(Boolean);
+
+            // 1) Try exact ID lookup
+            if (item.productId) {
+              const { data } = await db.from('products')
+                .select('id,title,price,brand,stock')
+                .eq('id', item.productId)
+                .single();
+              prod = data;
+            }
+
+            // 2) Fallback: search by productName if ID failed or missing
+            if (!prod && item.productName) {
+              const terms = String(item.productName).trim().split(/\s+/).filter(Boolean);
+              const orParts = terms.flatMap((t: string) => [
+                `title.ilike.%${t}%`, `brand.ilike.%${t}%`,
+              ]).join(',');
+              const { data } = await db.from('products')
+                .select('id,title,price,brand,stock')
+                .neq('is_active', false)
+                .or(orParts)
+                .order('stock', { ascending: false })
+                .limit(1)
+                .single();
+              prod = data;
+            }
+
+            if (prod) {
+              const unitPrice = Number(prod.price);
+              resolvedItems.push({
+                product_id: prod.id, title: prod.title, brand: prod.brand || '',
+                quantity: qty, unit_price: unitPrice, subtotal: unitPrice * qty,
+              });
+            }
+          }
+
+          if (!resolvedItems.length)
+            return `ไม่พบสินค้าที่ระบุในระบบครับ — ชื่อที่ส่งมา: ${items.map((i: any) => i.productName || i.productId).join(', ')} — กรุณาลองค้นหาสินค้าใหม่อีกครั้ง`;
+
+          const lineItems = resolvedItems;
 
           const subtotal = lineItems.reduce((s: number, i: any) => s + i.subtotal, 0);
           const vatRate = 7;
