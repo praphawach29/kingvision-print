@@ -49,24 +49,23 @@ export function ShopPage() {
 
   async function fetchFilters() {
     try {
-      const { data: cats } = await supabase.from('categories').select('*').order('name');
       const { data: brs } = await supabase.from('brands').select('*').order('name');
-      if (cats) setDbCategories(cats);
       if (brs) setDbBrands(brs);
 
-      // Fetch product counts for categories
-      const { data: countData, error: countError } = await supabase
+      // Load categories directly from products — always in sync with actual data
+      const { data: productCats } = await supabase
         .from('products')
-        .select('category');
-      
-      if (!countError && countData) {
+        .select('category')
+        .neq('is_active', false);
+
+      if (productCats) {
         const counts: Record<string, number> = {};
-        countData.forEach(p => {
-          if (p.category) {
-            counts[p.category] = (counts[p.category] || 0) + 1;
-          }
+        productCats.forEach(p => {
+          if (p.category) counts[p.category] = (counts[p.category] || 0) + 1;
         });
         setCategoryCounts(counts);
+        const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+        setDbCategories(sorted.map(name => ({ id: name, name })));
       }
     } catch (error) {
       console.error('Error fetching filters:', error);

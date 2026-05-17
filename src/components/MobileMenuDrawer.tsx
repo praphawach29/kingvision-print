@@ -30,11 +30,16 @@ export function MobileMenuDrawer({ isOpen, onClose }: MobileMenuDrawerProps) {
     if (isOpen && categories.length === 0) {
       setCategoriesLoading(true);
       supabase
-        .from('categories')
-        .select('id, name, image_url')
-        .order('name', { ascending: true })
+        .from('products')
+        .select('category')
+        .neq('is_active', false)
         .then(({ data }) => {
-          setCategories(data || []);
+          if (data) {
+            const counts: Record<string, number> = {};
+            data.forEach(p => { if (p.category) counts[p.category] = (counts[p.category] || 0) + 1; });
+            const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+            setCategories(sorted.map(name => ({ id: name, name })));
+          }
           setCategoriesLoading(false);
         });
     }
@@ -42,9 +47,7 @@ export function MobileMenuDrawer({ isOpen, onClose }: MobileMenuDrawerProps) {
 
   const menuItems = [
     { name: 'หน้าแรก', path: '/' },
-    { name: 'เครื่องปริ้นเตอร์', path: '/shop?category=เครื่องปริ้นเตอร์' },
-    { name: 'หมึกพิมพ์', path: '/shop?category=หมึกพิมพ์' },
-    { name: 'อะไหล่', path: '/shop?category=อะไหล่' },
+    ...categories.slice(0, 6).map(cat => ({ name: cat.name, path: `/shop?category=${encodeURIComponent(cat.name)}` })),
     { name: 'แบรนด์', path: '/brands' },
     { name: 'บทความ', path: '/blog' },
     { name: 'ติดต่อเรา', path: '/contact' },

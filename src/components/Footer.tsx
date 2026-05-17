@@ -1,10 +1,22 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Phone, Mail, Crown } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import { supabase } from '../lib/supabase';
 
 export function Footer() {
   const { settings } = useSettings();
+  const [footerCategories, setFooterCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    supabase.from('products').select('category').neq('is_active', false).then(({ data }) => {
+      if (!data) return;
+      const counts: Record<string, number> = {};
+      data.forEach(p => { if (p.category) counts[p.category] = (counts[p.category] || 0) + 1; });
+      setFooterCategories(Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 6));
+    });
+  }, []);
+
   return (
     <footer className="bg-kv-navy text-white pt-16 pb-8">
       <div className="container mx-auto px-4">
@@ -44,9 +56,9 @@ export function Footer() {
           <div>
             <h4 className="text-lg font-semibold mb-6 text-white">หมวดหมู่สินค้า</h4>
             <ul className="space-y-3 text-gray-300">
-              <li><Link to="/shop?category=เครื่องปริ้นเตอร์" className="hover:text-kv-orange transition-colors">เครื่องปริ้นเตอร์</Link></li>
-              <li><Link to="/shop?category=หมึกพิมพ์" className="hover:text-kv-orange transition-colors">หมึกพิมพ์</Link></li>
-              <li><Link to="/shop?category=อะไหล่" className="hover:text-kv-orange transition-colors">อะไหล่ปริ้นเตอร์</Link></li>
+              {footerCategories.map(cat => (
+                <li key={cat}><Link to={`/shop?category=${encodeURIComponent(cat)}`} className="hover:text-kv-orange transition-colors">{cat}</Link></li>
+              ))}
               <li><Link to="/brands" className="hover:text-kv-orange transition-colors">แบรนด์ทั้งหมด</Link></li>
             </ul>
           </div>

@@ -642,55 +642,32 @@ export function HomePage() {
           <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2">
             {[
               {
-                to: '/shop?category=เครื่องปริ้นเตอร์',
+                to: '/shop?category=Laser Printer',
                 bg: 'from-blue-900 to-blue-700',
-                badge: 'ลด 40%',
+                badge: 'ยอดนิยม',
                 badgeColor: 'bg-green-500',
-
-                title: 'เครื่องปริ้นเตอร์',
-
-                sub: 'มือสองคุณภาพสูง',
-
+                title: 'Laser Printer',
+                sub: 'ขาว-ดำ / สี ทุกแบรนด์',
                 img: 'https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=300&q=80',
-
               },
-
               {
-
                 to: '/shop?category=หมึกพิมพ์',
-
                 bg: 'from-emerald-800 to-emerald-600',
-
-                badge: 'สินค้าใหม่',
-
+                badge: 'สินค้าพร้อมส่ง',
                 badgeColor: 'bg-kv-orange',
-
                 title: 'หมึกพิมพ์',
-
-                sub: 'ทุกยี่ห้อ ทุกรุ่น',
-
+                sub: 'Toner & Ink ทุกรุ่น',
                 img: 'https://images.unsplash.com/photo-1588600878108-578307a3cc9d?w=300&q=80',
-
               },
-
               {
-
-                to: '/shop?category=อะไหล่',
-
+                to: '/shop?category=Dot Matrix',
                 bg: 'from-orange-700 to-orange-500',
-
-                badge: 'อะไหล่แท้',
-
+                badge: 'มือสอง QC แล้ว',
                 badgeColor: 'bg-red-600',
-
-                title: 'อะไหล่ & ซ่อม',
-
-                sub: 'อะไหล่ครบทุกรุ่น',
-
+                title: 'Dot Matrix',
+                sub: 'ปริ้นสลิป & เอกสาร',
                 img: 'https://images.unsplash.com/photo-1563452675059-efa1e2e7a787?w=300&q=80',
-
               },
-
             ].map((b) => (
 
               <Link

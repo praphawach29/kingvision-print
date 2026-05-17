@@ -5,12 +5,14 @@ import { useCart } from '../context/CartContext';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { NotificationBell } from './NotificationBell';
+import { supabase } from '../lib/supabase';
 
 export function Header({ onOpenMobileMenu }: { onOpenMobileMenu: () => void }) {
   const { totalItems } = useCart();
   const { settings } = useSettings();
   const { role } = useAuth();
   const [scrolled, setScrolled] = useState(false);
+  const [navCategories, setNavCategories] = useState<string[]>([]);
 
   const isAdmin = role === 'admin' || role === 'super_admin';
 
@@ -18,6 +20,15 @@ export function Header({ onOpenMobileMenu }: { onOpenMobileMenu: () => void }) {
     const onScroll = () => setScrolled(window.scrollY > 80);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    supabase.from('products').select('category').neq('is_active', false).then(({ data }) => {
+      if (!data) return;
+      const counts: Record<string, number> = {};
+      data.forEach(p => { if (p.category) counts[p.category] = (counts[p.category] || 0) + 1; });
+      setNavCategories(Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 6));
+    });
   }, []);
 
   return (
@@ -84,10 +95,8 @@ export function Header({ onOpenMobileMenu }: { onOpenMobileMenu: () => void }) {
         <div className="w-full lg:flex-1 lg:max-w-2xl lg:mx-4 mt-3 lg:mt-0 order-last lg:order-none flex">
           <div className="relative flex w-full border-2 border-kv-navy rounded-md overflow-hidden">
             <select className="bg-kv-gray px-2 lg:px-4 py-2 border-r border-kv-border outline-none hidden lg:block text-sm">
-              <option>หมวดหมู่ทั้งหมด</option>
-              <option>ปริ้นเตอร์มือสอง</option>
-              <option>หมึกพิมพ์</option>
-              <option>อะไหล่ปริ้นเตอร์</option>
+              <option value="">หมวดหมู่ทั้งหมด</option>
+              {navCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
             <input 
               type="text" 
@@ -143,19 +152,15 @@ export function Header({ onOpenMobileMenu }: { onOpenMobileMenu: () => void }) {
 
           {/* Desktop nav links */}
           <nav className="hidden lg:flex items-center gap-1 flex-1">
-            {[
-              { label: 'หน้าแรก', to: '/' },
-              { label: 'เครื่องปริ้นเตอร์', to: '/shop?category=เครื่องปริ้นเตอร์' },
-              { label: 'หมึกพิมพ์', to: '/shop?category=หมึกพิมพ์' },
-              { label: 'อะไหล่', to: '/shop?category=อะไหล่' },
-              { label: 'แบรนด์', to: '/brands' },
-              { label: 'บทความ', to: '/blog' },
-              { label: 'ติดต่อเรา', to: '/contact' },
-            ].map(({ label, to }) => (
-              <Link key={to} to={to} className="text-white/80 hover:text-kv-orange transition-colors text-sm font-medium px-3 py-1">
-                {label}
+            <Link to="/" className="text-white/80 hover:text-kv-orange transition-colors text-sm font-medium px-3 py-1">หน้าแรก</Link>
+            {navCategories.map(cat => (
+              <Link key={cat} to={`/shop?category=${encodeURIComponent(cat)}`} className="text-white/80 hover:text-kv-orange transition-colors text-sm font-medium px-3 py-1">
+                {cat}
               </Link>
             ))}
+            <Link to="/brands" className="text-white/80 hover:text-kv-orange transition-colors text-sm font-medium px-3 py-1">แบรนด์</Link>
+            <Link to="/blog" className="text-white/80 hover:text-kv-orange transition-colors text-sm font-medium px-3 py-1">บทความ</Link>
+            <Link to="/contact" className="text-white/80 hover:text-kv-orange transition-colors text-sm font-medium px-3 py-1">ติดต่อเรา</Link>
           </nav>
 
           {/* Right icons */}
@@ -178,44 +183,23 @@ export function Header({ onOpenMobileMenu }: { onOpenMobileMenu: () => void }) {
       <nav className="hidden lg:block bg-kv-navy text-white px-4 lg:px-8 relative w-full z-40">
         <ul className="flex flex-row flex-wrap items-center space-x-1">
           <li>
-            <Link to="/" className="px-4 py-4 block hover:text-kv-orange transition-colors font-medium">
-              หน้าแรก
-            </Link>
+            <Link to="/" className="px-4 py-4 block hover:text-kv-orange transition-colors font-medium">หน้าแรก</Link>
+          </li>
+          {navCategories.map(cat => (
+            <li key={cat}>
+              <Link to={`/shop?category=${encodeURIComponent(cat)}`} className="px-4 py-4 block hover:text-kv-orange transition-colors font-medium">
+                {cat}
+              </Link>
+            </li>
+          ))}
+          <li>
+            <Link to="/brands" className="px-4 py-4 block hover:text-kv-orange transition-colors font-medium">แบรนด์</Link>
           </li>
           <li>
-            <Link to="/shop?category=เครื่องปริ้นเตอร์" className="px-4 py-4 block hover:text-kv-orange transition-colors font-medium">
-              เครื่องปริ้นเตอร์
-            </Link>
+            <Link to="/blog" className="px-4 py-4 block hover:text-kv-orange transition-colors font-medium">บทความ</Link>
           </li>
           <li>
-            <Link to="/shop?category=หมึกพิมพ์" className="px-4 py-4 block hover:text-kv-orange transition-colors font-medium">
-              หมึกพิมพ์
-            </Link>
-          </li>
-          <li>
-            <Link to="/shop?category=อุปกรณ์เสริม" className="px-4 py-4 block hover:text-kv-orange transition-colors font-medium">
-              อุปกรณ์เสริม
-            </Link>
-          </li>
-          <li>
-            <Link to="/shop?category=อะไหล่" className="px-4 py-4 block hover:text-kv-orange transition-colors font-medium">
-              อะไหล่
-            </Link>
-          </li>
-          <li>
-            <Link to="/brands" className="px-4 py-4 block hover:text-kv-orange transition-colors font-medium">
-              แบรนด์
-            </Link>
-          </li>
-          <li>
-            <Link to="/blog" className="px-4 py-4 block hover:text-kv-orange transition-colors font-medium">
-              บทความ
-            </Link>
-          </li>
-          <li>
-            <Link to="/contact" className="px-4 py-4 block hover:text-kv-orange transition-colors font-medium">
-              ติดต่อเรา
-            </Link>
+            <Link to="/contact" className="px-4 py-4 block hover:text-kv-orange transition-colors font-medium">ติดต่อเรา</Link>
           </li>
           <li>
             <Link to="/track-order" className="px-4 py-4 block hover:text-kv-orange transition-colors font-medium">
