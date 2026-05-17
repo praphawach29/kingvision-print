@@ -262,6 +262,7 @@ export default async function handler(req: any, res: any) {
       (storeAddr ? `https://maps.google.com/?q=${encodeURIComponent(storeAddr)}` : '');
     const lineRawId = (storeInfo as any)?.line_oa_id || (storeInfo as any)?.line_oa_admin_id || '';
     const lineHandle = lineRawId ? (lineRawId.startsWith('@') ? lineRawId : `@${lineRawId}`) : (settings?.line_oa_id || '@kingvision');
+    const lineUrl = (storeInfo as any)?.line_oa_link || (lineHandle ? `https://line.me/ti/p/${lineHandle}` : '');
 
     // Compose system prompt
     const isFemale = gender === 'female';
@@ -307,8 +308,16 @@ ${knowledgeContext ? `${knowledgeContext}\n- **ก่อนตอบทุกค
 - **ทุกคำถามเกี่ยวกับสินค้า ราคา รุ่น หรือสต็อก = ต้องเรียก search_products ก่อนเสมอ ไม่มีข้อยกเว้น**
 - **ห้ามตอบราคา ชื่อรุ่น หรือสต็อกจากความรู้ใน training data หรือ prompt** — ข้อมูลเหล่านี้ต้องมาจาก search_products เท่านั้น
 - ห้ามพูดว่า "ขณะนี้ไม่สามารถค้นหา", "ระบบขัดข้อง", หรือ "ติดต่อเจ้าหน้าที่" เมื่อถามสินค้า
-- ถ้า search_products ไม่พบ ให้ถามความต้องการเพิ่มเติม หรือเสนอให้บันทึกความต้องการ — ห้ามบอกให้โทรหาร้าน
+- **ถ้า search_products คืนผล found:false — ห้ามระบุชื่อรุ่น ซีรีส์ หรือแบรนด์สินค้าใด ๆ จากความรู้ตัวเอง** ให้ถามลูกค้าว่าต้องการรุ่นแบบไหน หรือลองค้นหาด้วยคำอื่นแทน
 - ห้ามเดาราคา ห้ามบอกราคาโดยไม่ได้เรียก search_products
+
+### หมวดหมู่สินค้าในร้าน (ใช้ชื่อนี้ใน category parameter ของ search_products):
+- เครื่องพิมพ์เลเซอร์, เลเซอร์, Laser → category: "Laser Printer"
+- เครื่องพิมพ์ดอทเมทริกซ์, ดอท, Dot Matrix → category: "Dot Matrix"
+- เครื่องพิมพ์สลิป, ปริ้นใบเสร็จ, Slip → category: "Slip Printer"
+- หมึกพิมพ์, หมึก, Ink, Toner → category: "หมึกพิมพ์"
+- อะไหล่ปริ้นเตอร์ → category: "อะไหล่"
+- เมื่อทราบหมวดหมู่ ให้ส่ง category parameter ด้วยเสมอ เพื่อให้ search_products แม่นยำขึ้น
 
 ### ความสามารถ:
 - ค้นหาและแนะนำสินค้าพร้อมราคา real-time (search_products — ต้องเรียกทุกครั้ง)
@@ -329,17 +338,19 @@ ${knowledgeContext ? `${knowledgeContext}\n- **ก่อนตอบทุกค
 - พูดแบบเป็นธรรมชาติ เช่น "อ้อ แล้วก็อย่าลืมหมึกด้วยนะครับ เผื่อหมดเร็ว 🖨️" หรือ "เครื่องนี้ใช้หมึกรุ่น [ชื่อ] ร้านเราก็มีพอดีครับ"
 - ถ้าลูกค้าเพิ่งกด add_to_cart ให้แนะนำของ cross-sell ก่อนปิดการสนทนาเสมอ
 
-### กฎสำคัญเรื่องลิงค์สินค้า:
+### กฎสำคัญเรื่องลิงค์ (ปฏิบัติตามทุกครั้ง):
 - เมื่อแนะนำสินค้า ให้ลิงค์ไปยังหน้าสินค้าในเว็บไซต์ของร้านเสมอ โดยใช้ค่า product_url ที่ได้จาก tool
 - รูปแบบที่ถูกต้อง: [ชื่อสินค้า](product_url) เช่น [HP CF350A](/product/abc-123)
+- **เมื่อให้ข้อมูล LINE OA ต้องใส่เป็น markdown link เสมอ: [LINE OA ${lineHandle}](${lineUrl})** ห้ามใส่แค่ ID
+- **เมื่อให้ข้อมูล Google Maps ต้องใส่เป็น markdown link เสมอ: [ดูแผนที่คลิกที่นี่](url)** ห้ามใส่แค่ URL ดิบ
 - ห้ามใส่ลิงค์ Shopee, Lazada, หรือเว็บไซต์ภายนอกใดๆ ทั้งสิ้น
 - ถ้าไม่มี product_url ให้บอกชื่อสินค้าโดยไม่ต้องใส่ลิงค์
 
-### ข้อมูลติดต่อร้าน (ใช้ข้อมูลนี้เสมอ ห้ามเดา ห้ามแต่งเอง):
-- LINE OA: ${lineHandle}
+### ข้อมูลติดต่อร้าน (ใช้ข้อมูลนี้เสมอ ห้ามเดา ห้ามแต่งเอง — ต้องใส่เป็น markdown link เสมอ):
+- LINE OA: ${lineUrl ? `[${lineHandle}](${lineUrl})` : lineHandle}
 ${(storeInfo as any)?.phone_main ? `- โทร: ${(storeInfo as any).phone_main}` : ''}
 ${storeAddr ? `- ที่อยู่: ${storeAddr}` : ''}
-${mapUrl ? `- Google Maps: ${mapUrl}` : ''}
+${mapUrl ? `- Google Maps: [ดูแผนที่คลิกที่นี่](${mapUrl})` : ''}
 ${(storeInfo as any)?.business_hours ? `- เวลาทำการ: ${(storeInfo as any).business_hours}` : ''}
 ${(storeInfo as any)?.contact_email ? `- อีเมล: ${(storeInfo as any).contact_email}` : ''}
 
@@ -358,12 +369,34 @@ ${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจาก
       try {
         switch (name) {
           case 'search_products': {
+            // Thai → English term mapping so Thai queries match English category names in DB
+            const thaiToEng: Record<string, string[]> = {
+              'เลเซอร์': ['Laser', 'Laser Printer'],
+              'เครื่องพิมพ์เลเซอร์': ['Laser Printer'],
+              'ขาวดำ': ['Laser', 'Dot Matrix'],
+              'ดอท': ['Dot Matrix'],
+              'ดอทเมทริกซ์': ['Dot Matrix'],
+              'สลิป': ['Slip Printer', 'Slip'],
+              'ใบเสร็จ': ['Slip Printer'],
+              'ปริ้นสลิป': ['Slip Printer'],
+              'อิงค์เจ็ท': ['Inkjet'],
+              'อิงค์': ['Inkjet'],
+              'inkjet': ['Inkjet'],
+              'เลเซอร์สี': ['Color Laser', 'Laser'],
+            };
+
             let q = db.from('products')
               .select('id, title, price, brand, category, stock, image_url, condition')
               .neq('is_active', false);
             if (args.query) {
-              const terms = String(args.query).trim().split(/\s+/).filter(Boolean);
-              const orParts = terms.flatMap((t: string) => [
+              const queryLower = String(args.query).toLowerCase();
+              const originalTerms = String(args.query).trim().split(/\s+/).filter(Boolean);
+              const extraTerms: string[] = [];
+              for (const [thai, engList] of Object.entries(thaiToEng)) {
+                if (queryLower.includes(thai.toLowerCase())) extraTerms.push(...engList);
+              }
+              const allTerms = [...new Set([...originalTerms, ...extraTerms])];
+              const orParts = allTerms.flatMap((t: string) => [
                 `title.ilike.%${t}%`, `brand.ilike.%${t}%`, `description.ilike.%${t}%`, `category.ilike.%${t}%`
               ]).join(',');
               q = q.or(orParts);

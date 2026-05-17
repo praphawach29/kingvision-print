@@ -18,30 +18,33 @@ function getSessionId(): string {
   return id;
 }
 
-// Render assistant text: convert [label](url) markdown links into clickable elements
-function renderMessage(text: string) {
+// Render assistant text: handle [label](url) links, **bold**, and bare URLs
+function renderMessage(text: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
-  const linkRegex = /\[([^\]]+)\]\((\/[^\)]*|https?:\/\/[^\)]*)\)/g;
+  // Priority: markdown link > bold > bare URL
+  const tokenRegex = /\[([^\]]+)\]\(((?:\/|https?:\/\/)[^)]*)\)|\*\*([^*]+)\*\*|(https?:\/\/[^\s<>"[\]()]+)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
+  const linkCls = "text-kv-orange underline font-bold hover:text-kv-navy transition-colors";
 
-  while ((match = linkRegex.exec(text)) !== null) {
+  while ((match = tokenRegex.exec(text)) !== null) {
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index));
     }
-    const [, label, href] = match;
-    if (href.startsWith('/')) {
-      parts.push(
-        <Link key={match.index} to={href} className="text-kv-orange underline font-bold hover:text-kv-navy transition-colors" onClick={() => {}}>
-          {label}
-        </Link>
-      );
-    } else {
-      parts.push(
-        <a key={match.index} href={href} target="_blank" rel="noopener noreferrer" className="text-kv-orange underline font-bold hover:text-kv-navy transition-colors">
-          {label}
-        </a>
-      );
+    if (match[1] !== undefined) {
+      // Markdown link [label](href)
+      const href = match[2];
+      if (href.startsWith('/')) {
+        parts.push(<Link key={match.index} to={href} className={linkCls}>{match[1]}</Link>);
+      } else {
+        parts.push(<a key={match.index} href={href} target="_blank" rel="noopener noreferrer" className={linkCls}>{match[1]}</a>);
+      }
+    } else if (match[3] !== undefined) {
+      // Bold **text**
+      parts.push(<strong key={match.index} className="font-semibold">{match[3]}</strong>);
+    } else if (match[4] !== undefined) {
+      // Bare URL
+      parts.push(<a key={match.index} href={match[4]} target="_blank" rel="noopener noreferrer" className={`${linkCls} break-all`}>{match[4]}</a>);
     }
     lastIndex = match.index + match[0].length;
   }
