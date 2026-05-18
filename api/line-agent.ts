@@ -178,12 +178,14 @@ function toGeminiResponse(resultStr: string): Record<string, any> {
 }
 
 const GEMINI_REMAP: Record<string, string> = {
-  'gemini-1.5-flash':     'gemini-2.5-flash',
-  'gemini-1.5-flash-8b':  'gemini-2.0-flash-lite',
-  'gemini-1.5-pro':       'gemini-2.5-pro',
-  'gemini-2.0-flash':     'gemini-2.5-flash',
-  'gemini-2.0-flash-exp': 'gemini-2.5-flash',
-  'gemini-pro':           'gemini-2.5-flash',
+  'gemini-1.5-flash':      'gemini-2.5-flash',
+  'gemini-1.5-flash-8b':   'gemini-2.0-flash-lite',
+  'gemini-1.5-pro':        'gemini-2.5-pro',
+  'gemini-2.0-flash':      'gemini-2.5-flash',
+  'gemini-2.0-flash-exp':  'gemini-2.5-flash',
+  'gemini-2.0-flash-001':  'gemini-2.5-flash',
+  'gemini-2.0-flash-lite': 'gemini-2.0-flash-lite',
+  'gemini-pro':            'gemini-2.5-flash',
 };
 const remapModel = (m: string) => GEMINI_REMAP[m] ?? m;
 
@@ -510,7 +512,8 @@ category ที่ใช้ใน search_products: "Slip Printer", "Dot Matrix",
 6. ท้ายสนทนา: ถามว่า "ต้องการใบเสนอราคา หรือสั่งซื้อผ่านเว็บได้เลยไหมครับ?"
 
 ### ใบเสนอราคา:
-- ลูกค้าขอใบเสนอราคา → ถามชื่อและเบอร์โทร (ถ้ายังไม่มี) → เรียก create_quotation ทันที
+- **ขั้นตอนที่ถูกต้อง: ถามชื่อ+เบอร์ → เรียก search_products เพื่อหา productId ที่ถูกต้อง → เรียก create_quotation พร้อม productId นั้น**
+- **ห้ามใช้ productId จากการสนทนาก่อนหน้า** — ต้อง search ใหม่เสมอเพื่อให้ได้สินค้าที่ถูกต้อง
 - ระบบจะส่งการ์ดใบเสนอราคาให้ลูกค้าอัตโนมัติ ไม่ต้องอธิบายรายละเอียดซ้ำ
 
 ${knowledgeContext ? `### คลังความรู้ร้าน (ตรวจสอบก่อนตอบทุกคำถาม):\n${knowledgeContext.trim()}\n- **ถ้าพบคำตอบที่ตรงกัน ให้ตอบตามนั้นทันที**\n` : ''}
@@ -753,20 +756,53 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
               prod = data;
             }
 
-            // 2) Fallback: search by productName if ID failed or missing
+            // 2) Fallback: search by productName using full phrase first, then by key terms
             if (!prod && item.productName) {
-              const terms = String(item.productName).trim().split(/\s+/).filter(Boolean);
-              const orParts = terms.flatMap((t: string) => [
-                `title.ilike.%${t}%`, `brand.ilike.%${t}%`,
-              ]).join(',');
-              const { data } = await db.from('products')
+              const name = String(item.productName).trim();
+
+              // 2a) Exact phrase match in title (most precise)
+              const { data: exact } = await db.from('products')
                 .select('id,title,price,brand,stock')
                 .neq('is_active', false)
-                .or(orParts)
+                .ilike('title', `%${name}%`)
                 .order('stock', { ascending: false })
                 .limit(1)
-                .single();
-              prod = data;
+                .maybeSingle();
+              prod = exact;
+
+              // 2b) Fallback: AND all non-trivial terms (≥3 chars) in title
+              if (!prod) {
+                const terms = name.split(/\s+/).filter(t => t.length >= 3);
+                if (terms.length > 0) {
+                  let q = db.from('products')
+                    .select('id,title,price,brand,stock')
+                    .neq('is_active', false);
+                  for (const t of terms) {
+                    q = q.ilike('title', `%${t}%`);
+                  }
+                  const { data: andMatch } = await q
+                    .order('stock', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                  prod = andMatch;
+                }
+              }
+
+              // 2c) Last resort: OR search across title+brand with longest term first
+              if (!prod) {
+                const terms = name.split(/\s+/).filter(Boolean).sort((a, b) => b.length - a.length);
+                const orParts = terms.flatMap((t: string) => [
+                  `title.ilike.%${t}%`, `brand.ilike.%${t}%`,
+                ]).join(',');
+                const { data: orMatch } = await db.from('products')
+                  .select('id,title,price,brand,stock')
+                  .neq('is_active', false)
+                  .or(orParts)
+                  .order('stock', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                prod = orMatch;
+              }
             }
 
             if (prod) {
