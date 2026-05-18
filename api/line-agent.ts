@@ -593,7 +593,16 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
             for (const [thai, engList] of Object.entries(thaiToEng)) {
               if (queryLower.includes(thai.toLowerCase())) extraTerms.push(...engList);
             }
-            const allTerms = [...new Set([...originalTerms, ...extraTerms])];
+            // Add II↔ll variants: "T82ll" ↔ "T82II" (Roman numeral vs lowercase-L confusion)
+            const variantTerms = originalTerms.flatMap(t => {
+              const variants = [t];
+              const toII = t.replace(/([a-z0-9])lll\b/gi, '$1III').replace(/([a-z0-9])ll\b/gi, '$1II');
+              const toll = t.replace(/([a-z0-9])III\b/gi, '$1lll').replace(/([a-z0-9])II\b/gi, '$1ll');
+              if (toII !== t) variants.push(toII);
+              if (toll !== t) variants.push(toll);
+              return variants;
+            });
+            const allTerms = [...new Set([...variantTerms, ...extraTerms])];
             const orParts = allTerms.flatMap((t: string) => [
               `title.ilike.%${t}%`, `brand.ilike.%${t}%`, `description.ilike.%${t}%`, `category.ilike.%${t}%`,
             ]).join(',');
@@ -771,50 +780,60 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
 
             // 2) Fallback: search by productName using full phrase first, then by key terms
             if (!prod && item.productName) {
-              const name = String(item.productName).trim();
+              const rawName = String(item.productName).trim();
+              // Normalize II↔ll: "T82ll" → "T82II" (Roman numeral confusion)
+              const normName = rawName
+                .replace(/([a-z0-9])lll\b/gi, '$1III')
+                .replace(/([a-z0-9])ll\b/gi, '$1II');
+              // Try both original and normalized; normalized first if different
+              const namesToTry = normName !== rawName ? [normName, rawName] : [rawName];
 
-              // 2a) Exact phrase match in title (most precise)
-              const { data: exact } = await db.from('products')
-                .select('id,title,price,brand,stock')
-                .neq('is_active', false)
-                .ilike('title', `%${name}%`)
-                .order('stock', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-              prod = exact;
+              for (const name of namesToTry) {
+                if (prod) break;
 
-              // 2b) Fallback: AND all non-trivial terms (≥3 chars) in title
-              if (!prod) {
-                const terms = name.split(/\s+/).filter(t => t.length >= 3);
-                if (terms.length > 0) {
-                  let q = db.from('products')
-                    .select('id,title,price,brand,stock')
-                    .neq('is_active', false);
-                  for (const t of terms) {
-                    q = q.ilike('title', `%${t}%`);
-                  }
-                  const { data: andMatch } = await q
-                    .order('stock', { ascending: false })
-                    .limit(1)
-                    .maybeSingle();
-                  prod = andMatch;
-                }
-              }
-
-              // 2c) Last resort: OR search across title+brand with longest term first
-              if (!prod) {
-                const terms = name.split(/\s+/).filter(Boolean).sort((a, b) => b.length - a.length);
-                const orParts = terms.flatMap((t: string) => [
-                  `title.ilike.%${t}%`, `brand.ilike.%${t}%`,
-                ]).join(',');
-                const { data: orMatch } = await db.from('products')
+                // 2a) Exact phrase match in title (most precise)
+                const { data: exact } = await db.from('products')
                   .select('id,title,price,brand,stock')
                   .neq('is_active', false)
-                  .or(orParts)
+                  .ilike('title', `%${name}%`)
                   .order('stock', { ascending: false })
                   .limit(1)
                   .maybeSingle();
-                prod = orMatch;
+                prod = exact;
+
+                // 2b) Fallback: AND all non-trivial terms (≥3 chars) in title
+                if (!prod) {
+                  const terms = name.split(/\s+/).filter(t => t.length >= 3);
+                  if (terms.length > 0) {
+                    let q = db.from('products')
+                      .select('id,title,price,brand,stock')
+                      .neq('is_active', false);
+                    for (const t of terms) {
+                      q = q.ilike('title', `%${t}%`);
+                    }
+                    const { data: andMatch } = await q
+                      .order('stock', { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
+                    prod = andMatch;
+                  }
+                }
+
+                // 2c) Last resort: OR search across title+brand with longest term first
+                if (!prod) {
+                  const terms = name.split(/\s+/).filter(Boolean).sort((a, b) => b.length - a.length);
+                  const orParts = terms.flatMap((t: string) => [
+                    `title.ilike.%${t}%`, `brand.ilike.%${t}%`,
+                  ]).join(',');
+                  const { data: orMatch } = await db.from('products')
+                    .select('id,title,price,brand,stock')
+                    .neq('is_active', false)
+                    .or(orParts)
+                    .order('stock', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                  prod = orMatch;
+                }
               }
             }
 
