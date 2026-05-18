@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Plus, Trash2, Download, Mail, Eye, EyeOff, Loader2,
+  Plus, Trash2, Download, Mail, Share2, Eye, EyeOff, Loader2,
   RefreshCw, Package, Search, X, Save, User, ChevronDown,
   FileText, CheckCircle, Clock, RotateCcw,
 } from 'lucide-react';
@@ -645,6 +645,20 @@ export function AdminInvoice() {
     window.open(`mailto:${customer.email}?subject=${subject}&body=${body}`);
   }
 
+  function handleSendLine() {
+    const text = encodeURIComponent(
+      `📄 ใบแจ้งหนี้ ${invoiceNumber}\n` +
+      `📅 วันที่: ${invoiceDate}\n` +
+      `👤 ลูกค้า: ${customer.name}${customer.company ? ` (${customer.company})` : ''}\n\n` +
+      `รายการ:\n` +
+      items.map(i => `• ${i.description} x${i.qty} = ${fp(i.qty * i.unitPrice)} บาท`).join('\n') +
+      `\n\n💰 ยอดรวม: ${fp(total)} บาท\n` +
+      (dueDate ? `⏳ ครบกำหนด: ${fdate(dueDate)}\n\n` : '\n') +
+      `📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`
+    );
+    window.open(`https://line.me/R/msg/text/?${text}`);
+  }
+
   // ── History actions ──
   function loadInvoice(inv: InvoiceRecord) {
     setInvoiceNumber(inv.invoice_number);
@@ -688,6 +702,38 @@ export function AdminInvoice() {
     }
   }
 
+  function resendEmailFromHistory(inv: InvoiceRecord) {
+    const itemLines = (Array.isArray(inv.items) ? inv.items : [])
+      .map((i: InvoiceItem) => `- ${i.description} จำนวน ${i.qty} x ${fp(i.unitPrice)} = ${fp(i.qty * i.unitPrice)} บาท`)
+      .join('\n');
+    const subject = encodeURIComponent(`ใบแจ้งหนี้ ${inv.invoice_number} - ${storeSettings.store_name || 'KingVision'}`);
+    const body = encodeURIComponent(
+      `เรียน คุณ${inv.customer_name}\n\n` +
+      `แนบใบแจ้งหนี้เลขที่ ${inv.invoice_number} มาด้วยครับ/ค่ะ\n\n` +
+      `รายการสินค้า:\n${itemLines}\n\n` +
+      `ยอดรวมทั้งสิ้น: ${fp(inv.total)} บาท\n` +
+      (inv.due_date ? `กำหนดชำระ: ${fdate(inv.due_date)}\n\n` : '\n') +
+      `ขอบคุณครับ/ค่ะ\n${storeSettings.store_name || ''}\nโทร: ${storeSettings.store_phone || ''}`
+    );
+    window.open(`mailto:${inv.customer_email || ''}?subject=${subject}&body=${body}`);
+  }
+
+  function resendLineFromHistory(inv: InvoiceRecord) {
+    const itemLines = (Array.isArray(inv.items) ? inv.items : [])
+      .map((i: InvoiceItem) => `• ${i.description} x${i.qty} = ${fp(i.qty * i.unitPrice)} บาท`)
+      .join('\n');
+    const text = encodeURIComponent(
+      `📄 ใบแจ้งหนี้ ${inv.invoice_number}\n` +
+      `📅 วันที่: ${fdateShort(inv.invoice_date)}\n` +
+      `👤 ลูกค้า: ${inv.customer_name}${inv.customer_company ? ` (${inv.customer_company})` : ''}\n\n` +
+      `รายการ:\n${itemLines}\n\n` +
+      `💰 ยอดรวม: ${fp(inv.total)} บาท\n` +
+      (inv.due_date ? `⏳ ครบกำหนด: ${fdate(inv.due_date)}\n\n` : '\n') +
+      `📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`
+    );
+    window.open(`https://line.me/R/msg/text/?${text}`);
+  }
+
   const filteredHistory = historyFilter === 'all'
     ? history
     : history.filter(q => q.status === historyFilter);
@@ -695,7 +741,7 @@ export function AdminInvoice() {
   // ─────────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="w-full">
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
 
       {/* Hidden capture target */}
@@ -744,6 +790,14 @@ export function AdminInvoice() {
             >
               <Mail size={16} />
               <span className="hidden sm:inline">ส่งอีเมล</span>
+            </button>
+            <button
+              onClick={handleSendLine}
+              title="ส่ง LINE"
+              className="flex items-center gap-1.5 px-2.5 py-2 sm:px-4 bg-[#06C755] text-white rounded-xl text-sm font-bold hover:bg-[#05a847] transition-colors shadow-sm"
+            >
+              <Share2 size={16} />
+              <span className="hidden sm:inline">ส่ง LINE</span>
             </button>
           </div>
         )}
@@ -1186,12 +1240,26 @@ export function AdminInvoice() {
                           </td>
                           <td className="p-4 text-xs text-gray-400 font-medium">{fdateShort(inv.created_at)}</td>
                           <td className="p-4">
-                            <div className="flex items-center gap-2 justify-center">
+                            <div className="flex items-center gap-1.5 justify-center flex-wrap">
                               <button
                                 onClick={() => loadInvoice(inv)}
                                 className="px-3 py-1.5 bg-kv-navy/10 text-kv-navy rounded-lg text-xs font-bold hover:bg-kv-navy/20 transition-colors"
                               >
                                 โหลด
+                              </button>
+                              <button
+                                onClick={() => resendEmailFromHistory(inv)}
+                                title="ส่งอีเมล"
+                                className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                              >
+                                <Mail size={13} />
+                              </button>
+                              <button
+                                onClick={() => resendLineFromHistory(inv)}
+                                title="ส่ง LINE"
+                                className="p-1.5 bg-[#06C755]/10 text-[#06C755] rounded-lg hover:bg-[#06C755]/20 transition-colors"
+                              >
+                                <Share2 size={13} />
                               </button>
                               <button
                                 onClick={() => deleteInvoice(inv.id)}
@@ -1238,6 +1306,20 @@ export function AdminInvoice() {
                           className="flex-1 py-2 bg-kv-navy/10 text-kv-navy rounded-xl text-xs font-bold"
                         >
                           โหลด
+                        </button>
+                        <button
+                          onClick={() => resendEmailFromHistory(inv)}
+                          title="ส่งอีเมล"
+                          className="py-2 px-3 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold"
+                        >
+                          <Mail size={13} />
+                        </button>
+                        <button
+                          onClick={() => resendLineFromHistory(inv)}
+                          title="ส่ง LINE"
+                          className="py-2 px-3 bg-[#06C755]/10 text-[#06C755] rounded-xl text-xs font-bold"
+                        >
+                          <Share2 size={13} />
                         </button>
                         <button
                           onClick={() => deleteInvoice(inv.id)}

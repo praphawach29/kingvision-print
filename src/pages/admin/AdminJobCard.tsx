@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Plus, Trash2, Download, Eye, EyeOff, Loader2,
+  Plus, Trash2, Download, Mail, Share2, Eye, EyeOff, Loader2,
   RefreshCw, Search, X, Save, User, ChevronDown,
   FileText, CheckCircle, Clock, RotateCcw, Wrench, Settings,
 } from 'lucide-react';
@@ -559,6 +559,32 @@ export function AdminJobCard() {
     }
   }
 
+  function handleSendEmail() {
+    const subject = encodeURIComponent(`ใบแจ้งซ่อม ${jcNumber} - ${storeSettings.store_name || 'KingVision'}`);
+    const body = encodeURIComponent(
+      `เรียน คุณ${customer.name}\n\n` +
+      `แจ้งความคืบหน้าการซ่อมอุปกรณ์ เลขที่ใบแจ้งซ่อม ${jcNumber}\n\n` +
+      `อุปกรณ์: ${equipmentBrand} ${equipmentModel}${equipmentSerial ? ` (S/N: ${equipmentSerial})` : ''}\n` +
+      (diagnosis ? `ผลการวินิจฉัย: ${diagnosis}\n` : '') +
+      (actualCost > 0 ? `ค่าใช้จ่าย: ${fp(actualCost)} บาท\n` : estimatedCost > 0 ? `ค่าใช้จ่ายประมาณ: ${fp(estimatedCost)} บาท\n` : '') +
+      `\nขอบคุณครับ/ค่ะ\n${storeSettings.store_name || ''}\nโทร: ${storeSettings.store_phone || ''}`
+    );
+    window.open(`mailto:${customer.email}?subject=${subject}&body=${body}`);
+  }
+
+  function handleSendLine() {
+    const text = encodeURIComponent(
+      `🔧 ใบแจ้งซ่อม ${jcNumber}\n` +
+      `📅 วันที่: ${jcDate}\n` +
+      `👤 ลูกค้า: ${customer.name}${customer.company ? ` (${customer.company})` : ''}\n\n` +
+      `🖥️ อุปกรณ์: ${equipmentBrand} ${equipmentModel}${equipmentSerial ? ` (S/N: ${equipmentSerial})` : ''}\n` +
+      (diagnosis ? `🔍 วินิจฉัย: ${diagnosis}\n` : '') +
+      (actualCost > 0 ? `\n💰 ค่าใช้จ่าย: ${fp(actualCost)} บาท\n` : estimatedCost > 0 ? `\n💰 ประมาณ: ${fp(estimatedCost)} บาท\n` : '') +
+      `\n📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`
+    );
+    window.open(`https://line.me/R/msg/text/?${text}`);
+  }
+
   function loadJC(rec: JobCardRecord) {
     setJcNumber(rec.jc_number);
     setReceivedDate(rec.received_date || '');
@@ -606,6 +632,32 @@ export function AdminJobCard() {
     }
   }
 
+  function resendEmailFromHistory(rec: JobCardRecord) {
+    const subject = encodeURIComponent(`ใบแจ้งซ่อม ${rec.jc_number} - ${storeSettings.store_name || 'KingVision'}`);
+    const body = encodeURIComponent(
+      `เรียน คุณ${rec.customer_name}\n\n` +
+      `แจ้งความคืบหน้าการซ่อมอุปกรณ์ เลขที่ใบแจ้งซ่อม ${rec.jc_number}\n\n` +
+      `อุปกรณ์: ${rec.equipment_brand} ${rec.equipment_model}${rec.equipment_serial ? ` (S/N: ${rec.equipment_serial})` : ''}\n` +
+      (rec.diagnosis ? `ผลการวินิจฉัย: ${rec.diagnosis}\n` : '') +
+      (rec.actual_cost > 0 ? `ค่าใช้จ่าย: ${fp(rec.actual_cost)} บาท\n` : rec.estimated_cost > 0 ? `ค่าใช้จ่ายประมาณ: ${fp(rec.estimated_cost)} บาท\n` : '') +
+      `\nขอบคุณครับ/ค่ะ\n${storeSettings.store_name || ''}\nโทร: ${storeSettings.store_phone || ''}`
+    );
+    window.open(`mailto:${rec.customer_email || ''}?subject=${subject}&body=${body}`);
+  }
+
+  function resendLineFromHistory(rec: JobCardRecord) {
+    const text = encodeURIComponent(
+      `🔧 ใบแจ้งซ่อม ${rec.jc_number}\n` +
+      `📅 วันที่: ${fdateShort(rec.created_at)}\n` +
+      `👤 ลูกค้า: ${rec.customer_name}${rec.customer_company ? ` (${rec.customer_company})` : ''}\n\n` +
+      `🖥️ อุปกรณ์: ${rec.equipment_brand} ${rec.equipment_model}${rec.equipment_serial ? ` (S/N: ${rec.equipment_serial})` : ''}\n` +
+      (rec.diagnosis ? `🔍 วินิจฉัย: ${rec.diagnosis}\n` : '') +
+      (rec.actual_cost > 0 ? `\n💰 ค่าใช้จ่าย: ${fp(rec.actual_cost)} บาท\n` : rec.estimated_cost > 0 ? `\n💰 ประมาณ: ${fp(rec.estimated_cost)} บาท\n` : '') +
+      `\n📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`
+    );
+    window.open(`https://line.me/R/msg/text/?${text}`);
+  }
+
   const filteredHistory = historyFilter === 'all'
     ? history
     : history.filter(r => r.status === historyFilter);
@@ -615,7 +667,7 @@ export function AdminJobCard() {
   // ─────────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="w-full">
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
 
       {/* Hidden capture target */}
@@ -656,6 +708,22 @@ export function AdminJobCard() {
             >
               {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
               <span className="hidden sm:inline">Export PDF</span>
+            </button>
+            <button
+              onClick={handleSendEmail}
+              title="ส่งอีเมล"
+              className="flex items-center gap-1.5 px-2.5 py-2 sm:px-4 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              <Mail size={16} />
+              <span className="hidden sm:inline">ส่งอีเมล</span>
+            </button>
+            <button
+              onClick={handleSendLine}
+              title="ส่ง LINE"
+              className="flex items-center gap-1.5 px-2.5 py-2 sm:px-4 bg-[#06C755] text-white rounded-xl text-sm font-bold hover:bg-[#05a847] transition-colors shadow-sm"
+            >
+              <Share2 size={16} />
+              <span className="hidden sm:inline">ส่ง LINE</span>
             </button>
           </div>
         )}
@@ -1107,12 +1175,26 @@ export function AdminJobCard() {
                           </td>
                           <td className="p-4 text-xs text-gray-400 font-medium">{fdateShort(rec.created_at)}</td>
                           <td className="p-4">
-                            <div className="flex items-center gap-2 justify-center">
+                            <div className="flex items-center gap-1.5 justify-center flex-wrap">
                               <button
                                 onClick={() => loadJC(rec)}
                                 className="px-3 py-1.5 bg-kv-navy/10 text-kv-navy rounded-lg text-xs font-bold hover:bg-kv-navy/20 transition-colors"
                               >
                                 โหลด
+                              </button>
+                              <button
+                                onClick={() => resendEmailFromHistory(rec)}
+                                title="ส่งอีเมล"
+                                className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                              >
+                                <Mail size={13} />
+                              </button>
+                              <button
+                                onClick={() => resendLineFromHistory(rec)}
+                                title="ส่ง LINE"
+                                className="p-1.5 bg-[#06C755]/10 text-[#06C755] rounded-lg hover:bg-[#06C755]/20 transition-colors"
+                              >
+                                <Share2 size={13} />
                               </button>
                               <button
                                 onClick={() => deleteJC(rec.id)}
@@ -1157,6 +1239,20 @@ export function AdminJobCard() {
                           className="flex-1 py-2 bg-kv-navy/10 text-kv-navy rounded-xl text-xs font-bold"
                         >
                           โหลด
+                        </button>
+                        <button
+                          onClick={() => resendEmailFromHistory(rec)}
+                          title="ส่งอีเมล"
+                          className="py-2 px-3 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold"
+                        >
+                          <Mail size={13} />
+                        </button>
+                        <button
+                          onClick={() => resendLineFromHistory(rec)}
+                          title="ส่ง LINE"
+                          className="py-2 px-3 bg-[#06C755]/10 text-[#06C755] rounded-xl text-xs font-bold"
+                        >
+                          <Share2 size={13} />
                         </button>
                         <button
                           onClick={() => deleteJC(rec.id)}
