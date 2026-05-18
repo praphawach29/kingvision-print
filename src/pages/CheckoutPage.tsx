@@ -166,16 +166,48 @@ export function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (items.length === 0) return;
-    
+
     setIsOrdering(true);
-    
+
     try {
+      // 0. Server-side price validation — fetch actual prices from DB and recalculate
+      const productIds = items.map(i => i.id);
+      const { data: dbProducts, error: priceCheckError } = await supabase
+        .from('products')
+        .select('id, price, stock, title')
+        .in('id', productIds);
+
+      if (priceCheckError || !dbProducts?.length) {
+        throw new Error('ไม่สามารถตรวจสอบราคาสินค้าได้ กรุณาลองใหม่');
+      }
+
+      const dbPriceMap: Record<string, number> = {};
+      const dbStockMap: Record<string, number> = {};
+      for (const p of dbProducts) {
+        dbPriceMap[p.id] = p.price;
+        dbStockMap[p.id] = p.stock;
+      }
+
+      // Validate each item against DB
+      for (const item of items) {
+        if (dbPriceMap[item.id] === undefined) {
+          throw new Error(`ไม่พบสินค้า "${item.title}" ในระบบ`);
+        }
+        if (dbStockMap[item.id] < item.quantity) {
+          throw new Error(`สินค้า "${item.title}" สต็อกไม่เพียงพอ`);
+        }
+      }
+
+      // Recalculate total using DB prices (ignore client-side price)
+      const validatedItemsTotal = items.reduce((sum, item) => sum + dbPriceMap[item.id] * item.quantity, 0);
+      const validatedTotal = validatedItemsTotal + shippingCost;
+
       // 1. Create the order
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert([{
           user_id: user?.id,
-          total_amount: grandTotal,
+          total_amount: validatedTotal,
           status: 'pending',
           address: `${formData.firstName} ${formData.lastName}\n${formData.address} ${formData.address2}\n${formData.subDistrict} ${formData.district} ${formData.province} ${formData.zipCode}`,
           phone: formData.phone,
@@ -200,6 +232,7 @@ export function CheckoutPage() {
 
       // 2. Create order items and update stock
       for (const item of items) {
+        const validatedUnitPrice = dbPriceMap[item.id];
         // Create order item
         const { error: itemError } = await supabase
           .from('order_items')
@@ -207,9 +240,9 @@ export function CheckoutPage() {
             order_id: order.id,
             product_id: item.id,
             quantity: item.quantity,
-            unit_price: item.price,
-            price: item.price,
-            subtotal: item.price * item.quantity,
+            unit_price: validatedUnitPrice,
+            price: validatedUnitPrice,
+            subtotal: validatedUnitPrice * item.quantity,
             selected_options: item.selectedOptions
           }]);
 
@@ -256,15 +289,15 @@ export function CheckoutPage() {
 
       // 3. Send notification
       await notificationService.notifyNewOrder(
-        order.id.slice(0, 8).toUpperCase(), 
-        grandTotal, 
+        order.id.slice(0, 8).toUpperCase(),
+        validatedTotal,
         formData.email || user?.email || 'Guest'
       );
 
       const shortRef = order.id.slice(0, 8).toUpperCase();
       setPlacedOrderId(order.id);
       setPlacedOrderRef(`KV-${shortRef}`);
-      setPlacedTotal(grandTotal);
+      setPlacedTotal(validatedTotal);
       setOrderSuccess(true);
       clearCart();
 
@@ -278,8 +311,8 @@ export function CheckoutPage() {
             toEmail: customerEmail,
             toName: `${formData.firstName} ${formData.lastName}`.trim() || customerEmail,
             orderRef: `KV-${shortRef}`,
-            total: grandTotal,
-            items: items.map(i => ({ title: i.title, quantity: i.quantity, price: i.price })),
+            total: validatedTotal,
+            items: items.map(i => ({ title: i.title, quantity: i.quantity, price: dbPriceMap[i.id] ?? i.price })),
             paymentMethod: selectedMethodType || paymentMethod,
             shippingAddress: `${formData.firstName} ${formData.lastName}\n${formData.address}${formData.address2 ? ' ' + formData.address2 : ''}\n${formData.subDistrict} ${formData.district}\n${formData.province} ${formData.zipCode}`,
           }),

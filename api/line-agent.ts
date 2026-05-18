@@ -199,8 +199,13 @@ async function rawBody(req: any): Promise<Buffer> {
   });
 }
 function verifySig(body: Buffer, sig: string, secret: string) {
-  if (!secret) return true;
-  return crypto.createHmac('SHA256', secret).update(body).digest('base64') === sig;
+  if (!secret || !sig) return false;
+  const computed = crypto.createHmac('SHA256', secret).update(body).digest('base64');
+  try {
+    return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(sig));
+  } catch {
+    return false;
+  }
 }
 async function lineReply(replyToken: string, messages: any[], token: string) {
   if (!token) {
