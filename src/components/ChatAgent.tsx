@@ -316,10 +316,15 @@ export function ChatAgent() {
               {/* Greeting bubble */}
               <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} className="flex justify-start">
                 <div className="max-w-[88%] p-3 rounded-2xl rounded-tl-none text-sm bg-white text-kv-navy border border-gray-100 shadow-sm leading-relaxed">
-                  {connStatus === 'error'
-                    ? 'ขออภัยค่ะ/ครับ ขณะนี้ระบบ AI ไม่สามารถเชื่อมต่อได้ กรุณาติดต่อเจ้าหน้าที่ผ่าน LINE ค่ะ/ครับ'
-                    : buildGreeting(config)
-                  }
+                  {connStatus === 'error' ? (
+                    <>
+                      ขออภัยครับ ขณะนี้ระบบ AI ไม่สามารถเชื่อมต่อได้ กรุณาติดต่อเจ้าหน้าที่ผ่าน{' '}
+                      <a href={lineLink} target="_blank" rel="noopener noreferrer" className="text-kv-orange underline font-bold">
+                        LINE {lineOaId || 'ของร้าน'}
+                      </a>{' '}
+                      ได้เลยครับ
+                    </>
+                  ) : buildGreeting(config)}
                 </div>
               </motion.div>
 

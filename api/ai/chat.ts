@@ -202,6 +202,19 @@ export default async function handler(req: any, res: any) {
   }
   res.setHeader('X-RateLimit-Remaining', String(remaining));
 
+  // Load LINE contact info early so it's available in catch block for friendly error messages
+  let lineHandleFallback = '';
+  let lineUrlFallback = '';
+  try {
+    const { data: contactInfo } = await db
+      .from('store_settings')
+      .select('line_oa_id, line_oa_link, line_oa_admin_id')
+      .single();
+    const rawId = (contactInfo as any)?.line_oa_id || (contactInfo as any)?.line_oa_admin_id || '';
+    lineHandleFallback = rawId ? (rawId.startsWith('@') ? rawId : `@${rawId}`) : '';
+    lineUrlFallback = (contactInfo as any)?.line_oa_link || (lineHandleFallback ? `https://line.me/ti/p/${lineHandleFallback}` : '');
+  } catch { /* ignore — fallback stays empty */ }
+
   try {
     const { messages, userId } = req.body as { messages: SimpleMessage[]; userId?: string };
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -215,7 +228,11 @@ export default async function handler(req: any, res: any) {
       .single();
 
     if (settings?.ai_enabled === false) {
-      return res.json({ text: 'ขออภัยครับ ระบบแชตบอทปิดอยู่ชั่วคราว กรุณาติดต่อเจ้าหน้าที่ผ่าน LINE ครับ', cartActions: [] });
+      const lineContact = lineUrlFallback || lineHandleFallback;
+      return res.json({
+        text: `ขออภัยครับ ระบบแชตบอทปิดอยู่ชั่วคราว กรุณาติดต่อเจ้าหน้าที่ผ่าน LINE${lineHandleFallback ? ` ${lineHandleFallback}` : ''}${lineUrlFallback ? ` ${lineUrlFallback}` : ''} ครับ`,
+        cartActions: []
+      });
     }
 
     const provider    = ((settings?.ai_provider as string) || 'gemini').toLowerCase() as 'gemini' | 'openai' | 'anthropic';
@@ -568,7 +585,12 @@ ${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจาก
   } catch (error: any) {
     console.error('Chat API error:', error);
     const msg: string = error?.message || '';
-    let friendlyText = 'ขออภัยครับ เกิดข้อผิดพลาดชั่วคราว กรุณาลองใหม่อีกครั้ง หรือติดต่อเจ้าหน้าที่ผ่าน LINE @kingvision ได้เลยครับ';
+    const lineContact = lineUrlFallback
+      ? `LINE ${lineHandleFallback} ${lineUrlFallback}`
+      : lineHandleFallback
+        ? `LINE ${lineHandleFallback}`
+        : 'LINE ของร้าน';
+    let friendlyText = `ขออภัยครับ เกิดข้อผิดพลาดชั่วคราว กรุณาลองใหม่อีกครั้ง หรือติดต่อเจ้าหน้าที่ผ่าน ${lineContact} ได้เลยครับ`;
 
     if (msg.includes('Missing') && msg.includes('API_KEY')) {
       friendlyText = 'ขออภัยครับ ระบบ AI ยังไม่ได้ตั้งค่า API Key กรุณาติดต่อแอดมินครับ';
