@@ -278,8 +278,12 @@ export default async function handler(req: any, res: any) {
     const mapUrl = (storeInfo as any)?.map_share_url ||
       (storeAddr ? `https://maps.google.com/?q=${encodeURIComponent(storeAddr)}` : '');
     const lineRawId = (storeInfo as any)?.line_oa_id || (storeInfo as any)?.line_oa_admin_id || '';
-    const lineHandle = lineRawId ? (lineRawId.startsWith('@') ? lineRawId : `@${lineRawId}`) : (settings?.line_oa_id || '@kingvision');
+    const lineHandle = lineRawId ? (lineRawId.startsWith('@') ? lineRawId : `@${lineRawId}`) : '';
     const lineUrl = (storeInfo as any)?.line_oa_link || (lineHandle ? `https://line.me/ti/p/${lineHandle}` : '');
+
+    // Variables used in system prompt
+    const SITE_URL = process.env.VITE_SITE_URL || 'https://kingvision-print.vercel.app';
+    const isReturningCustomer = messages.filter((m: SimpleMessage) => m.role === 'assistant').length > 0;
 
     // Compose system prompt
     const isFemale = gender === 'female';
