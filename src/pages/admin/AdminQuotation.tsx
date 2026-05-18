@@ -769,6 +769,42 @@ export function AdminQuotation() {
     }
   }
 
+  function resendEmailFromHistory(q: QuotationRecord) {
+    const itemLines = (Array.isArray(q.items) ? q.items : [])
+      .map((i: QuotationItem) => `- ${i.description} จำนวน ${i.qty} x ${fp(i.unitPrice)} = ${fp(i.qty * i.unitPrice)} บาท`)
+      .join('\n');
+    const printUrl = `${window.location.origin}/quotation/${q.quotation_number}`;
+    const subject = encodeURIComponent(`ใบเสนอราคา ${q.quotation_number} - ${storeSettings.store_name || 'KingVision'}`);
+    const body = encodeURIComponent(
+      `เรียน คุณ${q.customer_name}\n\n` +
+      `แนบใบเสนอราคาเลขที่ ${q.quotation_number} มาด้วยครับ/ค่ะ\n\n` +
+      `รายการสินค้า:\n${itemLines}\n\n` +
+      `ยอดรวมทั้งสิ้น: ${fp(q.total)} บาท\n` +
+      `ใบเสนอราคามีผลถึง: ${fdate(q.valid_until || '')}\n\n` +
+      `🖨️ ดูและพิมพ์ใบเสนอราคา: ${printUrl}\n\n` +
+      `ขอบคุณครับ/ค่ะ\n${storeSettings.store_name || ''}\nโทร: ${storeSettings.store_phone || ''}`
+    );
+    window.open(`mailto:${q.customer_email || ''}?subject=${subject}&body=${body}`);
+  }
+
+  function resendLineFromHistory(q: QuotationRecord) {
+    const itemLines = (Array.isArray(q.items) ? q.items : [])
+      .map((i: QuotationItem) => `• ${i.description} x${i.qty} = ${fp(i.qty * i.unitPrice)} บาท`)
+      .join('\n');
+    const printUrl = `${window.location.origin}/quotation/${q.quotation_number}`;
+    const text = encodeURIComponent(
+      `📄 ใบเสนอราคา ${q.quotation_number}\n` +
+      `📅 วันที่: ${fdateShort(q.quotation_date)}\n` +
+      `👤 ลูกค้า: ${q.customer_name}${q.customer_company ? ` (${q.customer_company})` : ''}\n\n` +
+      `รายการ:\n${itemLines}\n\n` +
+      `💰 ยอดรวม: ${fp(q.total)} บาท\n` +
+      `⏳ มีผลถึง: ${fdate(q.valid_until || '')}\n\n` +
+      `🖨️ ดูและพิมพ์ PDF: ${printUrl}\n\n` +
+      `📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`
+    );
+    window.open(`https://line.me/R/msg/text/?${text}`);
+  }
+
   const filteredHistory = historyFilter === 'all'
     ? history
     : history.filter(q => q.status === historyFilter);
@@ -1340,15 +1376,31 @@ export function AdminQuotation() {
                             {fdateShort(q.created_at)}
                           </td>
                           <td className="p-4">
-                            <div className="flex items-center gap-2 justify-center">
+                            <div className="flex items-center gap-1.5 justify-center flex-wrap">
                               <button
                                 onClick={() => loadQuotation(q)}
+                                title="โหลดเพื่อแก้ไข"
                                 className="px-3 py-1.5 bg-kv-navy/10 text-kv-navy rounded-lg text-xs font-bold hover:bg-kv-navy/20 transition-colors"
                               >
                                 โหลด
                               </button>
                               <button
+                                onClick={() => resendEmailFromHistory(q)}
+                                title="ส่งอีเมลอีกครั้ง"
+                                className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                              >
+                                <Mail size={14} />
+                              </button>
+                              <button
+                                onClick={() => resendLineFromHistory(q)}
+                                title="ส่ง LINE อีกครั้ง"
+                                className="p-1.5 bg-[#06C755]/10 text-[#06C755] rounded-lg hover:bg-[#06C755]/20 transition-colors"
+                              >
+                                <Share2 size={14} />
+                              </button>
+                              <button
                                 onClick={() => deleteQuotation(q.id)}
+                                title="ลบ"
                                 className="px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors"
                               >
                                 ลบ
@@ -1393,6 +1445,20 @@ export function AdminQuotation() {
                           className="flex-1 py-2 bg-kv-navy/10 text-kv-navy rounded-xl text-xs font-bold"
                         >
                           โหลด
+                        </button>
+                        <button
+                          onClick={() => resendEmailFromHistory(q)}
+                          title="ส่งอีเมลอีกครั้ง"
+                          className="flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold"
+                        >
+                          <Mail size={13} /> อีเมล
+                        </button>
+                        <button
+                          onClick={() => resendLineFromHistory(q)}
+                          title="ส่ง LINE อีกครั้ง"
+                          className="flex items-center justify-center gap-1 px-3 py-2 bg-[#06C755]/10 text-[#06C755] rounded-xl text-xs font-bold"
+                        >
+                          <Share2 size={13} /> LINE
                         </button>
                         <button
                           onClick={() => deleteQuotation(q.id)}
