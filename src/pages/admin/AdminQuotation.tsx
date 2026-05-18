@@ -776,7 +776,7 @@ export function AdminQuotation() {
   // ─────────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="w-full">
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
 
       {/* Hidden capture target */}
@@ -871,7 +871,7 @@ export function AdminQuotation() {
 
       {/* ── Tab: Create ── */}
       {activeTab === 'create' && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* ── LEFT: Form ── */}
           <div className="space-y-4">
             {/* Quotation Meta */}
