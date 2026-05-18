@@ -1107,7 +1107,7 @@ export default async function handler(req: any, res: any) {
 
   // Load LINE + AI config from admin panel (env vars used as fallback only)
   const { data: cfg } = await db.from('store_settings')
-    .select('line_oa_channel_secret,line_oa_channel_token,line_oa_admin_id,ai_api_key,ai_provider,ai_model,ai_enabled,ai_persona_name,ai_system_prompt,ai_speaking_style,ai_temperature,ai_gender')
+    .select('line_oa_channel_secret,line_oa_channel_token,line_oa_admin_id,ai_provider,ai_model,ai_enabled,ai_persona_name,ai_system_prompt,ai_speaking_style,ai_temperature,ai_gender')
     .single();
 
   const channelSecret = cfg?.line_oa_channel_secret || ENV_CHANNEL_SECRET;
@@ -1116,7 +1116,8 @@ export default async function handler(req: any, res: any) {
     .split(',').map((s: string) => s.trim()).filter(Boolean)
     .concat(ENV_ADMIN_IDS)
     .filter((v: string, i: number, a: string[]) => a.indexOf(v) === i); // dedupe
-  const aiApiKey = cfg?.ai_api_key || undefined;
+  // Use env vars for AI API keys (same as web chat & health check)
+  // Never read ai_api_key from DB — DB key may differ from env var and cause silent failures
 
   if (!verifySig(raw, req.headers['x-line-signature'], channelSecret)) return res.status(401).end();
 
@@ -1147,7 +1148,7 @@ export default async function handler(req: any, res: any) {
 
     // Admin: image
     if (isAdmin && event.message.type === 'image') {
-      await handleAdminImage(event.message.id, userId, replyToken, db, channelToken, aiApiKey);
+      await handleAdminImage(event.message.id, userId, replyToken, db, channelToken);
       continue;
     }
 
@@ -1189,11 +1190,11 @@ export default async function handler(req: any, res: any) {
 
       let aiText = '';
       if (provider === 'openai') {
-        aiText = await runOpenAI(model, systemPrompt, historyWithUser, temperature, executeTool, aiApiKey);
+        aiText = await runOpenAI(model, systemPrompt, historyWithUser, temperature, executeTool);
       } else if (provider === 'anthropic') {
-        aiText = await runAnthropic(model, systemPrompt, historyWithUser, temperature, executeTool, aiApiKey);
+        aiText = await runAnthropic(model, systemPrompt, historyWithUser, temperature, executeTool);
       } else {
-        aiText = await runGemini(model, systemPrompt, historyWithUser, temperature, executeTool, aiApiKey);
+        aiText = await runGemini(model, systemPrompt, historyWithUser, temperature, executeTool);
       }
 
       const lineMessages: any[] = [{ type: 'text', text: aiText }];
