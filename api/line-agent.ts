@@ -201,11 +201,19 @@ function verifySig(body: Buffer, sig: string, secret: string) {
   return crypto.createHmac('SHA256', secret).update(body).digest('base64') === sig;
 }
 async function lineReply(replyToken: string, messages: any[], token: string) {
-  await fetch('https://api.line.me/v2/bot/message/reply', {
+  if (!token) {
+    console.error('[line-agent] lineReply: channelToken is empty — ตรวจสอบ LINE Channel Access Token ในหน้า Admin Settings');
+    return;
+  }
+  const r = await fetch('https://api.line.me/v2/bot/message/reply', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ replyToken, messages }),
   });
+  if (!r.ok) {
+    const body = await r.text().catch(() => '');
+    console.error(`[line-agent] lineReply failed ${r.status}:`, body);
+  }
 }
 async function linePush(to: string, messages: any[], token: string) {
   await fetch('https://api.line.me/v2/bot/message/push', {
@@ -475,6 +483,16 @@ ${styleGuide}
 
 ${customerMode}
 
+### หมวดหมู่สินค้าและการวิเคราะห์ความต้องการ (อ่านก่อนค้นหาเสมอ):
+**Slip Printer** → ร้านอาหาร, ร้านค้า, POS, ใบเสร็จรับเงิน, บิลลูกค้า, thermal, กระดาษความร้อน
+**Dot Matrix** → สลิปเงินเดือน, เอกสารสำเนาหลายชั้น, กระดาษคาร์บอน, ฟอร์มต่อเนื่อง, invoice หลายก๊อปปี้
+**Laser Printer** → เอกสารทั่วไป, รายงาน, ปริ้นความเร็วสูง, สำนักงาน
+**Inkjet** → ภาพถ่าย, สีสวยงาม
+
+⚠️ "ปริ้นใบเสร็จร้านอาหาร/ร้านค้า" = **Slip Printer** ไม่ใช่ Dot Matrix
+⚠️ "สลิปเงินเดือน/เอกสารสำเนา" = **Dot Matrix** ไม่ใช่ Slip Printer
+category ที่ใช้ใน search_products: "Slip Printer", "Dot Matrix", "Laser Printer", "Inkjet", "หมึกพิมพ์", "อะไหล่"
+
 ### กฎเหล็ก — ห้ามละเมิดเด็ดขาด:
 1. **ห้ามระบุชื่อสินค้า ชื่อรุ่น ซีรีส์ หรือบอกว่าร้านมีสินค้าใด โดยไม่ได้เรียก search_products ก่อน** — แม้แต่ชื่อที่รู้จักดี เช่น "HP LaserJet Pro", "Canon imageCLASS", "Brother HL" ห้ามพูดถึงจนกว่า search_products จะคืนผลจริง
 2. **ทุกคำถามเกี่ยวกับสินค้า ราคา รุ่น หรือสต็อก = ต้องเรียก search_products ก่อนเสมอ ไม่มีข้อยกเว้น**
@@ -527,12 +545,40 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
     try {
       switch (name) {
         case 'search_products': {
+          // Thai → English keyword mapping (same as web chatbot)
+          const thaiToEng: Record<string, string[]> = {
+            'เลเซอร์': ['Laser', 'Laser Printer'],
+            'เครื่องพิมพ์เลเซอร์': ['Laser Printer'],
+            'ขาวดำ': ['Laser', 'Dot Matrix'],
+            'ดอท': ['Dot Matrix'],
+            'ดอทเมทริกซ์': ['Dot Matrix'],
+            'สลิป': ['Slip Printer', 'Slip'],
+            'ใบเสร็จ': ['Slip Printer'],
+            'ปริ้นสลิป': ['Slip Printer'],
+            'ปริ้นใบเสร็จ': ['Slip Printer'],
+            'พิมพ์ใบเสร็จ': ['Slip Printer'],
+            'ร้านอาหาร': ['Slip Printer'],
+            'pos': ['Slip Printer'],
+            'ร้านค้า': ['Slip Printer'],
+            'ความร้อน': ['Slip Printer'],
+            'thermal': ['Slip Printer'],
+            'อิงค์เจ็ท': ['Inkjet'],
+            'อิงค์': ['Inkjet'],
+            'inkjet': ['Inkjet'],
+            'เลเซอร์สี': ['Color Laser', 'Laser'],
+          };
           let q = db.from('products')
             .select('id,title,price,brand,category,stock,image_url,condition')
             .neq('is_active', false);
           if (args.query) {
-            const terms = String(args.query).trim().split(/\s+/).filter(Boolean);
-            const orParts = terms.flatMap((t: string) => [
+            const queryLower = String(args.query).toLowerCase();
+            const originalTerms = String(args.query).trim().split(/\s+/).filter(Boolean);
+            const extraTerms: string[] = [];
+            for (const [thai, engList] of Object.entries(thaiToEng)) {
+              if (queryLower.includes(thai.toLowerCase())) extraTerms.push(...engList);
+            }
+            const allTerms = [...new Set([...originalTerms, ...extraTerms])];
+            const orParts = allTerms.flatMap((t: string) => [
               `title.ilike.%${t}%`, `brand.ilike.%${t}%`, `description.ilike.%${t}%`, `category.ilike.%${t}%`,
             ]).join(',');
             q = q.or(orParts);
