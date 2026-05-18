@@ -246,13 +246,19 @@ export default async function handler(req: any, res: any) {
     // Load customer memory for logged-in users
     let customerContext = '';
     if (userId) {
-      const { data: insights } = await db
-        .from('customer_insights')
-        .select('preferred_categories, preferred_brands, budget_range, notes')
-        .eq('user_id', userId)
-        .maybeSingle();
+      const [{ data: insights }, { data: recentOrders }] = await Promise.all([
+        db.from('customer_insights')
+          .select('preferred_categories, preferred_brands, budget_range, notes')
+          .eq('user_id', userId)
+          .maybeSingle(),
+        db.from('orders')
+          .select('id, status, total_amount, created_at, shipping_data')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(3),
+      ]);
+      const parts: string[] = [];
       if (insights) {
-        const parts: string[] = [];
         if ((insights.preferred_categories as string[])?.length)
           parts.push(`หมวดหมู่ที่สนใจ: ${(insights.preferred_categories as string[]).join(', ')}`);
         if ((insights.preferred_brands as string[])?.length)
@@ -260,8 +266,21 @@ export default async function handler(req: any, res: any) {
         const br = insights.budget_range as any;
         if (br?.min) parts.push(`งบประมาณ: ${br.min}-${br.max || '?'} บาท`);
         if (insights.notes) parts.push(`บันทึก: ${insights.notes}`);
-        if (parts.length)
-          customerContext = `\n### ความทรงจำเกี่ยวกับลูกค้าคนนี้:\n${parts.join('\n')}`;
+      }
+      if ((recentOrders as any[])?.length) {
+        const orderLines = (recentOrders as any[]).map(o => {
+          const sd = o.shipping_data as any;
+          return `  • ${(o.created_at as string).slice(0, 10)} — ฿${Number(o.total_amount || 0).toLocaleString()} [${o.status}]${sd?.address ? ` → ${String(sd.address).slice(0, 40)}` : ''}`;
+        }).join('\n');
+        parts.push(`ประวัติออเดอร์ล่าสุด:\n${orderLines}`);
+        // Extract address from most recent order for address reuse suggestion
+        const lastAddr = (recentOrders as any[])[0]?.shipping_data?.address;
+        if (lastAddr)
+          parts.push(`ที่อยู่จัดส่งล่าสุด: ${lastAddr} — **ถามลูกค้าก่อนว่าใช้ที่อยู่เดิมนี้ได้เลยไหม**`);
+      }
+      if (parts.length) {
+        const isReturning = (recentOrders as any[])?.length > 0;
+        customerContext = `\n### ข้อมูลลูกค้าที่ล็อคอินอยู่ (ลูกค้า${isReturning ? 'เก่า — เคยสั่งซื้อมาแล้ว' : 'ใหม่'}):\n${parts.join('\n')}${isReturning ? '\n- **ทักทายเป็นพิเศษ แสดงว่าจำลูกค้าได้ และ upsell/crosssell สินค้าที่เกี่ยวข้องกับออเดอร์ที่ผ่านมา**' : ''}`;
       }
     }
 

@@ -410,31 +410,38 @@ function buildQuotationFlex(q: {
 // ── Session management ────────────────────────────────────────────────────────
 const MAX_HISTORY = 12;
 
-async function loadHistory(userId: string, db: any) {
+async function loadHistory(userId: string, db: any): Promise<{ messages: any[]; customerProfile: any | null }> {
   try {
     const { data } = await db.from('line_sessions').select('messages').eq('user_id', userId).single();
-    const messages = (data?.messages as any[]) || [];
-    // Strip stale model turns that contain hallucinated error phrases — prevents repeat errors
-    return messages.filter((m: any) => {
-      if (m.role !== 'model') return true;
-      const t = (m.parts?.[0]?.text || '').toLowerCase();
-      return !/ระบบค้นหา.*ไม่|ระบบขัดข้อง|ไม่สามารถเข้าถึงฐานข้อมูล|โทรถามเจ้าหน้าที่/.test(t);
-    });
-  } catch { return []; }
+    const all = (data?.messages as any[]) || [];
+    // Extract persisted customer profile (stored as special non-chat entry)
+    const profileEntry = all.find((m: any) => m.role === 'customer_profile');
+    const customerProfile = profileEntry?.data || null;
+    // Regular chat messages only, strip stale error turns
+    const messages = all
+      .filter((m: any) => m.role !== 'customer_profile')
+      .filter((m: any) => {
+        if (m.role !== 'model') return true;
+        const t = (m.parts?.[0]?.text || '').toLowerCase();
+        return !/ระบบค้นหา.*ไม่|ระบบขัดข้อง|ไม่สามารถเข้าถึงฐานข้อมูล|โทรถามเจ้าหน้าที่/.test(t);
+      });
+    return { messages, customerProfile };
+  } catch { return { messages: [], customerProfile: null }; }
 }
 
-async function saveHistory(userId: string, displayName: string, messages: any[], db: any) {
+async function saveHistory(userId: string, displayName: string, messages: any[], db: any, customerProfile?: any) {
   try {
+    const profileEntry = customerProfile ? [{ role: 'customer_profile', data: customerProfile }] : [];
     await db.from('line_sessions').upsert({
       user_id: userId, display_name: displayName,
-      messages: messages.slice(-MAX_HISTORY),
+      messages: [...profileEntry, ...messages.slice(-MAX_HISTORY)],
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
   } catch {}
 }
 
 // ── Build system prompt (mirrors web chatbot) ─────────────────────────────────
-async function buildSystemPrompt(settings: any, db: any, isReturningCustomer = false): Promise<string> {
+async function buildSystemPrompt(settings: any, db: any, isReturningCustomer = false, customerProfile?: any): Promise<string> {
   const personaName = (settings?.ai_persona_name as string) || 'น้องคิง';
   const gender      = (settings?.ai_gender as string) || 'male';
   const isFemale    = gender === 'female';
@@ -468,11 +475,33 @@ async function buildSystemPrompt(settings: any, db: any, isReturningCustomer = f
   const mapUrl = storeInfo?.map_share_url ||
     (storeAddress ? `https://maps.google.com/?q=${encodeURIComponent(storeAddress)}` : '');
 
+  // Build customer profile context section
+  let profileContext = '';
+  if (customerProfile) {
+    const p = customerProfile;
+    const nameLine  = p.name    ? `- ชื่อลูกค้า: ${p.name}` : '';
+    const phoneLine = p.phone   ? `- เบอร์โทร: ${p.phone}` : '';
+    const addrLine  = p.address ? `- ที่อยู่จัดส่งล่าสุด: ${p.address}` : '';
+    const lastLine  = p.last_active ? `- ทักล่าสุดเมื่อ: ${p.last_active}` : '';
+    const purchases = (p.purchases as any[] | undefined) || [];
+    const purchaseLines = purchases.length
+      ? '- ประวัติการสั่งซื้อ:\n' + purchases.slice(-5).map((x: any) =>
+          `  • ${x.date || ''} — ${x.product}${x.brand ? ` (${x.brand})` : ''} x${x.qty} [${x.quotation_number || ''}]`
+        ).join('\n')
+      : '';
+    profileContext = `\n### ข้อมูลลูกค้าที่จดจำไว้ (ห้ามถามซ้ำ ให้ดึงมาใช้ได้เลย):
+${[nameLine, phoneLine, addrLine, lastLine, purchaseLines].filter(Boolean).join('\n')}
+- **ถ้าลูกค้าต้องการใบเสนอราคา: ดึงชื่อและเบอร์ที่จดจำมาใช้ได้เลย ถามเฉพาะสิ่งที่ยังขาด**
+- **ถ้าลูกค้าต้องการจัดส่ง: ถามก่อนว่า "ใช้ที่อยู่เดิม ${p.address ? `(${p.address.slice(0, 40)}...)` : ''} ได้เลยไหมครับ?"**
+${purchases.length ? `- **Upsell/Crosssell**: ลูกค้าเคยซื้อ ${purchases.slice(-3).map((x: any) => x.product).join(', ')} — ถ้ามีโอกาสแนะนำสินค้าที่เกี่ยวข้องหรือถามว่าเครื่องยังใช้งานได้ดีไหม แบบเป็นกันเอง 1 ประโยค` : ''}`;
+  }
+
   const customerMode = isReturningCustomer
     ? `### โหมดลูกค้าเก่า (มีประวัติการสนทนา):
 - ลูกค้าคุ้นเคยกับร้านแล้ว — ตอบกระชับ ตรงประเด็น ไม่ต้องแนะนำร้านซ้ำ
+- ทักทายด้วยชื่อถ้าทราบ และแสดงว่าจำลูกค้าได้ เช่น "ยินดีต้อนรับกลับครับ คุณ[ชื่อ]" หรือ "กลับมาแล้วครับ มีอะไรให้ช่วยไหม?"
 - ค้นหาสินค้าและเสนอราคาได้เลย ไม่ต้องถามพื้นฐานมาก
-- ท้ายการสนทนาทุกครั้ง: ถามว่า "ต้องการใบเสนอราคา หรือสั่งซื้อเลยครับ?"`
+- ท้ายการสนทนาทุกครั้ง: ถามว่า "ต้องการใบเสนอราคา หรือสั่งซื้อเลยครับ?"${profileContext}`
     : `### โหมดลูกค้าใหม่ (ยังไม่มีประวัติการสนทนา):
 - ลูกค้าอาจยังไม่แน่ใจว่าต้องการอะไร — **ถามความต้องการก่อนเสมอ อย่า push ชื่อ-เบอร์ทันที**
 - ขั้นตอน: ทักทาย → ถามการใช้งาน/งบประมาณ → ค้นหาสินค้าที่เหมาะ → อธิบาย → ถามว่าสนใจไหม
@@ -556,7 +585,7 @@ ${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจาก
 }
 
 // ── Tool executor ─────────────────────────────────────────────────────────────
-function buildExecuteTool(db: any, userId: string, displayName: string, pendingProducts: any[], pendingQuotation: any[]) {
+function buildExecuteTool(db: any, userId: string, displayName: string, pendingProducts: any[], pendingQuotation: any[], profileRef: { current: any }) {
   return async (name: string, args: any): Promise<string> => {
     try {
       switch (name) {
@@ -878,6 +907,26 @@ function buildExecuteTool(db: any, userId: string, displayName: string, pendingP
           }]);
 
           if (qErr) return `ไม่สามารถสร้างใบเสนอราคาได้: ${qErr.message}`;
+
+          // Update customer profile memory with latest purchase info
+          const today2 = new Date().toISOString().slice(0, 10);
+          const prevProfile = profileRef.current || {};
+          const prevPurchases: any[] = prevProfile.purchases || [];
+          const newPurchases = [
+            ...prevPurchases,
+            ...lineItems.map((li: any) => ({
+              product: li.title, brand: li.brand || '', qty: li.quantity,
+              date: today2, quotation_number: quotationNumber,
+            })),
+          ].slice(-20);
+          profileRef.current = {
+            ...prevProfile,
+            name:     args.customerName  || prevProfile.name  || displayName,
+            phone:    args.customerPhone || prevProfile.phone  || '',
+            address:  args.customerAddress || prevProfile.address || '',
+            purchases: newPurchases,
+            last_active: today2,
+          };
 
           // Queue quotation Flex Message to be sent alongside the AI text reply
           pendingQuotation.push({
@@ -1228,12 +1277,12 @@ export default async function handler(req: any, res: any) {
 
     // Customer: AI sales agent
     try {
-      const [history, profile] = await Promise.all([
+      const [{ messages: history, customerProfile }, lineProfile] = await Promise.all([
         loadHistory(userId, db),
         getLineProfile(userId, channelToken),
       ]);
       const settings    = cfg;
-      const displayName = profile?.displayName || 'ลูกค้า';
+      const displayName = lineProfile?.displayName || 'ลูกค้า';
 
       if (settings?.ai_enabled === false) {
         await lineReply(replyToken, [{ type: 'text', text: 'ขออภัยครับ ระบบแชตบอทปิดอยู่ชั่วคราว กรุณาติดต่อเจ้าหน้าที่ผ่าน LINE ครับ' }], channelToken);
@@ -1247,12 +1296,13 @@ export default async function handler(req: any, res: any) {
       const model       = (settings?.ai_model as string) || 'gemini-2.5-flash';
       const temperature = typeof settings?.ai_temperature === 'number' ? settings.ai_temperature : 0.7;
 
-      const isReturningCustomer = history.length > 0;
-      const systemPrompt = await buildSystemPrompt(settings, db, isReturningCustomer);
+      const isReturningCustomer = history.length > 0 || !!customerProfile;
+      const systemPrompt = await buildSystemPrompt(settings, db, isReturningCustomer, customerProfile);
 
       const pendingProducts: any[] = [];
       const pendingQuotation: any[] = [];
-      const executeTool = buildExecuteTool(db, userId, displayName, pendingProducts, pendingQuotation);
+      const profileRef = { current: customerProfile };
+      const executeTool = buildExecuteTool(db, userId, displayName, pendingProducts, pendingQuotation, profileRef);
 
       const historyWithUser: MsgHistory = [...history, { role: 'user', parts: [{ text }] }];
 
@@ -1282,7 +1332,7 @@ export default async function handler(req: any, res: any) {
         ...history,
         { role: 'user',  parts: [{ text }] },
         { role: 'model', parts: [{ text: aiText }] },
-      ], db);
+      ], db, profileRef.current);
     } catch (err: any) {
       console.error('[line-agent] error:', err);
       await lineReply(replyToken, [{ type: 'text', text: 'ขออภัยครับ เกิดข้อผิดพลาดชั่วคราว กรุณาลองใหม่อีกครั้งนะครับ 🙏' }], channelToken);
