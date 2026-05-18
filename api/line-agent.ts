@@ -347,8 +347,8 @@ function buildQuotationFlex(q: {
             type: 'box', layout: 'horizontal', margin: 'sm',
             contents: [
               { type: 'text', text: 'รายการสินค้า', size: 'xs', weight: 'bold', flex: 5, color: '#374151' },
-              { type: 'text', text: 'จำนวน', size: 'xs', align: 'center', flex: 1, color: '#374151' },
-              { type: 'text', text: 'รวม', size: 'xs', align: 'end', flex: 3, color: '#374151' },
+              { type: 'text', text: 'จำนวน', size: 'xs', align: 'center', flex: 2, color: '#374151', weight: 'bold' },
+              { type: 'text', text: 'รวม', size: 'xs', align: 'end', flex: 3, color: '#374151', weight: 'bold' },
             ],
           },
           { type: 'separator', margin: 'xs' },
@@ -383,12 +383,25 @@ function buildQuotationFlex(q: {
         ],
       },
       footer: {
-        type: 'box', layout: 'vertical', paddingAll: 'md',
-        contents: [{
-          type: 'text',
-          text: '📞 ติดต่อร้านเพื่อยืนยันใบเสนอราคา',
-          size: 'xs', color: '#6b7280', align: 'center', wrap: true,
-        }],
+        type: 'box', layout: 'vertical', paddingAll: 'md', spacing: 'sm',
+        contents: [
+          {
+            type: 'button',
+            style: 'primary',
+            color: '#0f2a5e',
+            height: 'sm',
+            action: {
+              type: 'uri',
+              label: '🖨️ ดูใบเสนอราคา / ปริ้น PDF',
+              uri: `${SITE_URL}/quotation/${q.quotation_number}`,
+            },
+          },
+          {
+            type: 'text',
+            text: '📞 ติดต่อร้านเพื่อยืนยันใบเสนอราคา',
+            size: 'xs', color: '#6b7280', align: 'center', wrap: true,
+          },
+        ],
       },
     },
   };

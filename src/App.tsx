@@ -41,6 +41,7 @@ const FAQPage         = lazyWithRetry(() => import('./pages/FAQPage').then(m => 
 const ShippingPage    = lazyWithRetry(() => import('./pages/ShippingPage').then(m => ({ default: m.ShippingPage })));
 const ReturnsPage     = lazyWithRetry(() => import('./pages/ReturnsPage').then(m => ({ default: m.ReturnsPage })));
 const WarrantyPage    = lazyWithRetry(() => import('./pages/WarrantyPage').then(m => ({ default: m.WarrantyPage })));
+const QuotationPrintPage = lazyWithRetry(() => import('./pages/QuotationPrintPage').then(m => ({ default: m.default })));
 
 // Admin — all lazy loaded (heaviest, only used by staff)
 const AdminLayout     = lazyWithRetry(() => import('./layouts/AdminLayout').then(m => ({ default: m.AdminLayout })));
@@ -147,6 +148,7 @@ export default function App() {
                       <Route path="returns" element={<ReturnsPage />} />
                       <Route path="warranty" element={<WarrantyPage />} />
                     </Route>
+                    <Route path="/quotation/:quotationNumber" element={<QuotationPrintPage />} />
 
                     <Route path="/admin" element={<AdminLayout />}>
                       <Route index element={<AdminDashboard />} />
