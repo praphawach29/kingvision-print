@@ -58,9 +58,24 @@ export function PaymentModal({ orderId, orderRef, total, paymentMethod, paymentI
   const handleSlipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validate MIME type (real check, not just extension)
+    const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
+    if (!ALLOWED_MIME.includes(file.type)) {
+      alert('กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น (JPG, PNG, WEBP) ครับ');
+      e.target.value = '';
+      return;
+    }
+    // Limit file size to 10 MB
+    if (file.size > 10 * 1024 * 1024) {
+      alert('ไฟล์ต้องมีขนาดไม่เกิน 10 MB ครับ');
+      e.target.value = '';
+      return;
+    }
+
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop();
+      const ext = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
       const path = `payment-slips/${orderId}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from('payment-slips')
