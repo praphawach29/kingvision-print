@@ -51,6 +51,7 @@ interface CustomerRecord {
   email: string;
   notes: string;
   created_at: string;
+  line_user_id?: string;
 }
 
 interface InvoiceRecord {
@@ -365,6 +366,7 @@ export function AdminInvoice() {
   const [customerSearchResults, setCustomerSearchResults] = useState<CustomerRecord[]>([]);
   const [customerSearching, setCustomerSearching] = useState(false);
   const customerSearchRef = useRef<HTMLDivElement>(null);
+  const [customerLineId, setCustomerLineId] = useState('');
 
   // ── History state ──
   const [history, setHistory] = useState<InvoiceRecord[]>([]);
@@ -530,6 +532,7 @@ export function AdminInvoice() {
 
   function pickCustomer(c: CustomerRecord) {
     setCustomer({ name: c.name, company: c.company, address: c.address, phone: c.phone, email: c.email });
+    setCustomerLineId(c.line_user_id || '');
     setCustomerSearchOpen(false);
     setCustomerSearchQuery('');
     setCustomerSearchResults([]);
@@ -645,8 +648,8 @@ export function AdminInvoice() {
     window.open(`mailto:${customer.email}?subject=${subject}&body=${body}`);
   }
 
-  function handleSendLine() {
-    const text = encodeURIComponent(
+  async function handleSendLine() {
+    const lineText =
       `📄 ใบแจ้งหนี้ ${invoiceNumber}\n` +
       `📅 วันที่: ${invoiceDate}\n` +
       `👤 ลูกค้า: ${customer.name}${customer.company ? ` (${customer.company})` : ''}\n\n` +
@@ -654,9 +657,17 @@ export function AdminInvoice() {
       items.map(i => `• ${i.description} x${i.qty} = ${fp(i.qty * i.unitPrice)} บาท`).join('\n') +
       `\n\n💰 ยอดรวม: ${fp(total)} บาท\n` +
       (dueDate ? `⏳ ครบกำหนด: ${fdate(dueDate)}\n\n` : '\n') +
-      `📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`
-    );
-    window.open(`https://line.me/R/msg/text/?${text}`);
+      `📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`;
+    if (customerLineId) {
+      const res = await fetch('/api/send-line-doc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: customerLineId, text: lineText }),
+      });
+      setToast(res.ok ? 'ส่ง LINE OA สำเร็จ' : 'ส่ง LINE ไม่สำเร็จ กรุณาลองใหม่');
+    } else {
+      window.open(`https://line.me/R/msg/text/?${encodeURIComponent(lineText)}`);
+    }
   }
 
   // ── History actions ──
@@ -718,20 +729,36 @@ export function AdminInvoice() {
     window.open(`mailto:${inv.customer_email || ''}?subject=${subject}&body=${body}`);
   }
 
-  function resendLineFromHistory(inv: InvoiceRecord) {
+  async function resendLineFromHistory(inv: InvoiceRecord) {
     const itemLines = (Array.isArray(inv.items) ? inv.items : [])
       .map((i: InvoiceItem) => `• ${i.description} x${i.qty} = ${fp(i.qty * i.unitPrice)} บาท`)
       .join('\n');
-    const text = encodeURIComponent(
+    const lineText =
       `📄 ใบแจ้งหนี้ ${inv.invoice_number}\n` +
       `📅 วันที่: ${fdateShort(inv.invoice_date)}\n` +
       `👤 ลูกค้า: ${inv.customer_name}${inv.customer_company ? ` (${inv.customer_company})` : ''}\n\n` +
       `รายการ:\n${itemLines}\n\n` +
       `💰 ยอดรวม: ${fp(inv.total)} บาท\n` +
       (inv.due_date ? `⏳ ครบกำหนด: ${fdate(inv.due_date)}\n\n` : '\n') +
-      `📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`
-    );
-    window.open(`https://line.me/R/msg/text/?${text}`);
+      `📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`;
+    const { data } = await supabase
+      .from('customers')
+      .select('line_user_id')
+      .eq('name', inv.customer_name)
+      .not('line_user_id', 'is', null)
+      .limit(1)
+      .single();
+    const lineId = data?.line_user_id;
+    if (lineId) {
+      const res = await fetch('/api/send-line-doc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: lineId, text: lineText }),
+      });
+      setToast(res.ok ? 'ส่ง LINE OA สำเร็จ' : 'ส่ง LINE ไม่สำเร็จ กรุณาลองใหม่');
+    } else {
+      window.open(`https://line.me/R/msg/text/?${encodeURIComponent(lineText)}`);
+    }
   }
 
   const filteredHistory = historyFilter === 'all'

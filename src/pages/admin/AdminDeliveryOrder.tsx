@@ -50,6 +50,7 @@ interface CustomerRecord {
   email: string;
   notes: string;
   created_at: string;
+  line_user_id?: string;
 }
 
 interface DeliveryOrderRecord {
@@ -320,6 +321,7 @@ export function AdminDeliveryOrder() {
   const [customerSearchResults, setCustomerSearchResults] = useState<CustomerRecord[]>([]);
   const [customerSearching, setCustomerSearching] = useState(false);
   const customerSearchRef = useRef<HTMLDivElement>(null);
+  const [customerLineId, setCustomerLineId] = useState('');
 
   // ── History ──
   const [history, setHistory] = useState<DeliveryOrderRecord[]>([]);
@@ -469,6 +471,7 @@ export function AdminDeliveryOrder() {
 
   function pickCustomer(c: CustomerRecord) {
     setCustomer({ name: c.name, company: c.company, address: c.address, phone: c.phone });
+    setCustomerLineId(c.line_user_id || '');
     setCustomerSearchOpen(false);
     setCustomerSearchQuery('');
     setCustomerSearchResults([]);
@@ -577,8 +580,8 @@ export function AdminDeliveryOrder() {
     window.open(`mailto:?subject=${subject}&body=${body}`);
   }
 
-  function handleSendLine() {
-    const text = encodeURIComponent(
+  async function handleSendLine() {
+    const lineText =
       `📦 ใบส่งสินค้า ${doNumber}\n` +
       `📅 วันที่: ${doDate}\n` +
       `👤 ลูกค้า: ${customer.name}${customer.company ? ` (${customer.company})` : ''}\n\n` +
@@ -586,9 +589,17 @@ export function AdminDeliveryOrder() {
       items.map(i => `• ${i.description} x${i.qty}${i.remark ? ` (${i.remark})` : ''}`).join('\n') +
       (carrier ? `\n\n🚚 ขนส่ง: ${carrier}` : '') +
       (trackingNumber ? `\n📮 พัสดุ: ${trackingNumber}` : '') +
-      `\n\n📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`
-    );
-    window.open(`https://line.me/R/msg/text/?${text}`);
+      `\n\n📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`;
+    if (customerLineId) {
+      const res = await fetch('/api/send-line-doc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: customerLineId, text: lineText }),
+      });
+      setToast(res.ok ? 'ส่ง LINE OA สำเร็จ' : 'ส่ง LINE ไม่สำเร็จ กรุณาลองใหม่');
+    } else {
+      window.open(`https://line.me/R/msg/text/?${encodeURIComponent(lineText)}`);
+    }
   }
 
   function loadDO(rec: DeliveryOrderRecord) {
@@ -648,20 +659,36 @@ export function AdminDeliveryOrder() {
     window.open(`mailto:?subject=${subject}&body=${body}`);
   }
 
-  function resendLineFromHistory(rec: DeliveryOrderRecord) {
+  async function resendLineFromHistory(rec: DeliveryOrderRecord) {
     const itemLines = (Array.isArray(rec.items) ? rec.items : [])
       .map((i: DeliveryItem) => `• ${i.description} x${i.qty}${i.remark ? ` (${i.remark})` : ''}`)
       .join('\n');
-    const text = encodeURIComponent(
+    const lineText =
       `📦 ใบส่งสินค้า ${rec.do_number}\n` +
       `📅 วันที่: ${fdateShort(rec.created_at)}\n` +
       `👤 ลูกค้า: ${rec.customer_name}${rec.customer_company ? ` (${rec.customer_company})` : ''}\n\n` +
       `รายการ:\n${itemLines}` +
       (rec.carrier ? `\n\n🚚 ขนส่ง: ${rec.carrier}` : '') +
       (rec.tracking_number ? `\n📮 พัสดุ: ${rec.tracking_number}` : '') +
-      `\n\n📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`
-    );
-    window.open(`https://line.me/R/msg/text/?${text}`);
+      `\n\n📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`;
+    const { data } = await supabase
+      .from('customers')
+      .select('line_user_id')
+      .eq('name', rec.customer_name)
+      .not('line_user_id', 'is', null)
+      .limit(1)
+      .single();
+    const lineId = data?.line_user_id;
+    if (lineId) {
+      const res = await fetch('/api/send-line-doc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: lineId, text: lineText }),
+      });
+      setToast(res.ok ? 'ส่ง LINE OA สำเร็จ' : 'ส่ง LINE ไม่สำเร็จ กรุณาลองใหม่');
+    } else {
+      window.open(`https://line.me/R/msg/text/?${encodeURIComponent(lineText)}`);
+    }
   }
 
   const filteredHistory = historyFilter === 'all'

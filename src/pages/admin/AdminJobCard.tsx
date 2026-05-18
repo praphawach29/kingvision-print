@@ -42,6 +42,7 @@ interface CustomerRecord {
   email: string;
   notes: string;
   created_at: string;
+  line_user_id?: string;
 }
 
 interface JobCardRecord {
@@ -381,6 +382,7 @@ export function AdminJobCard() {
   const [customerSearchResults, setCustomerSearchResults] = useState<CustomerRecord[]>([]);
   const [customerSearching, setCustomerSearching] = useState(false);
   const customerSearchRef = useRef<HTMLDivElement>(null);
+  const [customerLineId, setCustomerLineId] = useState('');
 
   // ── History ──
   const [history, setHistory] = useState<JobCardRecord[]>([]);
@@ -459,6 +461,7 @@ export function AdminJobCard() {
 
   function pickCustomer(c: CustomerRecord) {
     setCustomer({ name: c.name, company: c.company, phone: c.phone, email: c.email });
+    setCustomerLineId(c.line_user_id || '');
     setCustomerSearchOpen(false);
     setCustomerSearchQuery('');
     setCustomerSearchResults([]);
@@ -572,17 +575,25 @@ export function AdminJobCard() {
     window.open(`mailto:${customer.email}?subject=${subject}&body=${body}`);
   }
 
-  function handleSendLine() {
-    const text = encodeURIComponent(
+  async function handleSendLine() {
+    const lineText =
       `🔧 ใบแจ้งซ่อม ${jcNumber}\n` +
       `📅 วันที่: ${jcDate}\n` +
       `👤 ลูกค้า: ${customer.name}${customer.company ? ` (${customer.company})` : ''}\n\n` +
       `🖥️ อุปกรณ์: ${equipmentBrand} ${equipmentModel}${equipmentSerial ? ` (S/N: ${equipmentSerial})` : ''}\n` +
       (diagnosis ? `🔍 วินิจฉัย: ${diagnosis}\n` : '') +
       (actualCost > 0 ? `\n💰 ค่าใช้จ่าย: ${fp(actualCost)} บาท\n` : estimatedCost > 0 ? `\n💰 ประมาณ: ${fp(estimatedCost)} บาท\n` : '') +
-      `\n📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`
-    );
-    window.open(`https://line.me/R/msg/text/?${text}`);
+      `\n📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`;
+    if (customerLineId) {
+      const res = await fetch('/api/send-line-doc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: customerLineId, text: lineText }),
+      });
+      setToast(res.ok ? 'ส่ง LINE OA สำเร็จ' : 'ส่ง LINE ไม่สำเร็จ กรุณาลองใหม่');
+    } else {
+      window.open(`https://line.me/R/msg/text/?${encodeURIComponent(lineText)}`);
+    }
   }
 
   function loadJC(rec: JobCardRecord) {
@@ -645,17 +656,33 @@ export function AdminJobCard() {
     window.open(`mailto:${rec.customer_email || ''}?subject=${subject}&body=${body}`);
   }
 
-  function resendLineFromHistory(rec: JobCardRecord) {
-    const text = encodeURIComponent(
+  async function resendLineFromHistory(rec: JobCardRecord) {
+    const lineText =
       `🔧 ใบแจ้งซ่อม ${rec.jc_number}\n` +
       `📅 วันที่: ${fdateShort(rec.created_at)}\n` +
       `👤 ลูกค้า: ${rec.customer_name}${rec.customer_company ? ` (${rec.customer_company})` : ''}\n\n` +
       `🖥️ อุปกรณ์: ${rec.equipment_brand} ${rec.equipment_model}${rec.equipment_serial ? ` (S/N: ${rec.equipment_serial})` : ''}\n` +
       (rec.diagnosis ? `🔍 วินิจฉัย: ${rec.diagnosis}\n` : '') +
       (rec.actual_cost > 0 ? `\n💰 ค่าใช้จ่าย: ${fp(rec.actual_cost)} บาท\n` : rec.estimated_cost > 0 ? `\n💰 ประมาณ: ${fp(rec.estimated_cost)} บาท\n` : '') +
-      `\n📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`
-    );
-    window.open(`https://line.me/R/msg/text/?${text}`);
+      `\n📞 ${storeSettings.store_phone || ''} | ${storeSettings.store_name || 'KingVision'}`;
+    const { data } = await supabase
+      .from('customers')
+      .select('line_user_id')
+      .eq('name', rec.customer_name)
+      .not('line_user_id', 'is', null)
+      .limit(1)
+      .single();
+    const lineId = data?.line_user_id;
+    if (lineId) {
+      const res = await fetch('/api/send-line-doc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: lineId, text: lineText }),
+      });
+      setToast(res.ok ? 'ส่ง LINE OA สำเร็จ' : 'ส่ง LINE ไม่สำเร็จ กรุณาลองใหม่');
+    } else {
+      window.open(`https://line.me/R/msg/text/?${encodeURIComponent(lineText)}`);
+    }
   }
 
   const filteredHistory = historyFilter === 'all'
