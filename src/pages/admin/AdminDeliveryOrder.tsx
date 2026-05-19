@@ -53,6 +53,22 @@ interface CustomerRecord {
   line_user_id?: string;
 }
 
+interface Carrier {
+  id: string;
+  name: string;
+  base_weight: number;
+  base_price: number;
+  extra_per_kg: number;
+  is_active: boolean;
+}
+
+interface DeliveryZone {
+  id: string;
+  name: string;
+  surcharge: number;
+  is_active: boolean;
+}
+
 interface DeliveryOrderRecord {
   id: string;
   do_number: string;
@@ -68,6 +84,10 @@ interface DeliveryOrderRecord {
   notes: string;
   status: 'pending' | 'delivered' | 'returned';
   created_at: string;
+  weight_kg?: number;
+  zone_name?: string;
+  zone_surcharge?: number;
+  shipping_cost?: number;
 }
 
 interface DocProps {
@@ -323,10 +343,28 @@ export function AdminDeliveryOrder() {
   const customerSearchRef = useRef<HTMLDivElement>(null);
   const [customerLineId, setCustomerLineId] = useState('');
 
+  // ── Shipping ──
+  const [carriers, setCarriers] = useState<Carrier[]>([]);
+  const [zones, setZones] = useState<DeliveryZone[]>([]);
+  const [selectedCarrierId, setSelectedCarrierId] = useState('');
+  const [weightKg, setWeightKg] = useState(0);
+  const [selectedZoneId, setSelectedZoneId] = useState('');
+
   // ── History ──
   const [history, setHistory] = useState<DeliveryOrderRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<'all' | DeliveryOrderRecord['status']>('all');
+
+  // ── Computed shipping cost ──
+  const selectedCarrier = carriers.find(c => c.id === selectedCarrierId) || null;
+  const selectedZone = zones.find(z => z.id === selectedZoneId) || null;
+  const baseShipping = selectedCarrier
+    ? (weightKg <= selectedCarrier.base_weight
+        ? selectedCarrier.base_price
+        : selectedCarrier.base_price + (weightKg - selectedCarrier.base_weight) * selectedCarrier.extra_per_kg)
+    : 0;
+  const zoneSurcharge = selectedZone ? selectedZone.surcharge : 0;
+  const shippingCost = baseShipping + zoneSurcharge;
 
   const docProps: DocProps = {
     storeSettings, customer, items, doNumber, doDate, invoiceRef,
@@ -338,6 +376,10 @@ export function AdminDeliveryOrder() {
     supabase.from('store_settings').select('*').single()
       .then(({ data }) => { if (data) setStoreSettings(data); })
       .then(() => setLoadingSettings(false), () => setLoadingSettings(false));
+    supabase.from('carriers').select('id,name,base_weight,base_price,extra_per_kg,is_active').eq('is_active', true).order('name')
+      .then(({ data }) => setCarriers((data as Carrier[]) || []));
+    supabase.from('delivery_zones').select('id,name,surcharge,is_active').eq('is_active', true).order('name')
+      .then(({ data }) => setZones((data as DeliveryZone[]) || []));
   }, []);
 
   useEffect(() => {
@@ -501,6 +543,10 @@ export function AdminDeliveryOrder() {
       tracking_number: trackingNumber,
       notes,
       status,
+      weight_kg: weightKg || 0,
+      zone_name: selectedZone ? selectedZone.name : '',
+      zone_surcharge: zoneSurcharge,
+      shipping_cost: shippingCost,
     };
   }
 
@@ -624,6 +670,9 @@ export function AdminDeliveryOrder() {
       : [{ id: '1', description: '', qty: 1, remark: '' }];
     setItems(loadedItems);
     setNotes(rec.notes);
+    setWeightKg(rec.weight_kg || 0);
+    setSelectedZoneId('');
+    setSelectedCarrierId('');
     setSavedDOId(rec.id);
     setActiveTab('create');
   }
@@ -825,11 +874,28 @@ export function AdminDeliveryOrder() {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500 mb-1 block">ขนส่ง (Carrier)</label>
+                  {carriers.length > 0 && (
+                    <select
+                      value={selectedCarrierId}
+                      onChange={e => {
+                        const id = e.target.value;
+                        setSelectedCarrierId(id);
+                        const found = carriers.find(c => c.id === id);
+                        if (found) setCarrier(found.name);
+                      }}
+                      className="w-full px-3 py-2 mb-1.5 bg-white rounded-xl text-sm border border-kv-navy/20 focus:outline-none focus:border-kv-orange"
+                    >
+                      <option value="">-- เลือกจากรายการขนส่ง --</option>
+                      {carriers.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  )}
                   <input
                     type="text"
                     value={carrier}
-                    onChange={e => setCarrier(e.target.value)}
-                    placeholder="เช่น Kerry, Flash, J&T"
+                    onChange={e => { setCarrier(e.target.value); setSelectedCarrierId(''); }}
+                    placeholder={carriers.length > 0 ? 'หรือพิมพ์ชื่อขนส่ง...' : 'เช่น Kerry, Flash, J&T'}
                     className="w-full px-3 py-2.5 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:outline-none focus:border-kv-orange focus:ring-2 focus:ring-kv-orange/10"
                   />
                 </div>
@@ -843,6 +909,42 @@ export function AdminDeliveryOrder() {
                     className="w-full px-3 py-2.5 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:outline-none focus:border-kv-orange focus:ring-2 focus:ring-kv-orange/10"
                   />
                 </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 mb-1 block">น้ำหนัก (kg)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={weightKg || ''}
+                    onChange={e => setWeightKg(Number(e.target.value))}
+                    placeholder="0.0"
+                    className="w-full px-3 py-2.5 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:outline-none focus:border-kv-orange focus:ring-2 focus:ring-kv-orange/10"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 mb-1 block">โซนพื้นที่</label>
+                  <select
+                    value={selectedZoneId}
+                    onChange={e => setSelectedZoneId(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-gray-50 rounded-xl text-sm border border-gray-100 focus:outline-none focus:border-kv-orange focus:ring-2 focus:ring-kv-orange/10"
+                  >
+                    <option value="">-- ไม่มี --</option>
+                    {zones.map(z => (
+                      <option key={z.id} value={z.id}>{z.name} (+{z.surcharge} ฿)</option>
+                    ))}
+                  </select>
+                </div>
+                {shippingCost > 0 && (
+                  <div className="col-span-2">
+                    <div className="flex items-center justify-between bg-kv-orange/10 rounded-xl px-4 py-3 border border-kv-orange/20">
+                      <div className="text-sm text-gray-600">
+                        <span className="font-bold text-kv-navy">ค่าจัดส่งรวม</span>
+                        {selectedZone && <span className="text-xs text-gray-400 ml-1">({baseShipping} + {zoneSurcharge} โซน)</span>}
+                      </div>
+                      <span className="text-lg font-black text-kv-orange">{shippingCost.toLocaleString('th-TH')} ฿</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
