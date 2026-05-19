@@ -223,12 +223,16 @@ export function ProductPage() {
     setTimeout(() => setIsCopied(false), 2000);
   };
 
+  const plainDescription = normalizeRichTextToPlainText(product.description).slice(0, 155);
+  const productName = product.title || product.name || '';
+  const productImage = product.image_url || product.image || '';
+
   const productSchema = {
     "@context": "https://schema.org/",
     "@type": "Product",
-    "name": product.title || product.name,
+    "name": productName,
     "image": images,
-    "description": product.description,
+    "description": plainDescription,
     "sku": product.sku,
     "brand": {
       "@type": "Brand",
@@ -239,17 +243,29 @@ export function ProductPage() {
       "url": window.location.href,
       "priceCurrency": "THB",
       "price": totalPrice,
-      "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+      "priceValidUntil": new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "seller": { "@type": "Organization", "name": "KingVision Print" }
     }
   };
 
+  const keywordParts = [
+    productName,
+    product.brand,
+    product.category,
+    'ปริ้นเตอร์',
+    'อะไหล่ปริ้นเตอร์',
+    'KingVision',
+  ].filter(Boolean);
+
   return (
     <div className="bg-white min-h-screen pb-16 font-thai">
-      <SEO 
-        title={product.title || product.name}
-        description={product.description}
-        keywords={`${product.title || product.name}, ${product.brand}, ปริ้นเตอร์, อะไหล่ปริ้นเตอร์, KingVision`}
-        image={product.image_url || product.image}
+      <SEO
+        title={productName}
+        description={plainDescription}
+        keywords={keywordParts.join(', ')}
+        image={productImage}
+        imageAlt={productName}
         type="product"
         schema={productSchema}
       />

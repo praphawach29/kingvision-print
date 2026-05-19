@@ -58,13 +58,48 @@ export function BlogPostPage() {
     );
   }
 
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": post.title,
+    "description": post.excerpt,
+    "image": post.image_url,
+    "datePublished": post.created_at,
+    "dateModified": post.created_at,
+    "author": {
+      "@type": "Organization",
+      "name": "KingVision Team",
+      "url": typeof window !== 'undefined' ? window.location.origin : '',
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "KingVision Print",
+      "logo": {
+        "@type": "ImageObject",
+        "url": typeof window !== 'undefined' ? `${window.location.origin}/og-image.jpg` : '/og-image.jpg',
+      },
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": typeof window !== 'undefined' ? window.location.href : '',
+    },
+    "articleSection": post.category,
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen font-thai pb-16">
       <SEO
         title={post.title}
         description={post.excerpt}
         image={post.image_url}
+        imageAlt={post.title}
         type="article"
+        keywords={`${post.category}, บทความ, KingVision Print`}
+        publishedTime={post.created_at}
+        modifiedTime={post.created_at}
+        author="KingVision Team"
+        section={post.category}
+        schema={articleSchema}
       />
       <div className="w-full h-[40vh] md:h-[50vh] relative">
         <img
