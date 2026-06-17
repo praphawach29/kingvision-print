@@ -767,7 +767,7 @@ async function runGemini(
           contents,
           tools: geminiTools,
           systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: { temperature, maxOutputTokens: 800 }
+          generationConfig: { temperature, maxOutputTokens: 3000 }
         })
       }
     );
@@ -841,7 +841,7 @@ async function runOpenAI(
     const r = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model, messages: oaiMessages, tools, temperature, max_tokens: 700 })
+      body: JSON.stringify({ model, messages: oaiMessages, tools, temperature, max_tokens: 3000 })
     });
     const j: any = await r.json();
     if (!r.ok) throw new Error(`OpenAI error: ${j?.error?.message ?? r.status}`);
@@ -894,7 +894,7 @@ async function runAnthropic(
       body: JSON.stringify({
         model, system: systemPrompt,
         messages: anthMessages,
-        tools, max_tokens: 700, temperature
+        tools, max_tokens: 3000, temperature
       })
     });
     const j: any = await r.json();
