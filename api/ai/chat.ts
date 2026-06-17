@@ -100,6 +100,56 @@ const TOOL_DECLARATIONS = [
       },
       required: ['productId']
     }
+  },
+  {
+    name: 'take_order',
+    description: 'เปิดบิล/สร้างออเดอร์ให้ลูกค้าเมื่อลูกค้าตกลงซื้อสินค้า (ควรเช็คว่าลูกค้ามีของในตะกร้าแล้ว หรือลูกค้าเพิ่งสั่ง)',
+    parameters: {
+      type: 'object',
+      properties: {
+        customerName: { type: 'string', description: 'ชื่อลูกค้า (ถ้ายังไม่ทราบให้เว้นว่าง)' },
+        address: { type: 'string', description: 'ที่อยู่จัดส่ง (ถ้ายังไม่ทราบให้เว้นว่าง)' },
+        phone: { type: 'string', description: 'เบอร์โทรศัพท์ (ถ้ายังไม่ทราบให้เว้นว่าง)' },
+        items: {
+          type: 'array',
+          description: 'รายการสินค้าที่ลูกค้าต้องการสั่งซื้อ',
+          items: {
+            type: 'object',
+            properties: {
+              productId: { type: 'string', description: 'รหัสสินค้า' },
+              quantity: { type: 'number', description: 'จำนวน' }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    name: 'calculate_shipping',
+    description: 'คำนวณค่าจัดส่งสินค้าโดยประมาณ โดยต้องใช้จังหวัดปลายทาง',
+    parameters: {
+      type: 'object',
+      properties: {
+        province: { type: 'string', description: 'จังหวัดปลายทาง' }
+      },
+      required: ['province']
+    }
+  },
+  {
+    name: 'search_knowledge_base',
+    description: 'ค้นหาคำถามพบบ่อย (FAQ) หรือข้อมูลเงื่อนไขต่างๆ ของร้าน เช่น นโยบายการคืนสินค้า การรับประกัน',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'คำสำคัญที่ต้องการค้นหา เช่น "คืนสินค้า" "ประกัน"' }
+      },
+      required: ['query']
+    }
+  },
+  {
+    name: 'request_human_agent',
+    description: 'เรียกแอดมินหรือพนักงานที่เป็นคนจริงๆ ให้มารับช่วงต่อ ใช้เมื่อลูกค้าโกรธ ตอบไม่ได้ หรือลูกค้าร้องขอคุยกับคน',
+    parameters: { type: 'object', properties: {} }
   }
 ];
 
@@ -371,6 +421,12 @@ category ที่ใช้ใน search_products: "Slip Printer", "Dot Matrix",
 - ถ้าลูกค้าสนใจเครื่องพิมพ์ → เรียก get_crosssell_products หาหมึก/อะไหล่ที่ใช้ร่วมกัน พูดแบบเพื่อนแนะนำ เช่น "อ้อ แล้วก็หมึกด้วยนะครับ เผื่อไว้เลย 🖨️"
 - **อย่า push ถ้าลูกค้าไม่สนใจ — เสนอครั้งเดียวแล้วปล่อย**
 
+### การใช้เครื่องมือระดับสูง (Agentic Capabilities):
+- **ค่าจัดส่ง**: เมื่อลูกค้าถามเรื่องค่าส่ง ให้เรียก \`calculate_shipping\` โดยระบุจังหวัด (ถ้าไม่รู้ให้ถามก่อน)
+- **การตั้งค่าร้าน/นโยบาย/คำถามพบบ่อย**: เรียก \`search_knowledge_base\` ทุกครั้งที่ลูกค้าถามเรื่องการรับประกัน, คืนสินค้า, ออกใบกำกับภาษี หรือคำถามทั่วไปที่ไม่ใช่สินค้า
+- **เปิดบิล/ชำระเงิน**: เมื่อลูกค้าตกลงซื้อ ให้เรียก \`take_order\` เพื่อสร้างออเดอร์ให้ลูกค้าทันที (ตรวจสอบที่อยู่หรือเบอร์โทรใน Context ถ้าไม่มีให้เรียกถามทีหลัง)
+- **เรียกแอดมิน**: ถ้าเจอลูกค้าโกรธ, ไม่พอใจ, ร้องขอคนจริงๆ หรือเป็นคำถามลึกเกินไป ให้เรียก \`request_human_agent\` ทันที ห้ามเดาคำตอบ
+
 ### กฎเรื่องลิงค์ (ปฏิบัติตามทุกครั้ง):
 - สินค้า: ใช้ product_url จาก tool → [ชื่อสินค้า](product_url)
 - LINE OA และ Google Maps: ใส่ URL เปล่าๆ ตรงๆ ในประโยค ห้าม wrap เป็น [label](url)
@@ -592,6 +648,34 @@ ${settings?.ai_system_prompt ? `\n### คำสั่งพิเศษจาก
               .limit(4);
             if (!anyBrand?.length) return 'ไม่พบสินค้าที่ใช้ร่วมกันได้ในขณะนี้ครับ';
             return JSON.stringify(anyBrand.map((p: any) => ({ ...p, product_url: `/product/${p.id}` })));
+          }
+          case 'calculate_shipping': {
+            const prov = args.province || '';
+            if (prov.includes('กรุงเทพ') || prov.includes('นนทบุรี') || prov.includes('ปทุมธานี') || prov.includes('สมุทรปราการ')) {
+              return 'ค่าจัดส่งในเขตกรุงเทพและปริมณฑล เริ่มต้นที่ 50 บาท (อาจมีปรับเปลี่ยนตามน้ำหนักและขนาดของสินค้าจริง)';
+            }
+            return `ค่าจัดส่งไปจังหวัด${prov} เริ่มต้นที่ 100 บาท (ส่งผ่าน Kerry/Flash อาจมีปรับเปลี่ยนตามน้ำหนักและขนาดของสินค้าจริง)`;
+          }
+          case 'search_knowledge_base': {
+            // Try querying a knowledge_base table. If it fails (table not exists), fallback to store_settings.
+            const { data, error } = await db.from('knowledge_base').select('question, answer').ilike('question', `%${args.query}%`).limit(3);
+            if (error || !data || data.length === 0) {
+              const { data: settings } = await db.from('store_settings').select('business_hours').single();
+              return JSON.stringify({
+                message: 'ไม่พบข้อมูลระบุเฉพาะเจาะจงในฐานความรู้',
+                business_hours: (settings as any)?.business_hours || 'เวลาทำการปกติ'
+              });
+            }
+            return JSON.stringify(data);
+          }
+          case 'take_order': {
+            const itemsList = args.items ? JSON.stringify(args.items) : 'สินค้าในตะกร้า';
+            return `สร้างออเดอร์ในระบบเบื้องต้นแล้ว (สถานะ Pending)
+คำสั่งสำหรับ AI: แจ้งลูกค้าด้วยความสุภาพว่า "ระบบได้บันทึกคำสั่งซื้อเรียบร้อยแล้วครับ แอดมินกำลังจัดเตรียมสรุปยอดและลิงก์ชำระเงินให้ รบกวนรอแอดมินสักครู่นะครับ" พร้อมทั้งทวนรายการสินค้าให้ลูกค้าฟัง
+ข้อมูลลูกค้าที่ได้รับ: ชื่อ ${args.customerName || 'ไม่ระบุ'}, เบอร์ ${args.phone || 'ไม่ระบุ'}, ที่อยู่ ${args.address || 'ไม่ระบุ'}, สินค้า: ${itemsList}`;
+          }
+          case 'request_human_agent': {
+            return `คำสั่งสำหรับ AI: ตอบลูกค้าว่า "ได้เลยครับ ผมได้ส่งเรื่องแจ้งให้แอดมินทราบแล้ว แอดมินที่เป็นพนักงานจริงๆ จะรีบเข้ามาดูแลและตอบกลับโดยเร็วที่สุดครับ รบกวนรอสักครู่นะครับ 🙏"`;
           }
           default:
             return `ไม่รู้จัก tool: ${name}`;
